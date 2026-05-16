@@ -1,0 +1,413 @@
+/* ==========================================================================
+   VOCÊ REPÓRTER PREMIUM (Estilo G1 VC / O Povo)
+   ========================================================================== */
+
+/* Layout Base */
+.reporter-premium-main {
+  background-color: #f4f6f8;
+  min-height: 100vh;
+  padding-bottom: 80px;
+  font-family: var(--edit-font-sans, "Inter", sans-serif);
+}
+
+/* 1. HERO SECTION */
+.reporter-hero {
+  background: white;
+  color: #111;
+  padding: 60px 20px 80px;
+  text-align: center;
+  position: relative;
+  border-bottom: 1px solid #eee;
+}
+
+.reporter-hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.reporter-hero-icon {
+  font-size: 40px;
+  color: var(--laranja);
+  margin-bottom: 16px;
+}
+
+.reporter-hero-title {
+  font-size: clamp(36px, 5vw, 48px);
+  font-weight: 900;
+  margin: 0 0 16px;
+  letter-spacing: -1px;
+  color: #111;
+}
+
+.reporter-hero-subtitle {
+  font-size: clamp(18px, 2vw, 20px);
+  color: #555;
+  font-weight: 400;
+  line-height: 1.5;
+  margin: 0 0 32px;
+}
+
+.hero-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  background: #f8f9fa;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.stat-badge i {
+  color: var(--laranja);
+}
+
+/* 2. LAYOUT GRID (Formulário + Sidebar) */
+.reporter-grid {
+  max-width: 1100px;
+  margin: -40px auto 0;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 30px;
+  position: relative;
+  z-index: 10;
+  align-items: start;
+}
+
+/* 3. CARD DO FORMULÁRIO */
+.reporter-form-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+  border: 1px solid #eee;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-label i {
+  color: var(--laranja);
+  font-size: 16px;
+}
+
+/* 4. INPUTS MODERNOS */
+.premium-input {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  outline: none;
+}
+
+.premium-input:focus {
+  background: white;
+  border-color: var(--laranja);
+  box-shadow: 0 0 0 4px rgba(255, 87, 34, 0.1);
+}
+
+.premium-input::placeholder {
+  color: #adb5bd;
+}
+
+/* 5. UPLOAD DRAG AND DROP */
+.upload-area {
+  border: 2px dashed #ced4da;
+  border-radius: 8px;
+  background: #f8f9fa;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.upload-area:hover, .upload-area.drag-active {
+  border-color: var(--laranja);
+  background: rgba(255, 87, 34, 0.02);
+}
+
+.upload-icon {
+  font-size: 32px;
+  color: var(--laranja);
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.upload-subtext {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.hidden-file-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #e3f2fd;
+  color: #0d47a1;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 6. TEXTAREA PROFISSIONAL */
+.premium-textarea {
+  resize: vertical;
+  min-height: 150px;
+  line-height: 1.6;
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #888;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+/* 7. TERMOS E BOTÃO */
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 30px 0;
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.premium-checkbox {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--laranja);
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.checkbox-label strong {
+  color: #000;
+}
+
+.btn-submit-premium {
+  background: var(--laranja);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 16px 32px;
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.btn-submit-premium:hover {
+  background: #e64a19;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255, 87, 34, 0.3);
+}
+
+.btn-submit-premium:active {
+  transform: translateY(0);
+}
+
+.btn-loading i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  100% { transform: rotate(360deg); }
+}
+
+/* 8. SIDEBAR E CONFIANÇA */
+.reporter-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-box {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
+}
+
+.sidebar-box-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sidebar-box-title i {
+  color: var(--laranja);
+}
+
+.trust-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trust-list li {
+  font-size: 14px;
+  color: #555;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.4;
+}
+
+.trust-list i.fa-check-circle {
+  color: #2e7d32;
+  margin-top: 3px;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.faq-item h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 4px;
+}
+
+.faq-item p {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Estado de Sucesso */
+.success-banner {
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: #2e7d32;
+  margin-top: 24px;
+  animation: fadeIn 0.5s ease;
+}
+
+.success-banner i {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.success-banner h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.success-banner p {
+  margin: 0;
+  font-size: 14px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 900px) {
+  .reporter-grid {
+    grid-template-columns: 1fr;
+    margin-top: -20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .reporter-form-card {
+    padding: 24px;
+  }
+  
+  .reporter-hero {
+    padding: 40px 20px 60px;
+  }
+}
