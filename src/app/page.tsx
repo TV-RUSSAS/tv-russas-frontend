@@ -99,7 +99,7 @@ export default async function Home() {
       >
         <Link href="#" className="premium-ad-container-v2">
           <Image
-            src={getImagePath("banner2.png")}
+            src={getImagePath("anuncios/banner2.png")}
             alt="Patrocínio Premium"
             width={1280}
             height={120}
@@ -146,7 +146,7 @@ export default async function Home() {
               className="premium-ad-container-v2"
             >
               <Image
-                src={getImagePath("Anuncio1.png")}
+                src={getImagePath("anuncios/Anuncio1.png")}
                 alt="Publicidade Governo do Ceará"
                 width={1280}
                 height={140}
@@ -287,7 +287,7 @@ export default async function Home() {
               className="sidebar-ad-box"
             >
               <Image
-                src={getImagePath("tv.jpg")}
+                src={getImagePath("sistema/tv.jpg")}
                 alt="TV Russas no Instagram"
                 fill
                 sizes="300px"

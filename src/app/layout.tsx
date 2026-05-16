@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "TV Russas - O portal de notícias da sua cidade",
   description: "Informação com credibilidade e agilidade em Russas e região.",
   icons: {
-    icon: "https://tv-russas-backend-production.up.railway.app/uploads/Logo%20Tv%20Russas_Sem%20fundo.png",
+    icon: "https://tv-russas-backend-production.up.railway.app/uploads/sistema/Logo%20Tv%20Russas_Sem%20fundo.png",
   },
 };
 

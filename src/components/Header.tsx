@@ -58,7 +58,7 @@ export function Header() {
           <div className="header-top-inner">
             <Link href="/" className="logo-wrapper">
               <Image
-                src={getImagePath(encodeURI("Logo Tv Russas_Sem fundo.png"))}
+                src={getImagePath(encodeURI("sistema/Logo Tv Russas_Sem fundo.png"))}
                 alt="TV Russas"
                 width={200}
                 height={56}
