@@ -3,6 +3,7 @@ import Image from "next/image";
 import PremiumCard from "@/components/PremiumCard";
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
+import { getImagePath } from "@/utils/imagePath";
 
 // --- COMPONENTES UI ---
 
@@ -98,7 +99,7 @@ export default async function Home() {
       >
         <Link href="#" className="premium-ad-container-v2">
           <Image
-            src="/uploads/banner2.png"
+            src={getImagePath("banner2.png")}
             alt="Patrocínio Premium"
             width={1280}
             height={120}
@@ -145,7 +146,7 @@ export default async function Home() {
               className="premium-ad-container-v2"
             >
               <Image
-                src="/uploads/Anuncio1.png"
+                src={getImagePath("Anuncio1.png")}
                 alt="Publicidade Governo do Ceará"
                 width={1280}
                 height={140}
@@ -286,7 +287,7 @@ export default async function Home() {
               className="sidebar-ad-box"
             >
               <Image
-                src="/uploads/tv.jpg"
+                src={getImagePath("tv.jpg")}
                 alt="TV Russas no Instagram"
                 fill
                 sizes="300px"

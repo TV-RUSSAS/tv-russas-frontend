@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SearchInput } from "./SearchInput";
+import { getImagePath } from "@/utils/imagePath";
 
 const CATEGORIAS = [
   { label: "Cidade", slug: "cidade" },
@@ -57,7 +58,7 @@ export function Header() {
           <div className="header-top-inner">
             <Link href="/" className="logo-wrapper">
               <Image
-                src="/uploads/Logo Tv Russas_Sem fundo.png"
+                src={getImagePath(encodeURI("Logo Tv Russas_Sem fundo.png"))}
                 alt="TV Russas"
                 width={200}
                 height={56}
