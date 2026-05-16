@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '3001',
       },
+      {
+        protocol: 'https',
+        hostname: 'tv-russas-backend-production.up.railway.app',
+      },
     ],
   },
 };

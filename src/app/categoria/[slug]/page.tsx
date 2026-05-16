@@ -29,14 +29,14 @@ async function getNoticias(slug: string): Promise<Noticia[]> {
 }
 
 const BANNERS_CATEGORIA: Record<string, string> = {
-  cidade: '/uploads/Anuncio1.png',
-  politica: '/banners/banner2.png',
-  esporte: '/uploads/Anuncio1.png',
-  entretenimento: '/banners/banner2.png',
-  policia: '/uploads/Anuncio1.png',
-  youtube: '/banners/banner2.png',
-  brasil: '/uploads/Anuncio1.png',
-  ceara: '/banners/banner2.png',
+  cidade: 'Anuncio1.png',
+  politica: 'banner2.png',
+  esporte: 'Anuncio1.png',
+  entretenimento: 'banner2.png',
+  policia: 'Anuncio1.png',
+  youtube: 'banner2.png',
+  brasil: 'Anuncio1.png',
+  ceara: 'banner2.png',
 };
 
 export default async function CategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -47,14 +47,14 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
   const noticias = await getNoticias(slug);
   const data = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  const bannerImg = BANNERS_CATEGORIA[slug] || '/uploads/Anuncio1.png';
+  const bannerImg = BANNERS_CATEGORIA[slug] || 'Anuncio1.png';
 
   return (
     <div className="site-container">
       {/* BANNER TOPO: RODÍZIO POR CATEGORIA */}
       <div className="banner-anuncio" style={{ marginBottom: '30px' }}>
         <Image 
-          src={bannerImg} 
+          src={getImagePath(bannerImg)} 
           alt={`Patrocínio ${nome}`} 
           width={1280} 
           height={140} 
