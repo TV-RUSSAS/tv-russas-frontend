@@ -1057,6 +1057,27 @@ body {
   letter-spacing: 0.5px;
 }
 
+.footer-logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.footer-logo-img {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.footer-logo-text {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
 .footer-section p,
 .footer-section li {
   font-size: 13px;
@@ -1149,8 +1170,14 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
   .footer-inner {
-    grid-template-columns: 1fr;
-    gap: 24px;
+    grid-template-columns: repeat(2, 1fr); /* Divisão em 2 colunas super elegante no celular */
+    gap: 32px 20px;
+  }
+  .footer-section:first-child {
+    grid-column: 1 / -1; /* O bloco principal da marca TV Russas ocupa a largura total no topo */
+    border-bottom: 1px solid #222;
+    padding-bottom: 24px;
+    margin-bottom: 8px;
   }
 }
 
