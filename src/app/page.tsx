@@ -99,7 +99,7 @@ export default async function Home() {
       >
         <Link href="#" className="premium-ad-container-v2">
           <Image
-            src={getImagePath("anuncios/banner2.png")}
+            src={getImagePath("anuncio/banner2.png")}
             alt="Patrocínio Premium"
             width={1280}
             height={120}
@@ -146,7 +146,7 @@ export default async function Home() {
               className="premium-ad-container-v2"
             >
               <Image
-                src={getImagePath("anuncios/Anuncio1.png")}
+                src={getImagePath("anuncio/Anuncio1.png")}
                 alt="Publicidade Governo do Ceará"
                 width={1280}
                 height={140}
@@ -156,6 +156,7 @@ export default async function Home() {
               />
             </Link>
           </div>
+
 
           {cidade.length > 0 && (
             <section className="premium-section bg-light-gray rounded-box">

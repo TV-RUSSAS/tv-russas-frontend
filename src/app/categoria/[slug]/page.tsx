@@ -29,14 +29,14 @@ async function getNoticias(slug: string): Promise<Noticia[]> {
 }
 
 const BANNERS_CATEGORIA: Record<string, string> = {
-  cidade: 'anuncios/Anuncio1.png',
-  politica: 'anuncios/banner2.png',
-  esporte: 'anuncios/Anuncio1.png',
-  entretenimento: 'anuncios/banner2.png',
-  policia: 'anuncios/Anuncio1.png',
-  youtube: 'anuncios/banner2.png',
-  brasil: 'anuncios/Anuncio1.png',
-  ceara: 'anuncios/banner2.png',
+  cidade: 'anuncio/Anuncio1.png',
+  politica: 'anuncio/banner2.png',
+  esporte: 'anuncio/Anuncio1.png',
+  entretenimento: 'anuncio/banner2.png',
+  policia: 'anuncio/Anuncio1.png',
+  youtube: 'anuncio/banner2.png',
+  brasil: 'anuncio/Anuncio1.png',
+  ceara: 'anuncio/banner2.png',
 };
 
 export default async function CategoriaPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -47,7 +47,7 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
   const noticias = await getNoticias(slug);
   const data = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  const bannerImg = BANNERS_CATEGORIA[slug] || 'anuncios/Anuncio1.png';
+  const bannerImg = BANNERS_CATEGORIA[slug] || 'anuncio/Anuncio1.png';
 
   return (
     <div className="site-container">
