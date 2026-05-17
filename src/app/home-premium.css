@@ -154,6 +154,10 @@
     margin: 20px auto;
     padding: 0 16px;
   }
+  .premium-ad-full-v2 {
+    height: 50px !important; /* Altura padrão de banner mobile (320x50) */
+    object-fit: fill !important; /* Ajusta a imagem inteira na tela sem cortar nenhuma logo ou texto das laterais */
+  }
 }
 
 /* PUBLICIDADE */

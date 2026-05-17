@@ -90,7 +90,7 @@ body {
 }
 
 .logo-text {
-  font-size: 28px;
+  font-size: 18px; /* Tamanho elegante para mobile ao lado do ícone circular */
   font-weight: 900;
   background: linear-gradient(90deg, #ff5722 0%, #ff1744 100%);
   -webkit-background-clip: text;
@@ -99,12 +99,12 @@ body {
   letter-spacing: -0.8px;
   white-space: nowrap;
   text-transform: uppercase;
-  display: none; /* Oculto no mobile por padrão */
+  display: block; /* Sempre visível ao lado do ícone */
 }
 
 @media (min-width: 640px) {
   .logo-text {
-    display: block;
+    font-size: 28px; /* Tamanho clássico grande para desktop */
   }
 }
 
@@ -522,6 +522,13 @@ body {
   display: block;
   width: 100%;
   transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 768px) {
+  .banner-anuncio img {
+    height: 55px !important; /* Altura ideal responsiva */
+    object-fit: fill !important; /* Ajusta a imagem inteira sem cortes */
+  }
 }
 
 .banner-anuncio a:hover {
