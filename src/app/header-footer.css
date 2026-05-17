@@ -234,6 +234,7 @@
 
     .logo-img {
         height: 45px;
+        width: auto;
     }
 
     .logo-text {

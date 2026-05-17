@@ -23,6 +23,7 @@ export function Footer() {
             <li><Link href="/categoria/entretenimento">Entretenimento</Link></li>
             <li><Link href="/categoria/policia">Polícia</Link></li>
             <li><Link href="/categoria/youtube">YouTube</Link></li>
+            <li><Link href="/categoria/brasil">Brasil</Link></li>
             <li><Link href="/categoria/ceara">Ceará</Link></li>
           </ul>
         </div>

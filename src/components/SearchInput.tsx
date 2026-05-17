@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, X } from "lucide-react";
 import { API_URL } from "@/services/api";
 import { getImagePath } from "@/utils/imagePath";
 
@@ -22,7 +21,29 @@ export function SearchInput() {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const [prevPathname, setPrevPathname] = useState(pathname);
+
+  // Sincronizar o input com a URL na página de busca, ou limpar ao navegar para outras páginas (Padrão recomendado pelo React 'during render')
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    if (pathname === "/search") {
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get("q");
+        if (q && q !== query) {
+          setQuery(q);
+        }
+      }
+    } else {
+      if (query !== "") {
+        setQuery("");
+      }
+      setIsOpen(false);
+    }
+  }
 
   // Debounce search
   useEffect(() => {

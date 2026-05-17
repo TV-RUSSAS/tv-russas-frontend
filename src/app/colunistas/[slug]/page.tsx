@@ -82,12 +82,13 @@ export default async function ColunistaPerfil({
         }}>
           <div style={{ width: '6px', height: '30px', background: '#ff5722' }}></div>
           <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#111', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Artigos Publicados
+            Notícias Publicadas
           </h2>
         </div>
 
         <div className="noticias-feed" style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
-          {noticiasColunista.length > 0 ? (            noticiasColunista.map((n: Noticia) => (
+          {noticiasColunista.length > 0 ? (
+            noticiasColunista.map((n: Noticia) => (
               <Link
                 key={n.id}
                 href={`/noticia/${n.slug}`}
@@ -184,7 +185,7 @@ export default async function ColunistaPerfil({
             ))
           ) : (
             <div style={{ padding: '80px 20px', textAlign: 'center', background: '#f8fafc', borderRadius: '20px', color: '#94a3b8', border: '2px dashed #e2e8f0' }}>
-              <p style={{ fontSize: '18px', fontWeight: '500' }}>Este colunista ainda não possui artigos publicados.</p>
+              <p style={{ fontSize: '18px', fontWeight: '500' }}>Este colunista ainda não possui notícias publicadas.</p>
             </div>
           )}
         </div>

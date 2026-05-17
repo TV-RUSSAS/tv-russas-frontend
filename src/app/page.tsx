@@ -75,20 +75,20 @@ export default async function Home() {
     return noticiasRaw
       .filter(
         (n) =>
-          !exibidasIds.has(n.id) &&
-          (n.categoria.slug.toLowerCase() === slug.toLowerCase() ||
-            n.categoria.nome.toLowerCase() === slug.toLowerCase()),
+          n.categoria.slug.toLowerCase() === slug.toLowerCase() ||
+          n.categoria.nome.toLowerCase() === slug.toLowerCase(),
       )
       .slice(0, limit);
   };
-  const politica = getCategory("politica");
-  const cidade = getCategory("cidade");
-  const esporte = getCategory("esporte");
-  const brasil = getCategory("brasil");
-  const entretenimento = getCategory("entretenimento");
-  const policia = getCategory("policia");
-  const youtube = getCategory("youtube");
-  const ceara = getCategory("ceara");
+
+  const politica = getCategory("politica", 3);
+  const cidade = getCategory("cidade", 3);
+  const esporte = getCategory("esporte", 3);
+  const brasil = getCategory("brasil", 3);
+  const entretenimento = getCategory("entretenimento", 3);
+  const policia = getCategory("policia", 3);
+  const youtube = getCategory("youtube", 3);
+  const ceara = getCategory("ceara", 3);
 
   return (
     <main className="premium-home">
@@ -164,9 +164,10 @@ export default async function Home() {
               <div className="news-grid-mixed">
                 {cidade[0] && <PremiumCard noticia={cidade[0]} size="medium" />}
                 <div className="mixed-list">
-                  {cidade.slice(1).map((n) => (
+                  {cidade.slice(1, 3).map((n) => (
                     <PremiumCard key={n.slug} noticia={n} size="list" />
                   ))}
+
                 </div>
               </div>
             </section>
@@ -180,7 +181,7 @@ export default async function Home() {
                   <PremiumCard noticia={politica[0]} size="medium" />
                 )}
                 <div className="mixed-list">
-                  {politica.slice(1, 4).map((n) => (
+                  {politica.slice(1, 3).map((n) => (
                     <PremiumCard key={n.slug} noticia={n} size="list" />
                   ))}
                 </div>
@@ -243,7 +244,7 @@ export default async function Home() {
               <div className="news-grid-mixed">
                 {youtube[0] && <PremiumCard noticia={youtube[0]} size="medium" />}
                 <div className="mixed-list">
-                  {youtube.slice(1, 4).map((n) => (
+                  {youtube.slice(1, 3).map((n) => (
                     <PremiumCard key={n.slug} noticia={n} size="list" />
                   ))}
                 </div>
@@ -260,7 +261,7 @@ export default async function Home() {
               <div className="news-grid-mixed">
                 {ceara[0] && <PremiumCard noticia={ceara[0]} size="medium" />}
                 <div className="mixed-list">
-                  {ceara.slice(1, 4).map((n) => (
+                  {ceara.slice(1, 3).map((n) => (
                     <PremiumCard key={n.slug} noticia={n} size="list" />
                   ))}
                 </div>

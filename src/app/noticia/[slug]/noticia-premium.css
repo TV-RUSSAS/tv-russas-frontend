@@ -342,8 +342,53 @@
 
 /* Ênfase e Links Internos */
 .article-body-content strong {
-  font-weight: 700;
-  color: #000;
+  font-family: var(--edit-font-serif) !important; /* Mesma fonte serifada do corpo */
+  font-weight: 700 !important;
+  color: #000000 !important; /* Mais escura que o texto normal, como na imagem */
+}
+
+/* Subtítulos/Tópicos de Destaque no corpo da matéria (Como na primeira imagem de referência) */
+.article-body-content h3.article-subheading {
+  display: block !important;
+  font-family: var(--edit-font-sans), sans-serif !important; /* Fonte diferente (sans-serif) */
+  font-size: 22px !important; /* Tamanho proporcional e punchy */
+  font-weight: 900 !important; /* Super negrito */
+  color: #081c24 !important; /* Cor escura e sofisticada */
+  text-transform: uppercase !important; /* Caixa alta (ALL CAPS) como na primeira imagem */
+  margin-top: 40px !important;
+  margin-bottom: 12px !important;
+  line-height: 1.3 !important;
+  letter-spacing: 0.5px !important; /* Leve espaçamento moderno */
+}
+
+/* Resetar estilo de forma extremamente robusta para as atribuições de fonte/autor no final da página */
+.article-body-content .article-source-attribution,
+.article-body-content .article-author-attribution,
+.article-body-content p.article-source-attribution,
+.article-body-content p.article-author-attribution,
+.article-body-content p.article-source-attribution > strong:only-child,
+.article-body-content p.article-author-attribution > strong:only-child,
+.article-body-content p.article-source-attribution > b:only-child,
+.article-body-content p.article-author-attribution > b:only-child,
+.article-body-content .article-source-attribution *,
+.article-body-content .article-author-attribution * {
+  display: inline !important;
+  font-family: var(--edit-font-serif) !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  color: #000000 !important;
+  text-transform: none !important; /* Desativa caixa alta */
+  margin: 0 !important;
+  padding: 0 !important;
+  letter-spacing: normal !important;
+}
+
+/* Garante o comportamento de bloco e margens elegantes apenas para os parágrafos de atribuição */
+.article-body-content p.article-source-attribution,
+.article-body-content p.article-author-attribution {
+  display: block !important;
+  margin-top: 24px !important;
+  margin-bottom: 8px !important;
 }
 
 .article-body-content a {

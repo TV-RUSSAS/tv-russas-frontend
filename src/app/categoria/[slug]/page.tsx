@@ -48,20 +48,36 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
   const data = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   const bannerImg = BANNERS_CATEGORIA[slug] || 'anuncio/Anuncio1.png';
+  const isClickable = bannerImg === 'anuncio/Anuncio1.png';
+  const adLink = 'https://dinheironamao.trabalho.ce.gov.br';
 
   return (
     <div className="site-container">
       {/* BANNER TOPO: RODÍZIO POR CATEGORIA */}
       <div className="banner-anuncio" style={{ marginBottom: '30px' }}>
-        <Image 
-          src={getImagePath(bannerImg)} 
-          alt={`Patrocínio ${nome}`} 
-          width={1280} 
-          height={140} 
-          style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
-          unoptimized={true}
-          priority 
-        />
+        {isClickable ? (
+          <a href={adLink} target="_blank" rel="noopener noreferrer">
+            <Image 
+              src={getImagePath(bannerImg)} 
+              alt={`Patrocínio ${nome}`} 
+              width={1280} 
+              height={140} 
+              style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
+              unoptimized={true}
+              priority 
+            />
+          </a>
+        ) : (
+          <Image 
+            src={getImagePath(bannerImg)} 
+            alt={`Patrocínio ${nome}`} 
+            width={1280} 
+            height={140} 
+            style={{ width: '100%', height: 'auto', borderRadius: '8px' }} 
+            unoptimized={true}
+            priority 
+          />
+        )}
       </div>
 
       <div className="categoria-header">

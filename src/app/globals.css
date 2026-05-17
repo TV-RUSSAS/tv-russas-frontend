@@ -41,6 +41,8 @@ body {
   z-index: 1000;
   background: var(--branco);
   width: 100%;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 /* LINHA LARANJA MESTRA FIXA NO TOPO */
@@ -82,6 +84,7 @@ body {
 @media (min-width: 768px) {
   .logo-img {
     height: 56px;
+    width: auto;
     max-width: none;
   }
 }
@@ -423,6 +426,7 @@ body {
 .category-nav {
   background: var(--branco);
   border: none !important;
+  box-shadow: none !important;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top;
   max-height: 54px;
@@ -517,6 +521,11 @@ body {
 .banner-anuncio a {
   display: block;
   width: 100%;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.banner-anuncio a:hover {
+  opacity: 0.85;
 }
 
 /* ===== HOME GRID ===== */

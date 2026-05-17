@@ -9,6 +9,84 @@ import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleF
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
 
+function formatArticleContent(htmlContent: string): string {
+  let content = htmlContent.trim();
+
+  // 0. Remover qualquer linha bruta e sem estilo de autor (ex: "TV Russas", "Portal TV Russas", "Publicado por: TV Russas") do final do texto para evitar duplicidade
+  // Caso A: Parágrafo no final absoluto
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/gi,
+    ""
+  );
+  // Caso B: Linha após br ou quebra de linha no final absoluto
+  content = content.replace(
+    /(?:<br\s*\/?>|\n)\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*$/gi,
+    ""
+  );
+  // Caso C: Parágrafo genérico nos últimos 150 caracteres
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
+    (match, p1, offset, string) => {
+      const actualOffset = typeof p1 === "number" ? p1 : offset;
+      if (actualOffset > string.length - 150) {
+        return "";
+      }
+      return match;
+    }
+  );
+
+  // 1. Substituir "TV Russas" (ou variações) no final por "Publicado por: TV Russas" com classe de atribuição e negrito limpo (sem aninhamento)
+  // Caso 1: Dentro de um parágrafo no final absoluto da string
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/i,
+    '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>'
+  );
+
+  // Caso 2: Precedido por <br /> ou quebra de linha no final absoluto da string
+  content = content.replace(
+    /(?:<br\s*\/?>|\n)\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*$/i,
+    '<br /><strong class="article-author-attribution">Publicado por: TV Russas</strong>'
+  );
+
+  // Caso 3: Dentro de um parágrafo genérico localizado nos últimos 150 caracteres (caso haja espaços/tags vazias depois)
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
+    (match, p1, offset, string) => {
+      if (offset > string.length - 150) {
+        return '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
+      }
+      return match;
+    }
+  );
+
+  // 2. Colocar a linha inteira da "Fonte: [Nome]" em negrito com classe de atribuição e sem aninhamento
+  // Caso 1: Fonte dentro de um <p> contendo ou não tags <strong>/<b>
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<\n]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
+    '<p class="article-source-attribution"><strong>Fonte: $1</strong></p>'
+  );
+
+  // Caso 2: Citação solta de Fonte no texto
+  content = content.replace(
+    /(?<!class="article-source-attribution">)Fonte\s*:\s*([^<\n\r]+)/gi,
+    '<strong class="article-source-attribution">Fonte: $1</strong>'
+  );
+
+  // 3. Transformar parágrafos que contêm APENAS <strong> ou <b> em subtítulos h3 semânticos com a classe article-subheading
+  // Isso impede conflitos com negritos inline (tags strong dentro de parágrafos com outros textos)
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)\s*([^<]+?)\s*(?:<\/strong>|<\/b>)\s*<\/p>/gi,
+    '<h3 class="article-subheading">$1</h3>'
+  );
+
+  // 4. Garantir que todas as notícias possuam a assinatura de autoria (Publicado por: TV Russas) para padronização total
+  if (!content.includes('class="article-author-attribution"')) {
+    content += '\n<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
+  }
+
+  return content;
+}
+
 export default async function NoticiaPage({
   params,
 }: {
@@ -65,7 +143,7 @@ export default async function NoticiaPage({
       <article className="editorial-article">
         {/* ===== BREADCRUMB ===== */}
         <nav className="editorial-breadcrumb" aria-label="breadcrumb">
-          <Link href="/">HOME</Link>
+          <Link href="/">INÍCIO</Link>
           <span>/</span>
           <Link href={`/categoria/${noticia.categoria.slug}`}>
             {noticia.categoria.nome.toUpperCase()}
@@ -91,7 +169,11 @@ export default async function NoticiaPage({
             <div className="meta-left">
               <div className="author-avatar">
                 <Image
-                  src={noticia.colunista ? getImagePath(noticia.colunista.fotoUrl) : "/uploads/Logo%20Tv%20Russas_Sem%20fundo.png"}
+                  src={
+                    noticia.colunista
+                      ? getImagePath(noticia.colunista.fotoUrl)
+                      : "/uploads/Logo%20Tv%20Russas_Sem%20fundo.png"
+                  }
                   alt={noticia.colunista?.nome || "Portal TV Russas"}
                   width={48}
                   height={48}
@@ -100,7 +182,12 @@ export default async function NoticiaPage({
               </div>
               <div className="author-info">
                 <span className="author-name">
-                  Por <strong>{(noticia.colunista?.nome || "PORTAL TV RUSSAS").toUpperCase()}</strong>
+                  Por{" "}
+                  <strong>
+                    {(
+                      noticia.colunista?.nome || "PORTAL TV RUSSAS"
+                    ).toUpperCase()}
+                  </strong>
                 </span>
                 <div className="meta-details">
                   <time dateTime={String(noticia.publicadoEm)}>
@@ -144,7 +231,9 @@ export default async function NoticiaPage({
             {/* O corpo do texto com classe de alta especificidade */}
             <div
               className="article-body-content premium-editorial-flow"
-              dangerouslySetInnerHTML={{ __html: noticia.conteudo.trim() }}
+              dangerouslySetInnerHTML={{
+                __html: formatArticleContent(noticia.conteudo),
+              }}
             />
 
             {/* Tags */}
@@ -207,7 +296,6 @@ export default async function NoticiaPage({
 
           {/* ── SIDEBAR ── */}
           <aside className="editorial-sidebar">
-
             <TrendingWidget items={trending} title="Em Alta" />
 
             <div className="sticky-sidebar-widget">
