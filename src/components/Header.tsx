@@ -36,6 +36,18 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Fechar o menu/busca mobile quando a tela for redimensionada para desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileOpen(false);
+        setShowSearch(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Bloquear scroll do body quando menu estiver aberto
   useEffect(() => {
     if (mobileOpen || showSearch) {

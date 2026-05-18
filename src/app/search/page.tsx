@@ -61,95 +61,51 @@ export default async function SearchPage({
             <div className="search-meta-info">
               <p className="search-count">
                 {results.length > 0 
-                  ? `Encontramos ${results.length} ${results.length === 1 ? "matéria encontrada" : "matérias encontradas"}`
+                  ? `${results.length} ${results.length === 1 ? "matéria encontrada" : "matérias encontradas"}`
                   : query ? "Nenhuma matéria encontrada com este termo exato." : "Digite um termo para pesquisar em nosso acervo."}
               </p>
             </div>
           </div>
 
         {results.length > 0 ? (
-          <div className="search-results-list" style={{ display: 'flex', flexDirection: 'column', gap: '30px', marginTop: '40px' }}>
+          <div className="search-results-list">
             {results.map((noticia) => (
               <a
                 key={noticia.id}
                 href={`/noticia/${noticia.slug}`}
                 className="search-result-horizontal-card group"
-                style={{
-                  display: 'flex',
-                  gap: '30px',
-                  background: '#fff',
-                  borderRadius: '16px',
-                  padding: '20px',
-                  boxShadow: '0 4px 15px rgba(0,0,0,0.04)',
-                  border: '1px solid #f1f5f9',
-                  textDecoration: 'none',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  alignItems: 'center'
-                }}
               >
                 {/* Imagem */}
-                <div style={{ 
-                  width: '260px', 
-                  height: '170px', 
-                  position: 'relative', 
-                  flexShrink: 0,
-                  borderRadius: '12px',
-                  overflow: 'hidden'
-                }}>
+                <div className="search-result-img-wrapper">
                   <Image
                     src={getImagePath(noticia.capaUrl)}
                     alt={noticia.titulo}
                     fill
-                    style={{
-                      objectFit: 'cover',
-                    }}
+                    style={{ objectFit: 'cover' }}
                     className="transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 
                 {/* Texto */}
-                <div style={{ flex: 1 }}>
-                  <span style={{ 
-                    fontSize: '12px', 
-                    color: '#ff5722', 
-                    fontWeight: '800', 
-                    textTransform: 'uppercase',
-                    marginBottom: '8px',
-                    display: 'block',
-                    letterSpacing: '1px'
-                  }}>
+                <div className="search-result-info">
+                  <span className="search-result-tag">
                     {noticia.categoria?.nome}
                   </span>
                   
-                  <h3 style={{ 
-                    fontSize: '22px', 
-                    fontWeight: '800', 
-                    color: '#1a202c', 
-                    lineHeight: '1.25',
-                    marginBottom: '10px'
-                  }}>
+                  <h3 className="search-result-title">
                     {noticia.titulo}
                   </h3>
 
-                  <p style={{ 
-                    fontSize: '15px', 
-                    color: '#64748b', 
-                    lineHeight: '1.5',
-                    marginBottom: '15px',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
+                  <p className="search-result-excerpt">
                     {noticia.resumo || (noticia.conteudo ? noticia.conteudo.substring(0, 160) + '...' : '')}
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', fontSize: '13px', color: '#94a3b8' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div className="search-result-meta">
+                    <span>
                       <i className="far fa-calendar-alt"></i>
                       {new Date(noticia.publicadoEm).toLocaleDateString('pt-BR')}
                     </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>
                       <i className="far fa-eye"></i>
                       {noticia.views || 0} visualizações
                     </span>
