@@ -1766,6 +1766,7 @@ body {
   margin: 0 0 20px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1841,6 +1842,7 @@ body {
     font-size: 13px;
     margin-bottom: 12px;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .search-result-meta {
