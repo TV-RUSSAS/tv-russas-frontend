@@ -25,9 +25,14 @@ export function Header() {
 
   useEffect(() => {
     const onScroll = () => {
-      setScrolled(window.scrollY > 50);
+      const currentScrollY = window.scrollY;
+      setScrolled((prev) => {
+        if (currentScrollY > 150) return true;
+        if (currentScrollY < 50) return false;
+        return prev;
+      });
     };
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -64,6 +69,7 @@ export function Header() {
                 height={56}
                 className="logo-img"
                 priority
+                style={{ height: "52px", width: "auto" }}
               />
               <span className="logo-text">TV RUSSAS</span>
             </Link>
@@ -181,10 +187,6 @@ export function Header() {
               ))}
             </nav>
           </div>
-        </div>
-
-        <div className="drawer-footer">
-          <p>© {new Date().getFullYear()} TV RUSSAS</p>
         </div>
       </div>
     </>

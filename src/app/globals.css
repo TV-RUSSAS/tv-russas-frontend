@@ -306,15 +306,15 @@ body {
 .mobile-drawer {
   position: fixed;
   top: 0;
-  left: 0;
+  right: 0; /* Alinhado à direita */
   width: 300px;
   max-width: 85%;
   height: 100vh;
   background: var(--branco);
   z-index: 2100;
-  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1); /* Sombra à esquerda */
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: translateX(-100%); /* Escondido à esquerda */
+  transform: translateX(100%); /* Escondido fora da tela à direita */
   display: flex;
   flex-direction: column;
 }
@@ -1169,15 +1169,77 @@ body {
   .categoria-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  .footer-inner {
-    grid-template-columns: repeat(2, 1fr); /* Divisão em 2 colunas super elegante no celular */
-    gap: 32px 20px;
+  .footer {
+    padding: 24px 0 0;
+    margin-top: 40px;
   }
-  .footer-section:first-child {
-    grid-column: 1 / -1; /* O bloco principal da marca TV Russas ocupa a largura total no topo */
+  .footer-inner {
+    grid-template-columns: repeat(2, 1fr); /* Divide em 2 colunas no mobile */
+    gap: 20px 16px;
+  }
+  
+  /* Bloco da marca (TV Russas) */
+  .footer-section:nth-child(1) {
+    grid-column: 1 / -1;
+    grid-row: 1;
     border-bottom: 1px solid #222;
-    padding-bottom: 24px;
+    padding-bottom: 16px;
+    margin-bottom: 4px;
+  }
+  
+  .footer-section:nth-child(1) .footer-logo-img {
+    width: 46px !important;
+    height: 46px !important;
+  }
+  
+  .footer-section:nth-child(1) .footer-logo-text {
+    font-size: 20px !important;
+  }
+  
+  .footer-section:nth-child(1) p {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  
+  /* Bloco de Categorias (Coluna Direita Completa) */
+  .footer-section:nth-child(2) {
+    grid-column: 2;
+    grid-row: 2 / span 2; /* Ocupa a direita inteira das linhas 2 e 3 */
+  }
+  
+  /* Bloco de Navegação (Esquerda Superior) */
+  .footer-section:nth-child(3) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  
+  /* Bloco de Contato (Esquerda Inferior) */
+  .footer-section:nth-child(4) {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  
+  .footer-section h4 {
+    font-size: 12px;
     margin-bottom: 8px;
+  }
+  
+  .footer-section p,
+  .footer-section li,
+  .footer-section ul li a {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  
+  .footer-section ul li {
+    margin-bottom: 6px;
+  }
+  
+  .footer-bottom {
+    margin-top: 20px;
+    padding: 12px 16px;
+    font-size: 11px;
   }
 }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getImagePath } from "@/utils/imagePath";
 import { ViewTracker } from "@/components/ViewTracker";
-import { ArticleInteractions } from "@/components/ArticleInteractions";
+import { ArticleInteractions, InlineShare } from "@/components/ArticleInteractions";
 import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleFeedbackWrapper";
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
@@ -256,6 +256,9 @@ export default async function NoticiaPage({
                 </div>
               </div>
             </div>
+
+            {/* Compartilhar Matéria Horizontal (Seguro, imune ao Brave Shield e Renders do lado do Cliente) */}
+            <InlineShare title={noticia.titulo} url={postUrl} />
 
             {/* Feedback */}
             <ArticleFeedback articleId={noticia.id.toString()} />

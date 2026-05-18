@@ -68,8 +68,10 @@ export default async function Home() {
   ultimasNoticias.forEach((n) => exibidasIds.add(n.id));
 
   // 3. Mais Lidas e Trending (Sidebar)
-  const maisLidas = maisLidasRaw.length > 0 ? maisLidasRaw : noticiasRaw.slice(0, 5);
-  const trending = trendingRaw.length > 0 ? trendingRaw : noticiasRaw.slice(5, 10);
+  const maisLidas =
+    maisLidasRaw.length > 0 ? maisLidasRaw : noticiasRaw.slice(0, 5);
+  const trending =
+    trendingRaw.length > 0 ? trendingRaw : noticiasRaw.slice(5, 10);
 
   const getCategory = (slug: string, limit: number = 4) => {
     return noticiasRaw
@@ -157,7 +159,6 @@ export default async function Home() {
             </Link>
           </div>
 
-
           {cidade.length > 0 && (
             <section className="premium-section bg-light-gray rounded-box">
               <SectionHeader title="Cidade" link="/categoria/cidade" />
@@ -167,7 +168,6 @@ export default async function Home() {
                   {cidade.slice(1, 3).map((n) => (
                     <PremiumCard key={n.slug} noticia={n} size="list" />
                   ))}
-
                 </div>
               </div>
             </section>
@@ -242,7 +242,9 @@ export default async function Home() {
             <section className="premium-section bg-light-gray rounded-box">
               <SectionHeader title="Youtube" link="/categoria/youtube" />
               <div className="news-grid-mixed">
-                {youtube[0] && <PremiumCard noticia={youtube[0]} size="medium" />}
+                {youtube[0] && (
+                  <PremiumCard noticia={youtube[0]} size="medium" />
+                )}
                 <div className="mixed-list">
                   {youtube.slice(1, 3).map((n) => (
                     <PremiumCard key={n.slug} noticia={n} size="list" />
@@ -300,7 +302,7 @@ export default async function Home() {
           </div>
 
           <TrendingWidget items={trending} title="Em Alta" />
-          
+
           <div className="sticky-widget">
             <TrendingWidget items={maisLidas} title="Mais Lidas" />
           </div>

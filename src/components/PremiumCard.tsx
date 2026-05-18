@@ -21,7 +21,7 @@ export default function PremiumCard({
   // Fallback inteligente para o resumo (limpando HTML de ambos)
   const resumoLimpo = noticia.resumo ? stripHtml(noticia.resumo) : "";
   const conteudoLimpo = noticia.conteudo ? stripHtml(noticia.conteudo) : "";
-  
+
   const resumoFinal = resumoLimpo || conteudoLimpo.substring(0, 140) + "...";
 
   // ----------------------------------------------------
@@ -66,7 +66,7 @@ export default function PremiumCard({
           fill
           sizes={size === "large" ? "100vw" : "50vw"}
           className="card-image object-cover image-zoom"
-          priority={size === "large"}
+          priority={size === "large" || size === "medium"}
         />
         <div className="premium-card-overlay"></div>
         <div className="premium-card-content">

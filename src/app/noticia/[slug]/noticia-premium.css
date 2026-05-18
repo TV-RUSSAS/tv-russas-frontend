@@ -893,12 +893,75 @@
 
 /* Cores de redes sociais */
 .whatsapp { background: #25D366; }
-.twitter { background: #1DA1F2; }
+.twitter { background: #111111; }
 .facebook { background: #1877F2; }
 
 /* ==================== RESPONSIVIDADE ==================== */
 
-@media (max-width: 1024px) {
+/* ===== NOVO COMPARTILHAMENTO HORIZONTAL INTEGRADO ===== */
+.article-share-inline-container {
+  display: none; /* Oculto por padrão no Desktop Ultra-Largo */
+  flex-direction: column;
+  align-items: center; /* Centraliza todo o conteúdo no meio */
+  text-align: center; /* Garante alinhamento de texto centralizado */
+  gap: 14px;
+  background: #f8f9fa; /* Restaura o fundo cinza premium */
+  border-radius: 16px; /* Bordas arredondadas idênticas ao card de feedback */
+  padding: 24px 20px;
+  margin: 35px 0 20px;
+  border: 1px solid #eee; /* Borda suave */
+}
+
+.share-inline-title {
+  font-family: var(--edit-font-sans);
+  font-size: 12px;
+  font-weight: 900;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.share-inline-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center; /* Centraliza os botões no meio da tela */
+}
+
+.share-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center; /* Centraliza o ícone e o texto dentro do botão */
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  color: white !important;
+  font-family: var(--edit-font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.2s, opacity 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  border: none; /* Remove a borda padrão de button */
+  cursor: pointer; /* Cursor de clique de mouse */
+  outline: none;
+  min-width: 140px; /* Garante simetria perfeita, deixando todos com a mesma largura elegante */
+}
+
+.share-inline-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+
+.share-inline-btn i {
+  font-size: 14px;
+}
+
+.share-inline-btn.s-wa { background: #25D366; }
+.share-inline-btn.s-twt { background: #111111; }
+.share-inline-btn.s-fbk { background: #1877F2; }
+
+@media (max-width: 1280px) {
   .editorial-content-grid {
     grid-template-columns: 1fr;
   }
@@ -907,6 +970,14 @@
   }
   .related-cards-grid {
     grid-template-columns: 1fr 1fr;
+  }
+  /* Oculta os botões flutuantes para liberar a leitura */
+  .sticky-share-sidebar {
+    display: none !important;
+  }
+  /* Exibe a barra horizontal integrada apenas quando o flutuante some */
+  .article-share-inline-container {
+    display: flex !important;
   }
 }
 
@@ -924,4 +995,39 @@
     flex-direction: column;
     align-items: center;
   }
+}
+
+/* ===== NOTIFICAÇÃO FLUTUANTE PREMIUM (TOAST) ===== */
+.share-toast {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: rgba(17, 17, 17, 0.95);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 14px 28px;
+  border-radius: 50px;
+  font-family: var(--edit-font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 99999;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+  opacity: 0;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.share-toast.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.share-toast i {
+  color: #25D366; /* Ícone verde de sucesso */
+  font-size: 16px;
 }
