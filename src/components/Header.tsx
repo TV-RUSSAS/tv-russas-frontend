@@ -68,6 +68,10 @@ export function Header() {
     if (showSearch) setShowSearch(false);
   }
 
+  if (pathname.startsWith('/admin')) {
+    return null;
+  }
+
   return (
     <>
       <header className={`premium-header ${scrolled ? "scrolled" : ""}`}>

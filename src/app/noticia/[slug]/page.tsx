@@ -8,6 +8,79 @@ import { ArticleInteractions, InlineShare } from "@/components/ArticleInteractio
 import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleFeedbackWrapper";
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
+import type { Metadata } from "next";
+import { DOMAIN } from "@/utils/domain";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const noticia = await apiService.getNoticia(slug);
+    if (!noticia) {
+      return {
+        title: "Matéria Não Encontrada | TV Russas",
+      };
+    }
+
+    const title = noticia.titulo;
+    const cleanContent = noticia.conteudo
+      ? noticia.conteudo.replace(/<[^>]*>/g, "").substring(0, 160) + "..."
+      : "";
+    const description = noticia.resumo || cleanContent || "Informação com credibilidade e agilidade em Russas e região.";
+    const articleUrl = `${DOMAIN}/noticia/${slug}`;
+    const absoluteCapaUrl = getImagePath(noticia.capaUrl);
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: articleUrl,
+      },
+      openGraph: {
+        title,
+        description,
+        url: articleUrl,
+        siteName: "TV Russas",
+        locale: "pt_BR",
+        type: "article",
+        publishedTime: noticia.publicadoEm,
+        modifiedTime: noticia.publicadoEm,
+        authors: noticia.colunista ? [noticia.colunista.nome] : ["Portal TV Russas"],
+        images: [
+          {
+            url: absoluteCapaUrl,
+            width: 1200,
+            height: 675,
+            alt: noticia.titulo,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: [absoluteCapaUrl],
+      },
+      keywords: [
+        "Russas CE",
+        "Notícias de Russas",
+        "TV Russas",
+        "Últimas notícias de Russas",
+        noticia.categoria?.nome || "",
+        "Ceará notícias",
+        "Interior do Ceará",
+      ].filter(Boolean),
+    };
+  } catch (error) {
+    console.error("Erro ao gerar metadados dinâmicos:", error);
+    return {
+      title: "Notícia | TV Russas",
+    };
+  }
+}
 
 function formatArticleContent(htmlContent: string): string {
   let content = htmlContent.trim();
@@ -132,10 +205,69 @@ export default async function NoticiaPage({
     1,
     Math.ceil(noticia.conteudo.split(" ").length / 200),
   );
-  const postUrl = `https://tvrussas.com.br/noticia/${slug}`;
+  const postUrl = `${DOMAIN}/noticia/${slug}`;
+
+  // Schema estruturado completo de Artigo e Breadcrumbs
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${DOMAIN}/noticia/${slug}/#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Início",
+            "item": `${DOMAIN}/`
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": noticia.categoria.nome,
+            "item": `${DOMAIN}/categoria/${noticia.categoria.slug}`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": noticia.titulo,
+            "item": `${DOMAIN}/noticia/${slug}`
+          }
+        ]
+      },
+      {
+        "@type": "NewsArticle",
+        "@id": `${DOMAIN}/noticia/${slug}/#article`,
+        "isPartOf": {
+          "@id": `${DOMAIN}/#website`
+        },
+        "headline": noticia.titulo,
+        "description": noticia.resumo || (noticia.conteudo ? noticia.conteudo.replace(/<[^>]*>/g, "").substring(0, 160) + "..." : ""),
+        "image": [getImagePath(noticia.capaUrl)],
+        "datePublished": noticia.publicadoEm,
+        "dateModified": noticia.publicadoEm,
+        "author": {
+          "@type": "Person",
+          "name": noticia.colunista?.nome || "Portal TV Russas"
+        },
+        "publisher": {
+          "@id": `${DOMAIN}/#organization`
+        },
+        "mainEntityOfPage": {
+          "@type": "WebPage",
+          "@id": `${DOMAIN}/noticia/${slug}`
+        }
+      }
+    ]
+  };
 
   return (
     <main className="editorial-article-container">
+      {/* Schema estruturado injetado via SSR */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
       {/* Barra de progresso + botões flutuantes */}
       <ArticleInteractions title={noticia.titulo} url={postUrl} />
       <ViewTracker slug={slug} />

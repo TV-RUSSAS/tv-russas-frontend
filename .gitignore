@@ -30,3 +30,4 @@ public/uploads/
 .vscode/
 .idea/
 .next-env.d.ts
+*.tsbuildinfo

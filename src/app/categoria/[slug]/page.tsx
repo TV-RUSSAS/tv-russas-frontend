@@ -3,6 +3,8 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { API_URL } from '@/services/api';
 import { getImagePath } from '@/utils/imagePath';
+import type { Metadata } from 'next';
+import { DOMAIN } from '@/utils/domain';
 
 interface Noticia {
   id: string; titulo: string; slug: string; capaUrl: string;
@@ -15,6 +17,52 @@ const NOMES: Record<string, string> = {
   entretenimento: 'Entretenimento', policia: 'Polícia',
   youtube: 'Youtube', brasil: 'Brasil', ceara: 'Ceará',
 };
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const nome = NOMES[slug] || "Categoria";
+  const title = `Notícias de ${nome} - TV Russas`;
+  const description = `Fique por dentro das últimas notícias sobre ${nome} em Russas, no Ceará e em toda a região do Vale do Jaguaribe.`;
+  const categoryUrl = `${DOMAIN}/categoria/${slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: categoryUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: categoryUrl,
+      siteName: "TV Russas",
+      locale: "pt_BR",
+      type: "website",
+      images: [
+        {
+          url: "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
+          width: 1200,
+          height: 630,
+          alt: `Notícias sobre ${nome}`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ["https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg"],
+    },
+    keywords: [
+      `Notícias sobre ${nome}`,
+      `Russas ${nome}`,
+      "Russas CE",
+      "TV Russas",
+      "Ceará notícias",
+      "Interior do Ceará",
+    ],
+  };
+}
 
 async function getNoticias(slug: string): Promise<Noticia[]> {
   try {
@@ -51,8 +99,37 @@ export default async function CategoriaPage({ params }: { params: Promise<{ slug
   const isClickable = bannerImg === 'anuncio/Anuncio1.png';
   const adLink = 'https://dinheironamao.trabalho.ce.gov.br';
 
+  const categorySchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${DOMAIN}/categoria/${slug}/#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Início",
+            "item": `${DOMAIN}/`
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": nome,
+            "item": `${DOMAIN}/categoria/${slug}`
+          }
+        ]
+      }
+    ]
+  };
+
   return (
     <div className="site-container">
+      {/* Schema estruturado injetado via SSR */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(categorySchema) }}
+      />
       {/* BANNER TOPO: RODÍZIO POR CATEGORIA */}
       <div className="banner-anuncio" style={{ marginBottom: '30px' }}>
         {isClickable ? (

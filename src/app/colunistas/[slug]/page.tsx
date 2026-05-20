@@ -4,7 +4,72 @@ import { notFound } from "next/navigation";
 import { getImagePath } from "@/utils/imagePath";
 import { apiService } from "@/services/api";
 import { Noticia, Colunista } from "@/types";
+import type { Metadata } from "next";
+import { DOMAIN } from "@/utils/domain";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const colunista = await apiService.getColunista(slug);
+    if (!colunista) {
+      return {
+        title: "Colunista Não Encontrado | TV Russas",
+      };
+    }
+
+    const title = `Coluna de ${colunista.nome} - TV Russas`;
+    const description = colunista.bio || `Acompanhe as opiniões, análises e matérias exclusivas escritas por ${colunista.nome} no portal TV Russas.`;
+    const profileUrl = `${DOMAIN}/colunistas/${slug}`;
+    const absoluteFotoUrl = getImagePath(colunista.fotoUrl);
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: profileUrl,
+      },
+      openGraph: {
+        title,
+        description,
+        url: profileUrl,
+        siteName: "TV Russas",
+        locale: "pt_BR",
+        type: "profile",
+        images: [
+          {
+            url: absoluteFotoUrl,
+            width: 500,
+            height: 500,
+            alt: colunista.nome,
+          },
+        ],
+      },
+      twitter: {
+        card: "summary",
+        title,
+        description,
+        images: [absoluteFotoUrl],
+      },
+      keywords: [
+        colunista.nome,
+        `Coluna ${colunista.nome}`,
+        `Notícias ${colunista.nome}`,
+        "Colunistas TV Russas",
+        "Opinião Russas CE",
+        "Russas CE",
+      ],
+    };
+  } catch (error) {
+    console.error("Erro ao gerar metadados de colunista:", error);
+    return {
+      title: "Colunista | TV Russas",
+    };
+  }
+}
 
 export default async function ColunistaPerfil({
   params,
@@ -20,8 +85,43 @@ export default async function ColunistaPerfil({
 
   const noticiasColunista = colunista.noticias || [];
 
+  const columnistSchema = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        "@id": `${DOMAIN}/colunistas/${slug}/#breadcrumb`,
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Início",
+            "item": `${DOMAIN}/`
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Colunistas",
+            "item": `${DOMAIN}/colunistas`
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": colunista.nome,
+            "item": `${DOMAIN}/colunistas/${slug}`
+          }
+        ]
+      }
+    ]
+  };
+
   return (
     <main style={{ background: '#fff' }}>
+      {/* Schema estruturado injetado via SSR */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(columnistSchema) }}
+      />
       {/* Cabeçalho Centralizado estilo SVM */}
       <div className="colunista-header-hero" style={{ 
         background: '#f8fafc', 
