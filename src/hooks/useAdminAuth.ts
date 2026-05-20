@@ -28,23 +28,28 @@ function isTokenExpired(token: string): boolean {
   return Date.now() / 1000 > payload.exp;
 }
 
+function getInitialUser(): AdminUser | null {
+  const token = sessionStorage.getItem('accessToken');
+  if (!token || isTokenExpired(token)) return null;
+  const nome = sessionStorage.getItem('userName') || '';
+  const role = sessionStorage.getItem('userRole') as AdminUser['role'] || 'EDITOR';
+  const payload = parseJwtPayload(token);
+  return { id: payload?.id || '', nome, email: '', role };
+}
+
 export function useAdminAuth() {
   const router = useRouter();
-  const [user, setUser] = useState<AdminUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Lazy initializer: lê o sessionStorage apenas uma vez, sem causar re-renders
+  const [user] = useState<AdminUser | null>(getInitialUser);
+  // Não há operação assíncrona: sessionStorage é síncrono, então loading começa como false
+  const [loading] = useState(false);
 
+  // useEffect apenas para o efeito colateral externo de navegação
   useEffect(() => {
-    const token = sessionStorage.getItem('accessToken');
-    if (!token || isTokenExpired(token)) {
+    if (!user) {
       router.push('/admin/login');
-      return;
     }
-    const nome = sessionStorage.getItem('userName') || '';
-    const role = sessionStorage.getItem('userRole') as AdminUser['role'] || 'EDITOR';
-    const payload = parseJwtPayload(token);
-    setUser({ id: payload?.id || '', nome, email: '', role });
-    setLoading(false);
-  }, [router]);
+  }, [router, user]);
 
   const logout = useCallback(async () => {
     try {

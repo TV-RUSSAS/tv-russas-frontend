@@ -246,7 +246,7 @@ export default function NoticiasAdmin() {
                 Você está prestes a excluir permanentemente a notícia:
               </p>
               <p style={{ fontWeight: '700', color: '#ff5722', lineHeight: '1.4' }}>
-                "{noticiaParaExcluir?.titulo}"
+                &quot;{noticiaParaExcluir?.titulo}&quot;
               </p>
               <p style={{ marginTop: '12px', color: '#8b98b0', fontSize: '13px' }}>
                 Esta ação não pode ser desfeita. O log de auditoria será registrado.
