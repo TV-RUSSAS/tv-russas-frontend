@@ -1,21 +1,27 @@
 "use client";
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { API_URL } from '@/services/api';
 import { getImagePath } from '@/utils/imagePath';
-import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaKey, setCaptchaKey] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const turnstileRef = useRef<TurnstileInstance>(null);
   const router = useRouter();
+
+  // Força o widget a gerar um novo token (desmonta e remonta o componente)
+  const resetCaptcha = () => {
+    setCaptchaToken(null);
+    setCaptchaKey((k) => k + 1);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +46,7 @@ export default function AdminLogin() {
 
       if (!response.ok) {
         // Resetar o widget para gerar um novo token antes de tentar novamente
-        setCaptchaToken(null);
-        turnstileRef.current?.reset();
+        resetCaptcha();
         throw new Error(data.error || 'Ocorreu um erro ao fazer login.');
       }
 
@@ -239,13 +244,11 @@ export default function AdminLogin() {
 
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
             <Turnstile
-              ref={turnstileRef}
+              key={captchaKey}
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
               onSuccess={(token) => setCaptchaToken(token)}
-              onExpire={() => {
-                setCaptchaToken(null);
-                turnstileRef.current?.reset();
-              }}
+              onExpire={resetCaptcha}
+              onError={resetCaptcha}
               options={{
                 theme: 'dark',
               }}
