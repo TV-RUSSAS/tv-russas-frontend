@@ -129,12 +129,10 @@ function BarChart({ data }: { data: Array<{ data: string; total: number }> }) {
   const GAP = 8;
   const BAR_W = Math.floor((WIDTH - (COUNT - 1) * GAP) / COUNT);
 
-  // Índice do maior valor
   const maxIdx = data.reduce((mi, d, i) => d.total > data[mi].total ? i : mi, 0);
 
   return (
     <svg viewBox={`0 0 ${WIDTH} ${HEIGHT + 26}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-      {/* Linhas de referência */}
       {[0.25, 0.5, 0.75, 1].map(pct => (
         <line
           key={pct}
@@ -199,34 +197,56 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    // Só tenta carregar os dados SE o utilizador existir e estiver autenticado
+    if (!user) return;
+
+    let isMounted = true;
+
     const load = async () => {
       try {
         const res = await authFetch('/admin/dashboard/stats');
         if (!res.ok) throw new Error('Falha ao carregar métricas.');
         const data = await res.json();
-        setStats(data);
+        
+        if (isMounted) {
+          setStats(data);
+          setError('');
+        }
       } catch (err) {
-        if (err instanceof Error) setError(err.message);
+        if (err instanceof Error) {
+          if (err.message.includes('Sessão') || err.message.includes('autorizado')) {
+            return;
+          }
+          if (isMounted) setError(err.message);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
+
     load();
     const interval = setInterval(load, 60000);
-    return () => clearInterval(interval);
-  }, [authFetch]);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [authFetch, user]); // Dependemos do authFetch e do user agora
 
   if (loading) {
     return (
-      <div className="cms-loading">
-        <div className="cms-spinner" />
-        Carregando métricas...
+      <div className="cms-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: 'var(--c-muted)', gap: '16px' }}>
+        <div className="cms-spinner" style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#ff5722', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        Carregando métricas do painel...
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}} />
       </div>
     );
   }
 
   if (error) {
-    return <div className="cms-alert cms-alert-error">{error}</div>;
+    return <div className="cms-alert cms-alert-error" style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '8px' }}>{error}</div>;
   }
 
   const today = new Date().toLocaleDateString('pt-BR', {
@@ -235,7 +255,6 @@ export default function AdminDashboard() {
 
   return (
     <>
-      {/* Cabeçalho da página */}
       <div className="cms-page-header">
         <div>
           <h2 className="cms-page-title">Redação</h2>
@@ -245,7 +264,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Métricas principais */}
       <div className="cms-stats-grid">
         <div className="cms-stat-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
@@ -285,7 +303,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Gráfico + Top 5 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '12px', marginBottom: '12px' }}>
         <div className="cms-chart-card">
           <div className="cms-chart-title">Publicações — últimos 7 dias</div>
@@ -341,7 +358,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Feed de atividade recente */}
       <div className="cms-table-card">
         <div className="cms-table-header">
           <span className="cms-table-title">Atividade recente</span>
@@ -380,7 +396,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Atalhos rápidos */}
       <div className="ed-quick-grid">
         <Link href="/admin/noticias/nova" className="ed-quick-item">
           <div className="ed-quick-icon"><IconPlus /></div>

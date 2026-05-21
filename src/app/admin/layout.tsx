@@ -20,7 +20,6 @@ const PAGE_TITLES: Record<string, string> = {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  // Login não usa o layout do CMS
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
@@ -31,21 +30,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function AdminLayoutInner({ children, pathname }: { children: React.ReactNode; pathname: string }) {
   const { user, loading, logout } = useAdminAuth();
 
-  // Calcula o título baseado na rota mais específica
   const title = Object.entries(PAGE_TITLES)
     .sort((a, b) => b[0].length - a[0].length)
     .find(([key]) => pathname.startsWith(key))?.[1] || 'Painel';
 
   if (loading) {
     return (
-      <div className="cms-root" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <div className="cms-loading">
-          <div className="cms-spinner" />
+      <div className="cms-root" style={{ alignItems: 'center', justifyContent: 'center', minHeight: '100vh', display: 'flex', background: '#0a0a0a' }}>
+        <div className="cms-loading" style={{ color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div className="cms-spinner" style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#ff5722', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
           Carregando painel...
         </div>
       </div>
     );
   }
+
+  // Se não houver user, não renderiza nada, porque o hook já está a enviar para o login
+  if (!user) return null;
 
   return (
     <div className="cms-root">
