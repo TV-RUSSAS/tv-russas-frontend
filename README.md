@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📺 Portal de Notícias TV Russas
 
-## Getting Started
+> O mais completo e moderno portal de notícias e colunismo de Russas, Ceará e toda a região do Vale do Jaguaribe. Construído sob uma arquitetura de alta performance de nível profissional e otimizações avançadas de SEO técnico.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 📚 Documentação Técnica Oficial
+O projeto TV Russas possui uma suíte documental completa projetada para auxiliar Engenheiros de Software, Integradores e Editores no entendimento total da arquitetura de código.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Os guias técnicos detalhados estão hospedados no repositório do backend. Clique nos links abaixo para acessar diretamente no GitHub:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. 🏛️ **[Visão Geral e Arquitetura](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/1_VISAO_GERAL_ARQUITETURA.md):** Visão de alto nível, stack de tecnologia (Next.js, Express, PostgreSQL) e componentes da rede.
+2. 🗂️ **[Estrutura de Pastas](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/2_ESTRUTURA_DE_PASTAS.md):** Mapa topológico de onde se localiza cada peça de código com foco nas responsabilidades de módulo.
+3. 🎨 **[Frontend (React/Next.js)](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/3_FRONTEND.md):** Como funcionam as rotas, Server Components, SEO avançado (Schema.org), renderização do portal e o design system nativo.
+4. ⚙️ **[Backend e Banco de Dados](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/4_BACKEND_BANCO_DADOS.md):** Detalhamento da API Express e modelagem de entidades relacionais no banco de dados com Prisma ORM.
+5. 🛡️ **[Segurança e Autenticação](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/5_SEGURANCA_AUTENTICACAO.md):** Explicação sobre Refresh Token Rotation, mitigação de DDoS com Rate Limiter e auditoria de ações anti-hack.
+6. ✍️ **[Sistema Administrativo (CMS)](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/6_SISTEMA_ADMINISTRATIVO.md):** Detalhes da plataforma da redação. Permissões de usuários, uploaders de mídia e manipulação de textos enriquecidos (Rich-Text).
+7. 🚀 **[Como Rodar o Projeto e Troubleshooting](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/7_GUIA_DESENVOLVIMENTO_MANUTENCAO.md):** O passo-a-passo para colocar o ecossistema no ar via localhost e a lista de Problemas Mais Frequentes do desenvolvedor (Erros com CAPTCHA e Vercel Images).
+8. 📈 **[Fluxogramas e Melhorias Futuras](https://github.com/TV-RUSSAS/tv-russas-backend/blob/main/docs/8_FLUXOS_SISTEMA_MELHORIAS.md):** Diagramas (Mermaid) mostrando as etapas lógicas de renderização pelo Google e submissão da redação, visando escalabilidade milionária de acessos.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🚀 Tecnologias Essenciais Empregadas
 
-To learn more about Next.js, take a look at the following resources:
+* **Next.js 15 (App Router) + TypeScript**
+* **Express (Node.js) + Prisma ORM**
+* **PostgreSQL (Banco de Dados Relacional)**
+* **TailwindCSS (Design System Responsivo)**
+* **Docker & Docker Compose**
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🛠️ Como Iniciar o Frontend Localmente
 
-## Deploy on Vercel
+1. **Instalar Dependências:**
+   ```bash
+   npm install
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **Configurar as Variáveis de Ambiente:**
+   Crie um arquivo `.env` na pasta raiz do frontend com base no `.env.example` ou use suas variáveis de ambiente:
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:5000
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+3. **Rodar em Modo de Desenvolvimento:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Acessar a Aplicação:**
+   Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
