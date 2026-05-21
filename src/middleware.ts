@@ -4,20 +4,13 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Apenas intercepta rotas sob a subpasta /admin
-  if (pathname.startsWith('/admin')) {
-    const token = request.cookies.get('refreshToken')?.value;
-
-    // 1. Se tentar entrar no painel sem cookie e não estiver na página de login, manda pro login
-    if (!token && !pathname.startsWith('/admin/login')) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
-
-    // 2. Se o usuário já tiver o cookie de sessão e tentar acessar a tela de login, manda pro dashboard principal
-    if (token && pathname.startsWith('/admin/login')) {
-      return NextResponse.redirect(new URL('/admin', request.url));
-    }
-  }
+  // Como o backend (Render) e o frontend (Vercel) estão em domínios diferentes,
+  // o Next.js Middleware (rodando no server do Vercel) NÃO TEM ACESSO ao cookie 'refreshToken'
+  // que o backend configurou. 
+  // 
+  // Portanto, a proteção das rotas /admin NÃO DEVE ser feita via middleware de borda,
+  // e sim client-side via o hook `useAdminAuth`, que gerencia a sessão no sessionStorage 
+  // e faz a validação com a API do backend.
 
   return NextResponse.next();
 }
