@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 
+/* ── Tipos ───────────────────────────────────────────────── */
 interface DashboardStats {
   totalNoticias: number;
   totalUsuarios: number;
@@ -20,72 +21,166 @@ interface DashboardStats {
   grafico: Array<{ data: string; total: number }>;
 }
 
+/* ── Utilitários ─────────────────────────────────────────── */
 function formatNumber(n: number): string {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
   return n.toString();
 }
 
-function formatAcao(acao: string): string {
-  const map: Record<string, string> = {
-    LOGIN_SUCESSO: '🟢 Login',
-    LOGIN_FALHA: '🔴 Tentativa de login falhou',
-    LOGOUT: '🚪 Logout',
-    NOTICIA_CRIADA: '📰 Notícia criada',
-    NOTICIA_ATUALIZADA: '✏️ Notícia editada',
-    NOTICIA_EXCLUIDA: '🗑️ Notícia excluída',
-    USUARIO_CRIADO: '👤 Usuário criado',
-    USUARIO_ATUALIZADO: '🔄 Usuário atualizado',
-    USUARIO_EXCLUIDO: '❌ Usuário excluído',
-    CATEGORIA_CRIADA: '🏷️ Categoria criada',
-    COLUNISTA_CRIADO: '✍️ Colunista criado',
+type AcaoType = 'default' | 'success' | 'danger' | 'warn';
+
+function getAcaoInfo(acao: string): { label: string; type: AcaoType } {
+  const map: Record<string, { label: string; type: AcaoType }> = {
+    LOGIN_SUCESSO:            { label: 'Login realizado',           type: 'success' },
+    LOGIN_FALHA:              { label: 'Tentativa de login falhou', type: 'danger'  },
+    TENTATIVA_LOGIN_INVALIDA: { label: 'Login inválido',            type: 'danger'  },
+    SENHA_INCORRETA:          { label: 'Senha incorreta',           type: 'danger'  },
+    LOGOUT:                   { label: 'Sessão encerrada',          type: 'default' },
+    NOTICIA_CRIADA:           { label: 'Notícia publicada',         type: 'success' },
+    NOTICIA_ATUALIZADA:       { label: 'Notícia editada',           type: 'default' },
+    NOTICIA_EXCLUIDA:         { label: 'Notícia excluída',          type: 'danger'  },
+    USUARIO_CRIADO:           { label: 'Usuário criado',            type: 'success' },
+    USUARIO_ATUALIZADO:       { label: 'Usuário atualizado',        type: 'default' },
+    USUARIO_EXCLUIDO:         { label: 'Usuário excluído',          type: 'danger'  },
+    CATEGORIA_CRIADA:         { label: 'Categoria criada',          type: 'success' },
+    COLUNISTA_CRIADO:         { label: 'Colunista criado',          type: 'success' },
   };
-  return map[acao] || acao;
+  return map[acao] || {
+    label: acao.replace(/_/g, ' ').toLowerCase(),
+    type: 'default',
+  };
 }
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'agora';
-  if (mins < 60) return `${mins}m atrás`;
+  if (mins < 60) return `${mins}min atrás`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h atrás`;
   return `${Math.floor(hours / 24)}d atrás`;
 }
 
-// Gráfico de barras SVG puro - sem dependência externa
+/* ── Ícones SVG inline ───────────────────────────────────── */
+const IconArticle = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2.5 1h7l3 3v9H2.5V1z"/>
+    <path d="M9 1v3.5h3"/>
+    <line x1="4" y1="7" x2="10" y2="7"/>
+    <line x1="4" y1="9.5" x2="7.5" y2="9.5"/>
+  </svg>
+);
+
+const IconEye = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+    <path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z"/>
+    <circle cx="7" cy="7" r="2"/>
+  </svg>
+);
+
+const IconHeart = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M7 12s-6-3.9-6-7.5A3.5 3.5 0 017 3.5 3.5 3.5 0 0113 4.5C13 8.1 7 12 7 12z"/>
+  </svg>
+);
+
+const IconCamera = () => (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 4.5h1.5L4 2.5h6l1.5 2H13a.5.5 0 01.5.5v6.5a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5V5a.5.5 0 01.5-.5z"/>
+    <circle cx="7" cy="8" r="2"/>
+  </svg>
+);
+
+const IconPlus = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <line x1="6.5" y1="1.5" x2="6.5" y2="11.5"/>
+    <line x1="1.5" y1="6.5" x2="11.5" y2="6.5"/>
+  </svg>
+);
+
+const IconTag = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 1h5l6 6-5 5-6-6V1z"/>
+    <circle cx="4" cy="4" r="0.8" fill="currentColor" stroke="none"/>
+  </svg>
+);
+
+const IconPen = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 1.5a1.5 1.5 0 012.1 2.1L3.5 11.2l-2.8.8.8-2.8L9 1.5z"/>
+  </svg>
+);
+
+const IconExternal = () => (
+  <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5.5 2H2a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1V8"/>
+    <path d="M8 1h4v4"/>
+    <line x1="12" y1="1" x2="6.5" y2="6.5"/>
+  </svg>
+);
+
+/* ── Gráfico de barras ───────────────────────────────────── */
 function BarChart({ data }: { data: Array<{ data: string; total: number }> }) {
   const max = Math.max(...data.map(d => d.total), 1);
   const WIDTH = 560;
-  const HEIGHT = 120;
-  const BAR_W = Math.floor((WIDTH - 40) / data.length) - 8;
+  const HEIGHT = 96;
+  const COUNT = data.length;
+  const GAP = 8;
+  const BAR_W = Math.floor((WIDTH - (COUNT - 1) * GAP) / COUNT);
+
+  // Índice do maior valor
+  const maxIdx = data.reduce((mi, d, i) => d.total > data[mi].total ? i : mi, 0);
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT + 30}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
+    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT + 26}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
+      {/* Linhas de referência */}
+      {[0.25, 0.5, 0.75, 1].map(pct => (
+        <line
+          key={pct}
+          x1={0} y1={HEIGHT - pct * HEIGHT}
+          x2={WIDTH} y2={HEIGHT - pct * HEIGHT}
+          stroke="rgba(255,255,255,0.04)" strokeWidth="1"
+        />
+      ))}
+
       {data.map((d, i) => {
         const barH = max > 0 ? Math.max((d.total / max) * HEIGHT, 2) : 2;
-        const x = 20 + i * ((WIDTH - 40) / data.length);
+        const x = i * (BAR_W + GAP);
         const y = HEIGHT - barH;
-        const label = d.data.slice(5); // MM-DD
+        const isMax = i === maxIdx && d.total > 0;
+        const label = d.data.slice(5).replace('-', '/');
+
         return (
           <g key={d.data}>
             <rect
               x={x} y={y} width={BAR_W} height={barH}
-              rx="4" ry="4"
-              fill={d.total > 0 ? '#ff5722' : 'rgba(255,255,255,0.06)'}
-              opacity={0.85}
+              rx="3" ry="3"
+              fill={
+                isMax
+                  ? 'rgba(214,61,31,0.75)'
+                  : d.total > 0
+                  ? 'rgba(255,255,255,0.1)'
+                  : 'rgba(255,255,255,0.03)'
+              }
             />
             {d.total > 0 && (
               <text
-                x={x + BAR_W / 2} y={y - 4}
-                textAnchor="middle" fontSize="10" fill="#ff7043"
+                x={x + BAR_W / 2} y={y - 5}
+                textAnchor="middle"
+                fontSize="9.5"
+                fontFamily="Inter, sans-serif"
+                fill={isMax ? 'rgba(214,61,31,0.9)' : 'rgba(255,255,255,0.25)'}
               >
                 {d.total}
               </text>
             )}
             <text
-              x={x + BAR_W / 2} y={HEIGHT + 16}
-              textAnchor="middle" fontSize="10" fill="#8b98b0"
+              x={x + BAR_W / 2} y={HEIGHT + 18}
+              textAnchor="middle"
+              fontSize="9.5"
+              fontFamily="Inter, sans-serif"
+              fill="rgba(255,255,255,0.28)"
             >
               {label}
             </text>
@@ -96,6 +191,7 @@ function BarChart({ data }: { data: Array<{ data: string; total: number }> }) {
   );
 }
 
+/* ── Componente principal ────────────────────────────────── */
 export default function AdminDashboard() {
   const { authFetch, user } = useAdminAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -116,7 +212,6 @@ export default function AdminDashboard() {
       }
     };
     load();
-    // Polling a cada 60s
     const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
   }, [authFetch]);
@@ -131,73 +226,86 @@ export default function AdminDashboard() {
   }
 
   if (error) {
-    return <div className="cms-alert cms-alert-error">⚠️ {error}</div>;
+    return <div className="cms-alert cms-alert-error">{error}</div>;
   }
+
+  const today = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+  });
 
   return (
     <>
-      {/* Page header */}
+      {/* Cabeçalho da página */}
       <div className="cms-page-header">
         <div>
-          <h2 className="cms-page-title">
-            Olá, {user?.nome.split(' ')[0]} 👋
-          </h2>
-          <p className="cms-page-subtitle">
-            {new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <h2 className="cms-page-title">Redação</h2>
+          <p className="cms-page-subtitle" style={{ textTransform: 'capitalize' }}>
+            {today}
           </p>
         </div>
-        <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary">
-          <span>+</span> Nova Notícia
-        </Link>
       </div>
 
-      {/* Stat Cards */}
+      {/* Métricas principais */}
       <div className="cms-stats-grid">
         <div className="cms-stat-card">
-          <div className="cms-stat-icon" style={{ background: 'rgba(255,87,34,0.12)' }}>📰</div>
-          <div>
-            <div className="cms-stat-value">{formatNumber(stats?.totalNoticias ?? 0)}</div>
-            <div className="cms-stat-label">Notícias publicadas</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <span style={{ color: 'var(--c-accent)', opacity: 0.7 }}><IconArticle /></span>
           </div>
+          <div className="cms-stat-value">{formatNumber(stats?.totalNoticias ?? 0)}</div>
+          <div className="cms-stat-label">Notícias publicadas</div>
         </div>
+
         <div className="cms-stat-card">
-          <div className="cms-stat-icon" style={{ background: 'rgba(99,102,241,0.12)' }}>👁️</div>
-          <div>
-            <div className="cms-stat-value" style={{ color: '#818cf8' }}>{formatNumber(stats?.totalViews ?? 0)}</div>
-            <div className="cms-stat-label">Visualizações totais</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <span style={{ color: 'var(--c-secondary)', opacity: 0.7 }}><IconEye /></span>
           </div>
+          <div className="cms-stat-value">{formatNumber(stats?.totalViews ?? 0)}</div>
+          <div className="cms-stat-label">Visualizações totais</div>
         </div>
+
         <div className="cms-stat-card">
-          <div className="cms-stat-icon" style={{ background: 'rgba(34,197,94,0.12)' }}>❤️</div>
-          <div>
-            <div className="cms-stat-value" style={{ color: '#86efac' }}>{formatNumber(stats?.totalLikes ?? 0)}</div>
-            <div className="cms-stat-label">Curtidas recebidas</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <span style={{ color: 'var(--c-positive)', opacity: 0.7 }}><IconHeart /></span>
           </div>
+          <div className="cms-stat-value">{formatNumber(stats?.totalLikes ?? 0)}</div>
+          <div className="cms-stat-label">Curtidas recebidas</div>
         </div>
+
         <div className="cms-stat-card">
-          <div className="cms-stat-icon" style={{ background: 'rgba(245,158,11,0.12)' }}>📷</div>
-          <div>
-            <div className="cms-stat-value" style={{ color: '#fcd34d' }}>{stats?.totalSugestoesNovas ?? 0}</div>
-            <div className="cms-stat-label">Sugestões pendentes</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <span style={{ color: 'var(--c-warn)', opacity: 0.7 }}><IconCamera /></span>
           </div>
+          <div
+            className="cms-stat-value"
+            style={(stats?.totalSugestoesNovas ?? 0) > 0 ? { color: 'var(--c-warn)' } : {}}
+          >
+            {stats?.totalSugestoesNovas ?? 0}
+          </div>
+          <div className="cms-stat-label">Sugestões pendentes</div>
         </div>
       </div>
 
-      {/* Gráfico + Top notícias */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+      {/* Gráfico + Top 5 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '12px', marginBottom: '12px' }}>
         <div className="cms-chart-card">
-          <div className="cms-chart-title">📈 Publicações nos últimos 7 dias</div>
-          {stats?.grafico && <BarChart data={stats.grafico} />}
+          <div className="cms-chart-title">Publicações — últimos 7 dias</div>
+          {stats?.grafico && stats.grafico.length > 0
+            ? <BarChart data={stats.grafico} />
+            : <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--c-muted)', fontSize: '13px' }}>
+                Nenhum dado disponível
+              </div>
+          }
         </div>
 
         <div className="cms-table-card">
           <div className="cms-table-header">
-            <span className="cms-table-title">🔥 Top 5 mais lidas</span>
+            <span className="cms-table-title">Mais acessadas</span>
             <Link href="/admin/noticias" className="cms-btn cms-btn-secondary cms-btn-sm">Ver todas</Link>
           </div>
           <table className="cms-table">
             <thead>
               <tr>
+                <th>#</th>
                 <th>Título</th>
                 <th style={{ textAlign: 'right' }}>Views</th>
               </tr>
@@ -205,73 +313,94 @@ export default function AdminDashboard() {
             <tbody>
               {stats?.topNoticias.map((n, i) => (
                 <tr key={n.id}>
+                  <td style={{ width: '28px', color: 'var(--c-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                    {i + 1}
+                  </td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{
-                        width: '22px', height: '22px', borderRadius: '6px',
-                        background: i === 0 ? '#ff5722' : 'rgba(255,255,255,0.06)',
-                        color: i === 0 ? '#fff' : '#8b98b0',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '11px', fontWeight: '700', flexShrink: 0
-                      }}>{i + 1}</span>
-                      <span style={{ fontSize: '13px', fontWeight: '500', lineHeight: '1.3' }}>
-                        {n.titulo.length > 45 ? n.titulo.slice(0, 45) + '…' : n.titulo}
-                      </span>
+                    <div style={{ fontSize: '12.5px', fontWeight: 450, lineHeight: '1.35' }}>
+                      {n.titulo.length > 42 ? n.titulo.slice(0, 42) + '…' : n.titulo}
+                    </div>
+                    <div style={{ fontSize: '10.5px', color: 'var(--c-muted)', marginTop: '2px' }}>
+                      {n.categoria?.nome}
                     </div>
                   </td>
-                  <td style={{ textAlign: 'right', fontWeight: '700', color: '#ff5722' }}>
+                  <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--c-text)' }}>
                     {formatNumber(n.views)}
                   </td>
                 </tr>
               ))}
               {(!stats?.topNoticias || stats.topNoticias.length === 0) && (
-                <tr><td colSpan={2} style={{ textAlign: 'center', padding: '30px', color: '#8b98b0' }}>Nenhum dado ainda</td></tr>
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', padding: '28px', color: 'var(--c-muted)' }}>
+                    Nenhuma notícia ainda
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Últimos logs de auditoria */}
+      {/* Feed de atividade recente */}
       <div className="cms-table-card">
         <div className="cms-table-header">
-          <span className="cms-table-title">🔍 Atividade recente</span>
-          <Link href="/admin/auditoria" className="cms-btn cms-btn-secondary cms-btn-sm">Ver auditoria completa</Link>
+          <span className="cms-table-title">Atividade recente</span>
+          <Link href="/admin/auditoria" className="cms-btn cms-btn-secondary cms-btn-sm">
+            Ver auditoria completa
+          </Link>
         </div>
-        <table className="cms-table">
-          <thead>
-            <tr>
-              <th>Ação</th>
-              <th>Usuário</th>
-              <th>IP</th>
-              <th>Quando</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stats?.ultimosLogs.map(log => (
-              <tr key={log.id}>
-                <td style={{ fontWeight: '500' }}>{formatAcao(log.acao)}</td>
-                <td style={{ color: '#8b98b0' }}>{log.usuario?.nome || '—'}</td>
-                <td><code style={{ fontSize: '12px', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>{log.ip}</code></td>
-                <td style={{ color: '#8b98b0', fontSize: '13px' }}>{timeAgo(log.dataHora)}</td>
-              </tr>
-            ))}
+        <div style={{ padding: '6px 16px 8px' }}>
+          <div className="ed-activity">
+            {stats?.ultimosLogs.map(log => {
+              const info = getAcaoInfo(log.acao);
+              return (
+                <div key={log.id} className="ed-activity-item">
+                  <div className={`ed-dot ed-dot-${info.type}`} />
+                  <div className="ed-activity-body">
+                    <div className="ed-activity-label">{info.label}</div>
+                    <div className="ed-activity-meta">
+                      <span>{log.usuario?.nome || 'Sistema'}</span>
+                      <span style={{ color: 'var(--c-border-h)' }}>·</span>
+                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: 'var(--c-muted)' }}>
+                        {log.ip}
+                      </code>
+                      <span style={{ color: 'var(--c-border-h)' }}>·</span>
+                      <span>{timeAgo(log.dataHora)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
             {(!stats?.ultimosLogs || stats.ultimosLogs.length === 0) && (
-              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '30px', color: '#8b98b0' }}>Nenhuma atividade registrada</td></tr>
+              <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--c-muted)', fontSize: '13px' }}>
+                Nenhuma atividade registrada
+              </div>
             )}
-          </tbody>
-        </table>
+          </div>
+        </div>
       </div>
 
-      {/* Ações rápidas */}
-      <div style={{ marginTop: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-        <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary">📰 Nova Notícia</Link>
-        <Link href="/admin/categorias" className="cms-btn cms-btn-secondary">🏷️ Gerenciar Categorias</Link>
-        <Link href="/admin/colunistas" className="cms-btn cms-btn-secondary">✍️ Gerenciar Colunistas</Link>
-        {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
-          <Link href="/admin/usuarios" className="cms-btn cms-btn-secondary">👥 Gerenciar Usuários</Link>
-        )}
-        <Link href="/admin/sugestoes" className="cms-btn cms-btn-secondary">📷 Você Repórter</Link>
+      {/* Atalhos rápidos */}
+      <div className="ed-quick-grid">
+        <Link href="/admin/noticias/nova" className="ed-quick-item">
+          <div className="ed-quick-icon"><IconPlus /></div>
+          Nova Notícia
+        </Link>
+
+        <Link href="/admin/categorias" className="ed-quick-item">
+          <div className="ed-quick-icon"><IconTag /></div>
+          Categorias
+        </Link>
+
+        <Link href="/admin/colunistas" className="ed-quick-item">
+          <div className="ed-quick-icon"><IconPen /></div>
+          Colunistas
+        </Link>
+
+        <Link href="/" target="_blank" className="ed-quick-item">
+          <div className="ed-quick-icon"><IconExternal /></div>
+          Ver Portal
+        </Link>
       </div>
     </>
   );

@@ -31,6 +31,7 @@ export default function AdminLogin() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // necessário para salvar o cookie refreshToken (HttpOnly)
         body: JSON.stringify({ email, password, captchaToken }),
       });
 
