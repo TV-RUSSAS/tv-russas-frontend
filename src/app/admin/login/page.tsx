@@ -1,11 +1,11 @@
 "use client";
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { API_URL } from '@/services/api';
 import { getImagePath } from '@/utils/imagePath';
-import { Turnstile } from '@marsidev/react-turnstile';
+import { Turnstile, TurnstileInstance } from '@marsidev/react-turnstile';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -14,6 +14,7 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const turnstileRef = useRef<TurnstileInstance>(null);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,6 +39,9 @@ export default function AdminLogin() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Resetar o widget para gerar um novo token antes de tentar novamente
+        setCaptchaToken(null);
+        turnstileRef.current?.reset();
         throw new Error(data.error || 'Ocorreu um erro ao fazer login.');
       }
 
@@ -235,8 +239,13 @@ export default function AdminLogin() {
 
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
             <Turnstile
+              ref={turnstileRef}
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
               onSuccess={(token) => setCaptchaToken(token)}
+              onExpire={() => {
+                setCaptchaToken(null);
+                turnstileRef.current?.reset();
+              }}
               options={{
                 theme: 'dark',
               }}
