@@ -132,6 +132,12 @@ function formatArticleContent(htmlContent: string): string {
     }
   );
 
+  // Caso 4: Transformar qualquer "Publicado por: [Nome]" genérico (inserido pelo editor)
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<\n]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
+    '<p class="article-author-attribution"><strong>Publicado por: $1</strong></p>'
+  );
+
   // 2. Colocar a linha inteira da "Fonte: [Nome]" em negrito com classe de atribuição e sem aninhamento
   // Caso 1: Fonte dentro de um <p> contendo ou não tags <strong>/<b>
   content = content.replace(

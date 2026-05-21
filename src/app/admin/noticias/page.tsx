@@ -114,12 +114,20 @@ export default function NoticiasAdmin() {
           <p className="cms-page-subtitle">{paginacao.total} notícias no total</p>
         </div>
         <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary">
-          <span>+</span> Nova Notícia
+          <i className="fas fa-plus" style={{ fontSize: '11px', marginRight: '6px' }} /> Nova Notícia
         </Link>
       </div>
 
-      {error && <div className="cms-alert cms-alert-error">⚠️ {error}</div>}
-      {success && <div className="cms-alert cms-alert-success">✅ {success}</div>}
+      {error && (
+        <div className="cms-alert cms-alert-error">
+          <i className="fas fa-exclamation-triangle" style={{ fontSize: '12px', marginRight: '6px' }} /> {error}
+        </div>
+      )}
+      {success && (
+        <div className="cms-alert cms-alert-success">
+          <i className="fas fa-check-circle" style={{ fontSize: '12px', marginRight: '6px' }} /> {success}
+        </div>
+      )}
 
       <div className="cms-table-card">
         {/* Filtros */}
@@ -168,29 +176,41 @@ export default function NoticiasAdmin() {
                 <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#8b98b0' }}>Nenhuma notícia encontrada</td></tr>
               ) : noticias.map(n => (
                 <tr key={n.id}>
-                  <td style={{ maxWidth: '300px' }}>
-                    <div style={{ fontWeight: '600', lineHeight: '1.3', marginBottom: '2px' }}>
-                      {n.titulo.length > 50 ? n.titulo.slice(0, 50) + '…' : n.titulo}
+                  <td>
+                    <div style={{
+                      fontFamily: 'var(--font-serif)',
+                      fontSize: '15.5px',
+                      fontWeight: '500',
+                      lineHeight: '1.4',
+                      color: 'var(--c-text)',
+                      marginBottom: '4px'
+                    }}>
+                      {n.titulo}
                     </div>
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                      {n.featured && <span className="cms-badge cms-badge-blue">⭐ Destaque</span>}
-                      {n.breaking && <span className="cms-badge cms-badge-red">🔴 Urgente</span>}
+                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                      {n.featured && <span className="cms-badge cms-badge-yellow">Destaque</span>}
+                      {n.breaking && <span className="cms-badge cms-badge-red">Urgente</span>}
                     </div>
                   </td>
                   <td>
                     <span className="cms-badge cms-badge-gray">{n.categoria.nome}</span>
                   </td>
-                  <td style={{ color: '#8b98b0', fontSize: '13px' }}>
+                  <td style={{ color: 'var(--c-secondary)', fontSize: '13px' }}>
                     {n.colunista?.nome || n.usuario?.nome || '—'}
                   </td>
-                  <td style={{ color: '#8b98b0', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                  <td style={{ color: 'var(--c-secondary)', fontSize: '13px', whiteSpace: 'nowrap' }}>
                     {new Date(n.publicadoEm).toLocaleDateString('pt-BR')}
                   </td>
-                  <td style={{ textAlign: 'right', fontWeight: '700', color: '#ff5722' }}>
+                  <td style={{
+                    textAlign: 'right',
+                    fontWeight: '500',
+                    color: 'var(--c-secondary)',
+                    fontVariantNumeric: 'tabular-nums'
+                  }}>
                     {n.views.toLocaleString('pt-BR')}
                   </td>
                   <td style={{ textAlign: 'center' }}>
-                    <span className="cms-badge cms-badge-green">✅ Publicada</span>
+                    <span className="cms-badge cms-badge-green">Publicada</span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
@@ -198,14 +218,15 @@ export default function NoticiasAdmin() {
                         href={`/admin/noticias/editar/${n.id}`}
                         className="cms-btn cms-btn-secondary cms-btn-sm"
                       >
-                        ✏️ Editar
+                        <i className="far fa-edit" style={{ fontSize: '11px', marginRight: '4px' }} /> Editar
                       </Link>
                       {canDelete && (
                         <button
                           className="cms-btn cms-btn-danger cms-btn-sm"
                           onClick={() => setConfirmDeleteId(n.id)}
+                          title="Excluir"
                         >
-                          🗑️
+                          <i className="far fa-trash-alt" style={{ fontSize: '12px' }} />
                         </button>
                       )}
                     </div>
@@ -238,18 +259,28 @@ export default function NoticiasAdmin() {
         <div className="cms-modal-overlay" onClick={() => setConfirmDeleteId(null)}>
           <div className="cms-modal" onClick={e => e.stopPropagation()}>
             <div className="cms-modal-header">
-              <span className="cms-modal-title">⚠️ Confirmar Exclusão</span>
+              <span className="cms-modal-title">Confirmar Exclusão</span>
               <button className="cms-modal-close" onClick={() => setConfirmDeleteId(null)}>×</button>
             </div>
             <div className="cms-modal-body">
-              <p style={{ marginBottom: '12px', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '12px', lineHeight: '1.6', color: 'var(--c-secondary)' }}>
                 Você está prestes a excluir permanentemente a notícia:
               </p>
-              <p style={{ fontWeight: '700', color: '#ff5722', lineHeight: '1.4' }}>
+              <p style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: '16px',
+                fontWeight: '500',
+                color: 'var(--c-text)',
+                lineHeight: '1.4',
+                padding: '10px 12px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderLeft: '2px solid var(--c-accent)',
+                borderRadius: '0 4px 4px 0'
+              }}>
                 &quot;{noticiaParaExcluir?.titulo}&quot;
               </p>
-              <p style={{ marginTop: '12px', color: '#8b98b0', fontSize: '13px' }}>
-                Esta ação não pode ser desfeita. O log de auditoria será registrado.
+              <p style={{ marginTop: '14px', color: 'var(--c-muted)', fontSize: '12px' }}>
+                Esta ação não pode ser desfeita. O log de auditoria correspondente será registrado.
               </p>
             </div>
             <div className="cms-modal-footer">
@@ -263,7 +294,9 @@ export default function NoticiasAdmin() {
               >
                 {deletingId === confirmDeleteId ? (
                   <><div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Excluindo...</>
-                ) : '🗑️ Excluir definitivamente'}
+                ) : (
+                  <><i className="far fa-trash-alt" style={{ fontSize: '12px', marginRight: '6px' }} /> Excluir Definitivamente</>
+                )}
               </button>
             </div>
           </div>

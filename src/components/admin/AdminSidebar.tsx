@@ -120,6 +120,8 @@ interface Props {
 
 export function AdminSidebar({ user, sugestoesCount }: Props) {
   const pathname = usePathname();
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  const logoUrl = `${apiBaseUrl}/uploads/sistema/1.png`;
 
   const canSee = (item: NavItem) => {
     if (!item.roles) return true;
@@ -129,11 +131,25 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
   return (
     <aside className="cms-sidebar">
       {/* Logo */}
-      <div className="cms-sidebar-logo">
-        <div className="cms-sidebar-logo-icon">TVR</div>
-        <div>
-          <div className="cms-sidebar-logo-text">TV Russas</div>
-          <div className="cms-sidebar-logo-sub">Painel Editorial</div>
+      <div className="cms-sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '18px 16px', borderBottom: '1px solid var(--c-border)' }}>
+        <div style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '2px' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={logoUrl} 
+            alt="Logo TV Russas" 
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              if (target.parentElement) {
+                target.parentElement.innerHTML = '<span style="font-size: 11px; font-weight: 800; color: #111;">TVR</span>';
+              }
+            }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span className="cms-sidebar-logo-text" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--c-text)', letterSpacing: '-0.01em' }}>TV Russas</span>
+          <span className="cms-sidebar-logo-sub" style={{ fontSize: '10px', color: 'var(--c-secondary)', fontWeight: '400', opacity: 0.8 }}>Painel Editorial</span>
         </div>
       </div>
 

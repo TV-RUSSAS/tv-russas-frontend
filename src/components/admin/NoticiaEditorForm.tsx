@@ -1,8 +1,9 @@
 'use client';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+
 // TipTap imports
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -10,60 +11,147 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
+import { Color } from '@tiptap/extension-color';
+import { TextStyle } from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import Highlight from '@tiptap/extension-highlight';
+import Image from '@tiptap/extension-image';
+import LinkExtension from '@tiptap/extension-link';
+import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
 
 interface Categoria { id: string; nome: string; }
 interface Colunista  { id: string; nome: string; }
 
 function generateSlug(title: string): string {
-  return title
-    .toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+  return title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
 }
 
-function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
+// ── TOOLBAR DO EDITOR ─────────────────────────────────────────────
+function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEditor>, authFetch: (url: string, options?: RequestInit) => Promise<Response> }) {
+  const [showFontMenu, setShowFontMenu] = useState(false);
+  const [showColorMenu, setShowColorMenu] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   if (!editor) return null;
-  const btn = (action: () => void, label: string, active?: boolean) => (
-    <button
-      type="button"
-      onClick={action}
-      title={label}
-      style={{
-        padding: '5px 9px', border: 'none', borderRadius: '5px',
-        background: active ? 'rgba(255,87,34,0.2)' : 'transparent',
-        color: active ? '#ff5722' : '#8b98b0',
-        cursor: 'pointer', fontSize: '13px', fontWeight: '600',
-        transition: 'all 0.15s'
-      }}
-    >{label}</button>
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      const res = await authFetch('/admin/upload-image', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Falha ao subir imagem');
+      const data = await res.json();
+      
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const fullUrl = data.url.startsWith('http') ? data.url : `${baseUrl}${data.url}`;
+      
+      editor.chain().focus().setImage({ src: fullUrl }).run();
+    } catch (err) {
+      alert('Erro ao fazer upload da imagem.');
+    }
+  };
+
+  const btn = (action: () => void, iconClass: string, title: string, active?: boolean) => (
+    <button type="button" onClick={action} title={title} className={`ed-btn ${active ? 'active' : ''}`}>
+      <i className={iconClass} />
+    </button>
   );
 
   return (
-    <div style={{
-      display: 'flex', flexWrap: 'wrap', gap: '2px',
-      padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.07)',
-      background: 'rgba(255,255,255,0.02)'
-    }}>
-      {btn(() => editor.chain().focus().toggleBold().run(), 'B', editor.isActive('bold'))}
-      {btn(() => editor.chain().focus().toggleItalic().run(), 'I', editor.isActive('italic'))}
-      {btn(() => editor.chain().focus().toggleUnderline().run(), 'U', editor.isActive('underline'))}
-      <span style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
-      {btn(() => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'H2', editor.isActive('heading', { level: 2 }))}
-      {btn(() => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'H3', editor.isActive('heading', { level: 3 }))}
-      <span style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
-      {btn(() => editor.chain().focus().toggleBulletList().run(), '• Lista', editor.isActive('bulletList'))}
-      {btn(() => editor.chain().focus().toggleOrderedList().run(), '1. Lista', editor.isActive('orderedList'))}
-      {btn(() => editor.chain().focus().toggleBlockquote().run(), '❝', editor.isActive('blockquote'))}
-      <span style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
-      {btn(() => editor.chain().focus().setTextAlign('left').run(), '⬅', editor.isActive({ textAlign: 'left' }))}
-      {btn(() => editor.chain().focus().setTextAlign('center').run(), '↔', editor.isActive({ textAlign: 'center' }))}
-      {btn(() => editor.chain().focus().setTextAlign('right').run(), '➡', editor.isActive({ textAlign: 'right' }))}
-      <span style={{ width: '1px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
-      {btn(() => editor.chain().focus().undo().run(), '↩ Desfazer')}
-      {btn(() => editor.chain().focus().redo().run(), '↪ Refazer')}
+    <div className="ed-toolbar-sticky">
+      {/* Undo/Redo */}
+      {btn(() => editor.chain().focus().undo().run(), 'fas fa-undo', 'Desfazer')}
+      {btn(() => editor.chain().focus().redo().run(), 'fas fa-redo', 'Refazer')}
+      <div className="ed-separator" />
+
+      {/* Font Family Dropdown */}
+      <div className="ed-dropdown" onMouseLeave={() => setShowFontMenu(false)}>
+        <button type="button" className="ed-btn" style={{ width: 'auto', padding: '0 8px', fontSize: '12px', fontWeight: '600' }} onClick={() => setShowFontMenu(!showFontMenu)}>
+          Fonte <i className="fas fa-chevron-down" style={{ fontSize: '10px', marginLeft: '4px' }}/>
+        </button>
+        {showFontMenu && (
+          <div className="ed-dropdown-content" style={{ display: 'block' }}>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().unsetFontFamily().run(); setShowFontMenu(false); }} style={{ fontFamily: 'var(--font-sans)' }}>Padrão (Inter)</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Lora').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Lora, serif' }}>Lora (Serifada)</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Merriweather').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Merriweather, serif' }}>Merriweather</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Georgia').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Georgia, serif' }}>Georgia</button>
+          </div>
+        )}
+      </div>
+
+      <div className="ed-separator" />
+
+      {/* Headings */}
+      {btn(() => editor.chain().focus().setParagraph().run(), 'fas fa-paragraph', 'Parágrafo Normal', editor.isActive('paragraph'))}
+      {btn(() => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'fas fa-heading', 'Título Principal (H2)', editor.isActive('heading', { level: 2 }))}
+      {btn(() => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'fas fa-h3', 'Subtítulo (H3)', editor.isActive('heading', { level: 3 }))}
+      
+      <div className="ed-separator" />
+
+      {/* Marks */}
+      {btn(() => editor.chain().focus().toggleBold().run(), 'fas fa-bold', 'Negrito', editor.isActive('bold'))}
+      {btn(() => editor.chain().focus().toggleItalic().run(), 'fas fa-italic', 'Itálico', editor.isActive('italic'))}
+      {btn(() => editor.chain().focus().toggleUnderline().run(), 'fas fa-underline', 'Sublinhado', editor.isActive('underline'))}
+      {btn(() => editor.chain().focus().toggleStrike().run(), 'fas fa-strikethrough', 'Tachado', editor.isActive('strike'))}
+      {btn(() => editor.chain().focus().toggleHighlight().run(), 'fas fa-highlighter', 'Destacar Texto', editor.isActive('highlight'))}
+      
+      {/* Cor do Texto Dropdown */}
+      <div className="ed-dropdown" onMouseLeave={() => setShowColorMenu(false)}>
+        <button type="button" className="ed-btn" onClick={() => setShowColorMenu(!showColorMenu)} title="Cor do Texto">
+          <i className="fas fa-palette" />
+        </button>
+        {showColorMenu && (
+          <div className="ed-dropdown-content" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', padding: '8px' }}>
+            {['#111111', '#e04a2d', '#2563eb', '#16a34a', '#d97706', '#9333ea', '#db2777', '#475569'].map(color => (
+              <div key={color} onClick={() => { editor.chain().focus().setColor(color).run(); setShowColorMenu(false); }}
+                   style={{ width: '20px', height: '20px', background: color, borderRadius: '50%', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }} />
+            ))}
+            <button type="button" onClick={() => { editor.chain().focus().unsetColor().run(); setShowColorMenu(false); }} style={{ gridColumn: 'span 4', fontSize: '11px', marginTop: '4px', background: 'transparent', border: 'none', color: 'var(--c-text)', cursor: 'pointer' }}>Resetar</button>
+          </div>
+        )}
+      </div>
+
+      <div className="ed-separator" />
+
+      {/* Alignment */}
+      {btn(() => editor.chain().focus().setTextAlign('left').run(), 'fas fa-align-left', 'Alinhar à Esquerda', editor.isActive({ textAlign: 'left' }))}
+      {btn(() => editor.chain().focus().setTextAlign('center').run(), 'fas fa-align-center', 'Centralizar', editor.isActive({ textAlign: 'center' }))}
+      {btn(() => editor.chain().focus().setTextAlign('right').run(), 'fas fa-align-right', 'Alinhar à Direita', editor.isActive({ textAlign: 'right' }))}
+
+      <div className="ed-separator" />
+
+      {/* Lists & Blocks */}
+      {btn(() => editor.chain().focus().toggleBulletList().run(), 'fas fa-list-ul', 'Lista', editor.isActive('bulletList'))}
+      {btn(() => editor.chain().focus().toggleOrderedList().run(), 'fas fa-list-ol', 'Lista Numerada', editor.isActive('orderedList'))}
+      {btn(() => editor.chain().focus().toggleTaskList().run(), 'fas fa-tasks', 'Checklist', editor.isActive('taskList'))}
+      {btn(() => editor.chain().focus().toggleBlockquote().run(), 'fas fa-quote-right', 'Citação Editorial', editor.isActive('blockquote'))}
+      {btn(() => editor.chain().focus().toggleCodeBlock().run(), 'fas fa-code', 'Bloco de Código', editor.isActive('codeBlock'))}
+      {btn(() => editor.chain().focus().setHorizontalRule().run(), 'fas fa-minus', 'Separador Horizontal')}
+
+      <div className="ed-separator" />
+
+      {/* Media & Links */}
+      {btn(() => {
+        const url = window.prompt('URL do Link:');
+        if (url === null) return;
+        if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
+        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+      }, 'fas fa-link', 'Inserir Link', editor.isActive('link'))}
+
+      <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageUpload} />
+      <button type="button" onClick={() => fileInputRef.current?.click()} title="Inserir Imagem" className="ed-btn">
+        <i className="far fa-image" />
+      </button>
+
     </div>
   );
 }
 
+// ── COMPONENTE PRINCIPAL ──────────────────────────────────────────
 interface EditorFormProps {
   initialData?: {
     id?: string;
@@ -96,36 +184,133 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   const [tags, setTags] = useState(initialData?.tags || '');
   const [featured, setFeatured] = useState(initialData?.featured || false);
   const [breaking, setBreaking] = useState(initialData?.breaking || false);
+  
+  const getApiUrl = (url?: string) => {
+    if (!url) return null;
+    if (url.startsWith('http')) return url;
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    return `${baseUrl}${url}`;
+  };
+
   const [capa, setCapa] = useState<File | null>(null);
-  const [capaPreview, setCapaPreview] = useState<string | null>(initialData?.capaUrl || null);
+  const [capaPreview, setCapaPreview] = useState<string | null>(getApiUrl(initialData?.capaUrl));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [slugManual, setSlugManual] = useState(mode === 'edit');
+  const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
+  const [showFeaturedModal, setShowFeaturedModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+  const subtitleRef = useRef<HTMLTextAreaElement>(null);
 
+  useEffect(() => {
+    if (titleRef.current) {
+      titleRef.current.style.height = 'auto';
+      titleRef.current.style.height = titleRef.current.scrollHeight + 'px';
+    }
+  }, [titulo]);
+
+  useEffect(() => {
+    if (subtitleRef.current) {
+      subtitleRef.current.style.height = 'auto';
+      subtitleRef.current.style.height = subtitleRef.current.scrollHeight + 'px';
+    }
+  }, [resumo]);
+
+  const extractFonte = (html: string) => {
+    const match = html.match(/<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/i);
+    return match ? match[1].trim() : 'TV Russas';
+  };
+
+  const removeFonte = (html: string) => {
+    return html.replace(/<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi, '');
+  };
+
+  const extractPublicadoPor = (html: string) => {
+    // Tenta achar a tag Publicado por genérica
+    const match = html.match(/<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/i);
+    return match ? match[1].trim() : '';
+  };
+
+  const removePublicadoPor = (html: string) => {
+    return html.replace(/<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi, '');
+  };
+
+  const [fonteText, setFonteText] = useState(initialData?.conteudo ? extractFonte(initialData.conteudo) : 'TV Russas');
+  const [publicadoPorText, setPublicadoPorText] = useState(initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : '');
+
+  // Editor Instantiation
   const editor = useEditor({
     extensions: [
       StarterKit,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Placeholder.configure({ placeholder: 'Escreva o conteúdo da notícia aqui...' }),
+      Placeholder.configure({ placeholder: 'Escreva a matéria com maestria jornalística...' }),
       CharacterCount,
+      Color,
+      TextStyle,
+      FontFamily,
+      Highlight.configure({ multicolor: true }),
+      Image.configure({ inline: true, allowBase64: true }),
+      LinkExtension.configure({ openOnClick: false }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
     ],
-    content: initialData?.conteudo || '',
+    content: removePublicadoPor(removeFonte(initialData?.conteudo || '')),
     editorProps: {
       attributes: {
-        style: 'min-height: 300px; padding: 16px; outline: none; color: #e2e8f0; font-size: 15px; line-height: 1.7;',
+        class: 'cms-editor-content',
+        style: 'outline: none;',
       },
     },
+    onUpdate: () => {
+      setSaveStatus('saving');
+    }
   });
 
-  const handleTituloChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Autosave Local (Rascunho)
+  useEffect(() => {
+    if (saveStatus !== 'saving' || !editor) return;
+    const timeout = setTimeout(() => {
+      const draftData = {
+        titulo, slug, resumo, categoriaId, colunistaId, tags, featured, breaking,
+        conteudo: editor.getHTML()
+      };
+      localStorage.setItem(`draft-noticia-${mode}-${initialData?.id || 'new'}`, JSON.stringify(draftData));
+      setSaveStatus('saved');
+    }, 1500);
+    return () => clearTimeout(timeout);
+  }, [saveStatus, editor, titulo, slug, resumo, categoriaId, colunistaId, tags, featured, breaking, mode, initialData?.id]);
+
+  // Carregar rascunho (apenas na criação)
+  useEffect(() => {
+    if (mode === 'create') {
+      const saved = localStorage.getItem('draft-noticia-create-new');
+      if (saved) {
+        try {
+          const draft = JSON.parse(saved);
+          if (confirm('Encontramos um rascunho não salvo. Deseja restaurá-lo?')) {
+            setTimeout(() => {
+              if (draft.titulo) setTitulo(draft.titulo);
+              if (draft.slug) setSlug(draft.slug);
+              if (draft.resumo) setResumo(draft.resumo);
+              if (draft.categoriaId) setCategoriaId(draft.categoriaId);
+              if (draft.conteudo && editor) editor.commands.setContent(draft.conteudo);
+            }, 0);
+          } else {
+            localStorage.removeItem('draft-noticia-create-new');
+          }
+        } catch {}
+      }
+    }
+  }, [editor, mode]);
+
+  const handleTituloChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setTitulo(val);
-    if (!slugManual) {
-      setSlug(generateSlug(val));
-    }
+    setSaveStatus('saving');
+    if (!slugManual) setSlug(generateSlug(val));
   };
 
   useEffect(() => {
@@ -145,46 +330,49 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Submit Final (com lógica de limite de destaques)
+  const executeSubmit = async (replaceFeatured: boolean = false) => {
     setError('');
-
     const content = editor?.getHTML() || '';
-    if (content === '<p></p>' || !content.trim()) {
-      setError('O conteúdo da notícia não pode estar vazio.');
-      return;
-    }
-    if (mode === 'create' && !capa) {
-      setError('A imagem de capa é obrigatória.');
-      return;
-    }
+    if (content === '<p></p>' || !content.trim()) { setError('O conteúdo da notícia não pode estar vazio.'); return; }
+    if (mode === 'create' && !capa) { setError('A imagem de capa é obrigatória.'); return; }
 
     setLoading(true);
     try {
+      // Reconstrói a tag da Fonte no formato que o frontend espera
+      let finalContent = content;
+      if (fonteText && fonteText.trim() !== '') {
+        finalContent += `\n<p><strong>Fonte: ${fonteText.trim()}</strong></p>`;
+      }
+      if (publicadoPorText && publicadoPorText.trim() !== '') {
+        finalContent += `\n<p class="article-author-attribution"><strong>Publicado por: ${publicadoPorText.trim()}</strong></p>`;
+      }
+
       const formData = new FormData();
       formData.append('titulo', titulo);
       formData.append('slug', slug);
       formData.append('categoriaId', categoriaId);
-      formData.append('conteudo', content);
+      formData.append('conteudo', finalContent);
       if (resumo) formData.append('resumo', resumo);
       if (tags) formData.append('tags', tags);
       if (colunistaId) formData.append('colunistaId', colunistaId);
       formData.append('featured', String(featured));
       formData.append('breaking', String(breaking));
+      if (replaceFeatured) formData.append('replaceFeatured', 'true');
       if (capa) formData.append('capa', capa);
 
       const url = mode === 'edit' ? `/admin/noticias/${initialData?.id}` : '/admin/noticias';
       const method = mode === 'edit' ? 'PUT' : 'POST';
 
       const token = sessionStorage.getItem('accessToken');
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api${url}`,
-        { method, headers: { Authorization: `Bearer ${token}` }, body: formData }
-      );
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api${url}`, { method, headers: { Authorization: `Bearer ${token}` }, body: formData });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar notícia.');
 
+      // Limpar rascunho ao publicar com sucesso
+      localStorage.removeItem(`draft-noticia-${mode}-${initialData?.id || 'new'}`);
+      
       router.push('/admin/noticias');
       router.refresh();
     } catch (err) {
@@ -194,186 +382,304 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     }
   };
 
+  const handlePreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (featured && !initialData?.featured) {
+      // Verificar quantidade atual de destaques antes de enviar
+      try {
+        const res = await authFetch('/admin/noticias?limit=20');
+        const data = await res.json();
+        const currentFeatured = data.noticias?.filter((n: { featured: boolean }) => n.featured).length || 0;
+        if (currentFeatured >= 3) {
+          setShowFeaturedModal(true);
+          return;
+        }
+      } catch(err) {
+        console.error("Erro ao verificar destaques", err);
+      }
+    }
+    executeSubmit(false);
+  };
+
   const wordCount = editor?.storage.characterCount?.words() || 0;
-  const charCount = editor?.storage.characterCount?.characters() || 0;
+  const readTime = Math.max(1, Math.ceil(wordCount / 200)); // 200 palavras por minuto
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="cms-page-header">
-        <div>
-          <h2 className="cms-page-title">{mode === 'create' ? '+ Nova Notícia' : '✏️ Editar Notícia'}</h2>
-          <p className="cms-page-subtitle">
-            {mode === 'edit' ? 'Altere os campos desejados e salve.' : 'Preencha todos os campos obrigatórios.'}
-          </p>
+    <>
+      <form onSubmit={handlePreSubmit}>
+        <div className="cms-page-header">
+          <div>
+            <h2 className="cms-page-title">
+              {mode === 'create' ? (
+                <><i className="fas fa-feather-alt" style={{ fontSize: '20px', marginRight: '10px', color: 'var(--c-accent)' }} /> Escrever Matéria</>
+              ) : (
+                <><i className="far fa-edit" style={{ fontSize: '20px', marginRight: '10px', color: 'var(--c-accent)' }} /> Editar Matéria</>
+              )}
+            </h2>
+            <p className="cms-page-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span>{mode === 'edit' ? 'Modo de edição editorial.' : 'Modo de criação editorial.'}</span>
+              {saveStatus === 'saving' && <span style={{ color: 'var(--c-warn)', fontSize: '11px', fontWeight: '500' }}><i className="fas fa-circle-notch fa-spin"/> Salvando rascunho...</span>}
+              {saveStatus === 'saved' && <span style={{ color: 'var(--c-positive)', fontSize: '11px', fontWeight: '500' }}><i className="fas fa-check"/> Rascunho salvo localmente</span>}
+            </p>
+          </div>
+          <Link href="/admin/noticias" className="cms-btn cms-btn-secondary">
+            <i className="fas fa-arrow-left" style={{ fontSize: '11px', marginRight: '6px' }} /> Cancelar
+          </Link>
         </div>
-        <Link href="/admin/noticias" className="cms-btn cms-btn-secondary">← Cancelar</Link>
-      </div>
 
-      {error && <div className="cms-alert cms-alert-error">⚠️ {error}</div>}
+        {error && (
+          <div className="cms-alert cms-alert-error">
+            <i className="fas fa-exclamation-triangle" style={{ fontSize: '12px', marginRight: '6px' }} /> {error}
+          </div>
+        )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px', alignItems: 'start' }}>
-        {/* Coluna principal */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Título */}
-          <div className="cms-table-card" style={{ padding: '20px' }}>
-            <div className="cms-form-group" style={{ marginBottom: '14px' }}>
-              <label className="cms-label">Título da Notícia <span>*</span></label>
-              <input
-                className="cms-input"
-                style={{ fontSize: '17px', fontWeight: '600' }}
-                required
-                value={titulo}
-                onChange={handleTituloChange}
-                placeholder="Digite um título impactante..."
-              />
-            </div>
-            <div className="cms-form-group" style={{ marginBottom: 0 }}>
-              <label className="cms-label">Slug (URL)</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  className="cms-input"
-                  style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                  value={slug}
-                  onChange={e => { setSlug(e.target.value); setSlugManual(true); }}
-                  placeholder="url-da-noticia"
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '20px', alignItems: 'start' }}>
+          
+          {/* Coluna Principal do Editor */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            
+            {/* Folha de Papel do Editor (Título, Subtítulo e Corpo) */}
+            <div className="cms-editor-paper">
+              
+              <div className="cms-editor-header">
+                <textarea
+                  ref={titleRef}
+                  required
+                  value={titulo}
+                  onChange={handleTituloChange}
+                  rows={1}
+                  placeholder="Título da Reportagem..."
+                  className="cms-editor-title"
                 />
-                <button type="button" className="cms-btn cms-btn-secondary cms-btn-sm"
-                  onClick={() => { setSlug(generateSlug(titulo)); setSlugManual(false); }}
-                  style={{ whiteSpace: 'nowrap' }}>
-                  ↻ Gerar
-                </button>
+                <textarea
+                  ref={subtitleRef}
+                  value={resumo}
+                  onChange={e => {
+                    setResumo(e.target.value);
+                    setSaveStatus('saving');
+                  }}
+                  rows={1}
+                  maxLength={200}
+                  placeholder="Subtítulo ou linha fina (aparece abaixo do título)..."
+                  className="cms-editor-subtitle"
+                />
               </div>
-              <div className="cms-form-hint">tvrussas.com.br/noticia/{slug || '...'}</div>
+
+              <div className="cms-editor-toolbar-wrap">
+                <EditorToolbar editor={editor} authFetch={authFetch} />
+              </div>
+              
+              <div className="cms-editor-content-area">
+                <EditorContent editor={editor} />
+                
+                {/* Container de Atribuição (Fonte e Publicado Por) */}
+                <div className="admin-article-preview" style={{ marginTop: '50px', paddingTop: '30px', borderTop: '1px solid #f4f4f5', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>Fonte:</strong>
+                    <input 
+                      type="text" 
+                      value={fonteText} 
+                      onChange={e => { setFonteText(e.target.value); setSaveStatus('saving'); }} 
+                      placeholder="Ex: TV Russas"
+                      style={{ 
+                        fontFamily: 'Merriweather, Lora, serif', 
+                        fontSize: '20px', 
+                        fontWeight: 'bold', 
+                        color: '#000', 
+                        border: 'none', 
+                        outline: 'none', 
+                        background: 'transparent',
+                        flex: 1,
+                        padding: 0
+                      }} 
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>Publicado por:</strong>
+                    <input 
+                      type="text" 
+                      value={publicadoPorText !== '' ? publicadoPorText : (colunistas.find(c => c.id === colunistaId)?.nome || "TV Russas").toUpperCase()} 
+                      onChange={e => { setPublicadoPorText(e.target.value); setSaveStatus('saving'); }} 
+                      placeholder="Ex: NOME DO JORNALISTA"
+                      style={{ 
+                        fontFamily: 'Merriweather, Lora, serif', 
+                        fontSize: '20px', 
+                        fontWeight: 'bold', 
+                        color: '#000', 
+                        border: 'none', 
+                        outline: 'none', 
+                        background: 'transparent',
+                        flex: 1,
+                        padding: 0
+                      }} 
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
+
           </div>
 
-          {/* Editor */}
-          <div className="cms-table-card">
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: '700', fontSize: '14px' }}>Conteúdo da Notícia <span style={{ color: '#ff5722' }}>*</span></span>
-              <span style={{ fontSize: '12px', color: '#8b98b0' }}>{wordCount} palavras · {charCount} caracteres</span>
+          {/* Coluna Lateral */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            {/* Ações e Publicação */}
+            <div className="cms-table-card" style={{ padding: '24px' }}>
+              <div style={{ fontWeight: '700', marginBottom: '18px', fontSize: '15px' }}>Publicação</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13.5px', color: 'var(--c-text)', padding: '10px', background: featured ? 'var(--c-accent-dim)' : 'var(--c-raised)', border: `1px solid ${featured ? 'var(--c-accent-low)' : 'var(--c-border)'}`, borderRadius: '6px' }}>
+                  <input type="checkbox" checked={featured} onChange={e => { setFeatured(e.target.checked); setSaveStatus('saving'); }} style={{ accentColor: 'var(--c-accent)', width: '16px', height: '16px' }} />
+                  <div>
+                    <div style={{ fontWeight: '600' }}>Em Destaque</div>
+                    <div style={{ fontSize: '10px', color: 'var(--c-secondary)' }}>Aparecerá no banner principal.</div>
+                  </div>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13.5px', color: 'var(--c-text)', padding: '10px', background: breaking ? 'rgba(239, 68, 68, 0.05)' : 'var(--c-raised)', border: `1px solid ${breaking ? 'rgba(239, 68, 68, 0.15)' : 'var(--c-border)'}`, borderRadius: '6px' }}>
+                  <input type="checkbox" checked={breaking} onChange={e => { setBreaking(e.target.checked); setSaveStatus('saving'); }} style={{ accentColor: '#ef4444', width: '16px', height: '16px' }} />
+                  <div>
+                    <div style={{ fontWeight: '600', color: breaking ? '#ef4444' : 'inherit' }}>Plantão (Breaking)</div>
+                    <div style={{ fontSize: '10px', color: 'var(--c-secondary)' }}>Notificação de urgência.</div>
+                  </div>
+                </label>
+              </div>
+              
+              <button type="submit" disabled={loading} className="cms-btn cms-btn-publish" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '15px', borderRadius: '8px' }}>
+                {loading ? <><div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Publicando...</> : mode === 'create' ? <><i className="fas fa-paper-plane" style={{ marginRight: '8px' }} /> Publicar Matéria</> : <><i className="far fa-save" style={{ marginRight: '8px' }} /> Atualizar Matéria</>}
+              </button>
             </div>
-            <EditorToolbar editor={editor} />
-            <div style={{ minHeight: '320px' }}>
-              <EditorContent editor={editor} />
-            </div>
-          </div>
 
-          {/* Resumo */}
-          <div className="cms-table-card" style={{ padding: '20px' }}>
-            <label className="cms-label">Resumo / Subtítulo
-              <span style={{ color: '#8b98b0', fontWeight: '400', marginLeft: '8px', fontSize: '12px' }}>
-                ({resumo.length}/160 caracteres — para SEO)
-              </span>
-            </label>
-            <textarea
-              className="cms-textarea"
-              rows={3}
-              maxLength={160}
-              value={resumo}
-              onChange={e => setResumo(e.target.value)}
-              placeholder="Escreva um resumo curto (aparece nos resultados de busca)..."
-            />
+            {/* Imagem de Capa */}
+            <div className="cms-table-card" style={{ padding: '24px' }}>
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>
+                Capa da Matéria {mode === 'create' && <span style={{ color: 'var(--c-accent)' }}>*</span>}
+              </div>
+              {capaPreview ? (
+                <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', aspectRatio: '16/9', border: '1px solid var(--c-border)', position: 'relative' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={capaPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>Trocar</button>
+                </div>
+              ) : (
+                <div onClick={() => fileInputRef.current?.click()} style={{ marginBottom: '16px', borderRadius: '6px', height: '140px', border: '2px dashed var(--c-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                  <i className="far fa-image" style={{ fontSize: '24px', marginBottom: '8px' }} />
+                  <span style={{ fontSize: '12px', fontWeight: '500' }}>Clique para enviar a capa</span>
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
+            </div>
+
+            {/* Classificação */}
+            <div className="cms-table-card" style={{ padding: '24px' }}>
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>Organização</div>
+              <div className="cms-form-group">
+                <label className="cms-label">Slug (URL SEO)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input className="cms-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }} value={slug} onChange={e => { setSlug(e.target.value); setSlugManual(true); setSaveStatus('saving'); }} placeholder="url-da-noticia" />
+                  <button type="button" className="cms-btn cms-btn-secondary cms-btn-sm" onClick={() => { setSlug(generateSlug(titulo)); setSlugManual(false); }}>↻</button>
+                </div>
+              </div>
+              <div className="cms-form-group">
+                <label className="cms-label">Categoria <span>*</span></label>
+                <select className="cms-select" required value={categoriaId} onChange={e => { setCategoriaId(e.target.value); setSaveStatus('saving'); }}>
+                  <option value="">Selecione...</option>
+                  {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+              <div className="cms-form-group">
+                <label className="cms-label">Autor da Matéria</label>
+                <select className="cms-select" value={colunistaId} onChange={e => { setColunistaId(e.target.value); setSaveStatus('saving'); }}>
+                  <option value="">Redação TV Russas</option>
+                  {colunistas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+              <div className="cms-form-group" style={{ marginBottom: 0 }}>
+                <label className="cms-label">Tags Opcionais</label>
+                <input className="cms-input" value={tags} onChange={e => { setTags(e.target.value); setSaveStatus('saving'); }} placeholder="ex: russas, política" />
+              </div>
+            </div>
+
+            {/* Stats Editoriais */}
+            <div className="cms-table-card" style={{ padding: '24px' }}>
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>Análise Editorial</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ background: 'var(--c-raised)', padding: '12px', borderRadius: '6px', border: '1px solid var(--c-border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Palavras</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--c-text)' }}>{wordCount}</div>
+                </div>
+                <div style={{ background: 'var(--c-raised)', padding: '12px', borderRadius: '6px', border: '1px solid var(--c-border)' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Tempo Leitura</div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--c-text)' }}>{readTime}m</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Google Preview */}
+            <div className="cms-table-card" style={{ padding: '24px' }}>
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <i className="fab fa-google" style={{ color: '#4285F4' }} /> Preview da Busca
+              </div>
+              <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e4e4e7', fontFamily: 'arial, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                
+                {/* Favicon e URL Breadcrumb */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
+                  <div style={{ width: '28px', height: '28px', background: '#f1f3f4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#202124' }}>
+                    <i className="fas fa-tv" style={{ fontSize: '12px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '14px', color: '#202124', lineHeight: '20px' }}>TV Russas</span>
+                    <div style={{ fontSize: '12px', color: '#4d5156', lineHeight: '18px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                      <span style={{ color: '#202124' }}>https://tvrussas.com.br</span>
+                      <span style={{ fontSize: '10px', color: '#70757a' }}>›</span>
+                      <span>noticia</span>
+                      {slug && (
+                        <>
+                          <span style={{ fontSize: '10px', color: '#70757a' }}>›</span>
+                          <span style={{ maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slug}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Título Azul Realista */}
+                <div style={{ fontSize: '20px', color: '#1a0dab', lineHeight: '26px', marginBottom: '4px', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
+                  {titulo || 'Título da Reportagem...'}
+                </div>
+
+                {/* Descrição / Snippet */}
+                <div style={{ fontSize: '14px', color: '#4d5156', lineHeight: '22px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>
+                  {resumo || 'Resumo impactante da matéria que aparecerá no Google. É recomendado ter entre 120 e 160 caracteres para garantir o melhor alcance orgânico e clareza nos resultados de pesquisa.'}
+                </div>
+
+              </div>
+            </div>
+
           </div>
         </div>
+      </form>
 
-        {/* Coluna lateral */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Publicar */}
-          <div className="cms-table-card" style={{ padding: '20px' }}>
-            <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '14px' }}>Publicação</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px' }}>
-                <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)}
-                  style={{ accentColor: '#ff5722', width: '16px', height: '16px' }} />
-                ⭐ Notícia Destaque
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px' }}>
-                <input type="checkbox" checked={breaking} onChange={e => setBreaking(e.target.checked)}
-                  style={{ accentColor: '#ff5722', width: '16px', height: '16px' }} />
-                🔴 Plantão (Breaking News)
-              </label>
+      {/* MODAL DE DESTAQUE */}
+      {showFeaturedModal && (
+        <div className="cms-modal-overlay">
+          <div className="cms-modal" style={{ maxWidth: '400px' }}>
+            <div className="cms-modal-header" style={{ borderBottom: 'none', paddingBottom: '0' }}>
+              <h3 className="cms-modal-title" style={{ fontSize: '18px' }}><i className="fas fa-star" style={{ color: 'var(--c-warn)', marginRight: '8px' }}/> Limite de Destaques</h3>
+              <button type="button" className="cms-modal-close" onClick={() => setShowFeaturedModal(false)}><i className="fas fa-times" /></button>
             </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="cms-btn cms-btn-primary"
-              style={{ width: '100%', justifyContent: 'center', height: '44px' }}
-            >
-              {loading ? (
-                <><div className="cms-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> Salvando...</>
-              ) : mode === 'create' ? '🚀 Publicar Notícia' : '💾 Salvar Alterações'}
-            </button>
-          </div>
-
-          {/* Imagem de capa */}
-          <div className="cms-table-card" style={{ padding: '20px' }}>
-            <div style={{ fontWeight: '700', marginBottom: '12px', fontSize: '14px' }}>
-              Imagem de Capa {mode === 'create' && <span style={{ color: '#ff5722' }}>*</span>}
+            <div className="cms-modal-body" style={{ color: 'var(--c-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
+              <p>O portal permite no máximo <strong>3 notícias em destaque</strong> no banner principal simultaneamente.</p>
+              <p style={{ marginTop: '12px' }}>Deseja remover o destaque da matéria mais antiga e substituí-la por esta?</p>
             </div>
-            {capaPreview && (
-              <div style={{ marginBottom: '12px', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={capaPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-            )}
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
-            <button type="button" className="cms-btn cms-btn-secondary"
-              onClick={() => fileInputRef.current?.click()}
-              style={{ width: '100%', justifyContent: 'center' }}>
-              📷 {capaPreview ? 'Trocar imagem' : 'Selecionar imagem'}
-            </button>
-            <div className="cms-form-hint">Será convertida automaticamente para WebP</div>
-          </div>
-
-          {/* Categoria e Colunista */}
-          <div className="cms-table-card" style={{ padding: '20px' }}>
-            <div style={{ fontWeight: '700', marginBottom: '14px', fontSize: '14px' }}>Classificação</div>
-            <div className="cms-form-group">
-              <label className="cms-label">Categoria <span>*</span></label>
-              <select className="cms-select" required value={categoriaId} onChange={e => setCategoriaId(e.target.value)}>
-                <option value="">Selecione...</option>
-                {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </div>
-            <div className="cms-form-group">
-              <label className="cms-label">Colunista <span style={{ color: '#8b98b0', fontSize: '11px' }}>(opcional)</span></label>
-              <select className="cms-select" value={colunistaId} onChange={e => setColunistaId(e.target.value)}>
-                <option value="">Nenhum</option>
-                {colunistas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-              </select>
-            </div>
-            <div className="cms-form-group" style={{ marginBottom: 0 }}>
-              <label className="cms-label">Tags <span style={{ color: '#8b98b0', fontSize: '11px' }}>(separadas por vírgula)</span></label>
-              <input
-                className="cms-input"
-                value={tags}
-                onChange={e => setTags(e.target.value)}
-                placeholder="russas, ceara, politica"
-              />
-            </div>
-          </div>
-
-          {/* SEO Preview */}
-          <div className="cms-table-card" style={{ padding: '20px' }}>
-            <div style={{ fontWeight: '700', marginBottom: '12px', fontSize: '14px' }}>🔍 Preview Google</div>
-            <div style={{
-              padding: '14px', borderRadius: '8px',
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)'
-            }}>
-              <div style={{ fontSize: '18px', color: '#8ab4f8', marginBottom: '4px', lineHeight: '1.3', wordBreak: 'break-word' }}>
-                {titulo || 'Título da notícia...'}
-              </div>
-              <div style={{ fontSize: '13px', color: '#34a853', marginBottom: '4px' }}>
-                tvrussas.com.br/noticia/{slug || 'url-da-noticia'}
-              </div>
-              <div style={{ fontSize: '13px', color: '#bdc1c6', lineHeight: '1.4' }}>
-                {resumo || 'O resumo da notícia aparecerá aqui. Escreva entre 120-160 caracteres para melhor SEO.'}
-              </div>
+            <div className="cms-modal-footer" style={{ borderTop: 'none', paddingTop: '0', paddingBottom: '20px' }}>
+              <button type="button" className="cms-btn cms-btn-secondary" onClick={() => setShowFeaturedModal(false)}>Cancelar</button>
+              <button type="button" className="cms-btn cms-btn-primary" onClick={() => { setShowFeaturedModal(false); executeSubmit(true); }}>
+                Sim, Substituir Destaque
+              </button>
             </div>
           </div>
         </div>
-      </div>
-    </form>
+      )}
+    </>
   );
 }
