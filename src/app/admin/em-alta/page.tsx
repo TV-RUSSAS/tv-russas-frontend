@@ -124,7 +124,7 @@ export default function EmAltaPage() {
 
       {/* Filtros */}
       <div className="flex flex-col md:flex-row md:items-center gap-4 bg-[#12141D]/60 border border-zinc-800/60 p-4 rounded-xl">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <PeriodFilter 
             selected={periodo} 
             onChange={setPeriodo} 
@@ -132,7 +132,7 @@ export default function EmAltaPage() {
           />
         </div>
 
-        <div className="relative flex-grow max-w-xs">
+        <div className="relative grow max-w-xs">
           <select
             value={categoriaId}
             onChange={(e) => setCategoriaId(e.target.value)}

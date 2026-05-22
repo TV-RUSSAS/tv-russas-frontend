@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { NoticiaEditorForm } from '@/components/admin/NoticiaEditorForm';
+import { getImagePath } from '@/utils/imagePath';
 
 interface Noticia {
   id: string;
@@ -62,7 +63,7 @@ export default function EditarNoticiaPage() {
         tags: noticia.tags || '',
         featured: noticia.featured,
         breaking: noticia.breaking,
-        capaUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${noticia.capaUrl}`,
+        capaUrl: getImagePath(noticia.capaUrl),
       }}
     />
   );

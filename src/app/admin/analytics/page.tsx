@@ -395,7 +395,7 @@ export default function AnalyticsDashboardPage() {
                     {/* Barra de Progresso Horizontal Premium */}
                     <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/60 flex">
                       <div 
-                        className="h-full bg-gradient-to-r from-orange-600 to-[#ff5722] rounded-full group-hover:brightness-110 transition-all duration-300"
+                        className="h-full bg-linear-to-r from-orange-600 to-[#ff5722] rounded-full group-hover:brightness-110 transition-all duration-300"
                         style={{ width: `${cat.percentual}%` }}
                       />
                     </div>
@@ -427,7 +427,7 @@ export default function AnalyticsDashboardPage() {
                 {Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="animate-pulse flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-zinc-850"></div>
-                    <div className="flex-grow space-y-1">
+                    <div className="grow space-y-1">
                       <div className="h-3.5 bg-zinc-850 rounded w-28"></div>
                       <div className="h-2.5 bg-zinc-850 rounded w-16"></div>
                     </div>

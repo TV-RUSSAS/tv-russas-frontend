@@ -39,7 +39,7 @@ export default function MetricCard({
   return (
     <div className="bg-[#12141D] border border-zinc-800/80 rounded-xl p-6 hover:border-zinc-700/60 transition-all duration-300 relative overflow-hidden group">
       {/* Detalhe de luz sutil no hover */}
-      <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#ff5722]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute top-0 left-0 w-full h-[2px] bg-linear-to-r from-transparent via-[#ff5722]/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       
       <div className="flex justify-between items-start">
         <div>

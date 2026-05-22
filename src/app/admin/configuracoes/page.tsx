@@ -101,7 +101,7 @@ export default function ConfiguracoesAdmin() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => setSuccess(''), 3000);
       }, 800);
-    } catch (err) {
+    } catch {
       setLoading(false);
       setError('Erro ao salvar as configurações.');
     }
@@ -132,7 +132,7 @@ export default function ConfiguracoesAdmin() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => setSuccess(''), 3000);
       }, 800);
-    } catch (err) {
+    } catch {
       setLoading(false);
       setError('Erro ao salvar as configurações.');
     }

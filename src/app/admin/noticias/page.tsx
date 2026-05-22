@@ -13,7 +13,6 @@ import {
   X,
   Eye,
   Star,
-  Zap,
   Calendar,
   User,
   FolderOpen

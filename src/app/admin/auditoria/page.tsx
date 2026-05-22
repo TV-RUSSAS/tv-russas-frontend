@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, useMemo } from 'react';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import {
   Database,
@@ -131,7 +132,7 @@ export default function AuditoriaAdmin() {
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -145,7 +146,7 @@ export default function AuditoriaAdmin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [authFetch]);
 
   useEffect(() => {
     const fetchAuditoria = async () => {
@@ -154,7 +155,7 @@ export default function AuditoriaAdmin() {
       }
     };
     fetchAuditoria();
-  }, [authFetch, user]);
+  }, [user, loadLogs]);
 
   if (authLoading) {
     return (

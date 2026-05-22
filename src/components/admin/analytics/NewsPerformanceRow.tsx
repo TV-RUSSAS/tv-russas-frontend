@@ -42,7 +42,6 @@ export default function NewsPerformanceRow({ news, tipo }: NewsPerformanceRowPro
     return `${apiBaseUrl}${cleanUrl}`;
   };
 
-  const isPodium = news.posicao <= 3;
   const podiumColor =
     news.posicao === 1
       ? 'text-amber-400 font-black'
@@ -65,7 +64,7 @@ export default function NewsPerformanceRow({ news, tipo }: NewsPerformanceRowPro
       <td className="px-6 py-4">
         <div className="flex items-center gap-4">
           {news.capaUrl ? (
-            <div className="w-14 h-10 rounded bg-zinc-900 overflow-hidden flex-shrink-0 border border-zinc-800/60 relative">
+            <div className="w-14 h-10 rounded bg-zinc-900 overflow-hidden shrink-0 border border-zinc-800/60 relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={getCapaUrl(news.capaUrl)}
@@ -74,7 +73,7 @@ export default function NewsPerformanceRow({ news, tipo }: NewsPerformanceRowPro
               />
             </div>
           ) : (
-            <div className="w-14 h-10 rounded bg-zinc-900/60 border border-zinc-800 flex items-center justify-center flex-shrink-0">
+            <div className="w-14 h-10 rounded bg-zinc-900/60 border border-zinc-800 flex items-center justify-center shrink-0">
               <Eye className="w-4 h-4 text-zinc-700" />
             </div>
           )}
@@ -128,7 +127,7 @@ export default function NewsPerformanceRow({ news, tipo }: NewsPerformanceRowPro
             <span className="text-sm font-semibold text-zinc-200 font-mono">{news.engajamento || 0}%</span>
             <div className="w-12 h-1.5 bg-zinc-800 rounded-full mt-1.5 overflow-hidden border border-zinc-700/20">
               <div 
-                className="h-full bg-gradient-to-r from-orange-500 to-[#ff5722] rounded-full" 
+                className="h-full bg-linear-to-r from-orange-500 to-[#ff5722] rounded-full" 
                 style={{ width: `${Math.min(100, news.engajamento || 0)}%` }}
               />
             </div>
