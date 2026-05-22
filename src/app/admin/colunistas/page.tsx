@@ -468,7 +468,7 @@ export default function ColunistasAdmin() {
             </div>
             <div className="cms-modal-body">
               <p style={{ fontSize: '14px', lineHeight: '1.5' }}>
-                Deseja realmente remover o colunista <strong style={{ color: 'var(--c-accent)' }}>"{colParaExcluir?.nome}"</strong> do time?
+                Deseja realmente remover o colunista <strong style={{ color: 'var(--c-accent)' }}>{`"${colParaExcluir?.nome}"`}</strong> do time?
               </p>
               <p style={{ marginTop: '8px', color: 'var(--c-secondary)', fontSize: '12.5px' }}>
                 Os artigos já publicados pelo colunista não serão removidos do portal, permanecendo arquivados com autoria preservada.

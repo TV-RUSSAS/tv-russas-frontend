@@ -62,7 +62,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'INTERAÇÃO',
     items: [
-      { href: '/admin/reporter', label: 'Você Repórter', icon: Megaphone, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
+      { href: '/admin/sugestoes', label: 'Você Repórter', icon: Megaphone, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
     ],
   },
   {
@@ -169,34 +169,11 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
         })}
       </div>
 
-      {/* Rodapé da Sidebar (Métricas do Servidor e Link de Saída) */}
-      <div className="cms-sidebar-footer" style={{ borderTop: '1px solid var(--c-border)', background: 'rgba(0, 0, 0, 0.25)', padding: '14px 16px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* Espaço em Disco */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--c-secondary)' }}>
-            <span>Espaço usado</span>
-            <span style={{ fontWeight: '600', color: 'var(--c-text)' }}>3.2 GB / 10 GB</span>
-          </div>
-          <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-            <div style={{ width: '32%', height: '100%', background: 'var(--c-accent)', borderRadius: '2px' }} />
-          </div>
-        </div>
-
-        {/* Métricas de Notícias e Usuários */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '8px', fontSize: '11px', color: 'var(--c-secondary)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ color: 'var(--c-text)', fontWeight: '600' }}>32</span>
-            <span>notícias pub.</span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.04)', paddingLeft: '8px' }}>
-            <span style={{ color: 'var(--c-text)', fontWeight: '600' }}>5</span>
-            <span>usuários ativos</span>
-          </div>
-        </div>
-
+      {/* Rodapé da Sidebar (Link de Saída) */}
+      <div className="cms-sidebar-footer" style={{ borderTop: '1px solid var(--c-border)', background: 'rgba(0, 0, 0, 0.25)', padding: '12px 16px', flexShrink: 0 }}>
         {/* Link para o Portal Público */}
-        <Link href="/" target="_blank" className="cms-nav-item" style={{ marginTop: '4px', padding: '6px 8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--c-border)', borderRadius: '4px', fontSize: '12px', justifyContent: 'center', gap: '8px' }}>
-          <ExternalLink size={12} />
+        <Link href="/" target="_blank" className="cms-nav-item" style={{ padding: '8px 12px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--c-border)', borderRadius: '4px', fontSize: '13px', justifyContent: 'center', gap: '8px', display: 'flex', width: '100%' }}>
+          <ExternalLink size={14} />
           <span>Ver Portal</span>
         </Link>
       </div>

@@ -99,9 +99,8 @@ function formatArticleContent(htmlContent: string): string {
   // Caso C: Parágrafo genérico nos últimos 150 caracteres
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    (match, p1, offset, string) => {
-      const actualOffset = typeof p1 === "number" ? p1 : offset;
-      if (actualOffset > string.length - 150) {
+    (match, offset, string) => {
+      if (offset > string.length - 150) {
         return "";
       }
       return match;

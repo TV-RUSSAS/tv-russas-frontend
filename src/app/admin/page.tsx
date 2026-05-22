@@ -13,7 +13,13 @@ interface Atividade {
   usuario?: { nome: string; role: string } | null;
   ip: string;
   dataHora: string;
-  detalhes?: any;
+  detalhes?: {
+    titulo?: string;
+    nome?: string;
+    email?: string;
+    relato?: string;
+    [key: string]: unknown;
+  } | null;
   capaUrl?: string | null;
   categoriaNome?: string | null;
 }
@@ -42,7 +48,7 @@ interface NoticiaMaisLida {
   titulo: string;
   slug: string;
   views: number;
-  categoria: { nome: string };
+  categoria: string | { nome: string };
   posicao: number;
   variacao: number;
   status: 'subiu' | 'caiu' | 'manteve';
@@ -56,7 +62,7 @@ interface NoticiaEmAlta {
   viewsTotais: number;
   crescimentoPercentual: number;
   tendencia: 'subindo' | 'caiu' | 'estavel';
-  categoria: { nome: string };
+  categoria: string | { nome: string };
 }
 
 /* ── Utilitários ─────────────────────────────────────────── */
@@ -84,7 +90,6 @@ function agruparAtividades(atividades: Atividade[]): Array<Atividade & { agrupad
   
   for (let i = 0; i < atividades.length; i++) {
     const atual = atividades[i];
-    const userNome = atual.usuario?.nome || 'Sistema';
     
     // Tentamos ver se podemos agrupar com o último item no result
     const ultimoResult = result[result.length - 1];
@@ -233,12 +238,6 @@ const IconSettings = () => (
 const IconChevronDown = () => (
   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
-const IconChevronUp = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="18 15 12 9 6 15" />
   </svg>
 );
 
@@ -888,7 +887,8 @@ export default function AdminDashboard() {
 
         let emAltaData = [];
         if (emAltaRes.ok) {
-          emAltaData = await emAltaRes.json();
+          const emAltaJson = await emAltaRes.json();
+          emAltaData = emAltaJson.noticias || [];
         }
         
         if (isMounted) {
@@ -1130,7 +1130,7 @@ export default function AdminDashboard() {
                   Nenhum dado de acesso acumulado ainda.
                 </div>
               ) : (
-                maisLidas.map((n) => (
+                maisLidas.slice(0, 5).map((n) => (
                   <div key={n.id} className="ranking-item">
                     <span className="ranking-num">{String(n.posicao).padStart(2, '0')}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingRight: '12px' }}>
@@ -1138,7 +1138,7 @@ export default function AdminDashboard() {
                         {n.titulo}
                       </span>
                       <span style={{ fontSize: '10px', color: 'var(--c-muted)', marginTop: '2px' }}>
-                        {n.categoria?.nome}
+                        {typeof n.categoria === 'object' && n.categoria ? n.categoria.nome : n.categoria}
                       </span>
                     </div>
 
@@ -1190,7 +1190,7 @@ export default function AdminDashboard() {
                   Nenhum pico de tráfego detectado recentemente.
                 </div>
               ) : (
-                emAlta.map((n, i) => (
+                emAlta.slice(0, 5).map((n, i) => (
                   <div key={n.id} className="ranking-item">
                     <span className="ranking-num">{String(i + 1).padStart(2, '0')}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingRight: '12px' }}>
@@ -1203,7 +1203,7 @@ export default function AdminDashboard() {
                         )}
                       </div>
                       <span style={{ fontSize: '10px', color: 'var(--c-muted)', marginTop: '2px' }}>
-                        {n.categoria?.nome}
+                        {typeof n.categoria === 'object' && n.categoria ? n.categoria.nome : n.categoria}
                       </span>
                     </div>
 
@@ -1510,6 +1510,7 @@ export default function AdminDashboard() {
                           maxWidth: '100%'
                         }}>
                           {at.capaUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={at.capaUrl}
                               alt="capa"
@@ -1525,7 +1526,7 @@ export default function AdminDashboard() {
                           )}
                           <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
                             <span style={{ fontSize: '11.5px', fontWeight: 500, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {at.detalhes.titulo}
+                              {at.detalhes?.titulo}
                             </span>
                             {at.categoriaNome && (
                               <span style={{ fontSize: '9.5px', color: 'var(--c-muted)', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -1551,6 +1552,7 @@ export default function AdminDashboard() {
                           maxWidth: '100%'
                         }}>
                           {at.capaUrl && (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={at.capaUrl}
                               alt="Você Repórter"
@@ -1583,7 +1585,7 @@ export default function AdminDashboard() {
                               WebkitLineClamp: 2,
                               WebkitBoxOrient: 'vertical'
                             }}>
-                              "{at.detalhes?.relato}"
+                              {`"${at.detalhes?.relato}"`}
                             </p>
                           </div>
                         </div>

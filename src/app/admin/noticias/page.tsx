@@ -62,6 +62,22 @@ export default function NoticiasAdmin() {
   const [totalNoticiasPortal, setTotalNoticiasPortal] = useState<number>(0);
   const [totalDestaquesPortal, setTotalDestaquesPortal] = useState<number>(0);
 
+  // IDs das 6 notícias mais recentes do portal para badge preciso de "Última Notícia"
+  const [ultimasNoticiasIds, setUltimasNoticiasIds] = useState<string[]>([]);
+
+  const loadUltimasIds = useCallback(async () => {
+    try {
+      const res = await authFetch('/admin/noticias?featured=false&page=1&limit=6');
+      if (res.ok) {
+        const data = await res.json();
+        const ids = (data.noticias || []).map((n: Noticia) => n.id);
+        setUltimasNoticiasIds(ids);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar as IDs das últimas notícias:', err);
+    }
+  }, [authFetch]);
+
   const canDelete = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   const getCapaUrl = (url?: string | null) => {
@@ -118,9 +134,9 @@ export default function NoticiasAdmin() {
   // Inicialização e atualização de dados
   useEffect(() => {
     let active = true;
-    setLoading(true);
     
     const fetchInit = async () => {
+      setLoading(true);
       try {
         const params = new URLSearchParams({ page: String(page), limit: '15' });
         if (busca) params.set('busca', busca);
@@ -141,10 +157,16 @@ export default function NoticiasAdmin() {
       }
     };
 
+    const loadExtraData = async () => {
+      if (active) {
+        await Promise.all([loadStats(), loadUltimasIds()]);
+      }
+    };
+
     fetchInit();
-    loadStats();
+    loadExtraData();
     return () => { active = false; };
-  }, [authFetch, page, busca, filtroCategoria, filtroDestaque, loadStats]);
+  }, [authFetch, page, busca, filtroCategoria, filtroDestaque, loadStats, loadUltimasIds]);
 
   // Carrega lista de categorias para o dropdown de filtros
   useEffect(() => {
@@ -171,7 +193,7 @@ export default function NoticiasAdmin() {
       setLoading(true);
       
       // Atualiza listagem e KPIs analíticos
-      await Promise.all([loadNoticias(), loadStats()]);
+      await Promise.all([loadNoticias(), loadStats(), loadUltimasIds()]);
       
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
@@ -396,11 +418,11 @@ export default function NoticiasAdmin() {
                             <span className="cms-badge cms-badge-yellow" style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
                               <Star size={10} fill="currentColor" /> Destaque
                             </span>
-                          ) : (
+                          ) : ultimasNoticiasIds.includes(n.id) ? (
                             <span className="cms-badge cms-badge-blue" style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(59, 130, 246, 0.08)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.2)' }}>
                               Última Notícia
                             </span>
-                          )}
+                          ) : null}
                         </div>
                       </td>
 

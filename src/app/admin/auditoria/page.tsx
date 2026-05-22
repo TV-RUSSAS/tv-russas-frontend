@@ -25,7 +25,8 @@ import {
   AlertTriangle,
   Clock,
   Terminal,
-  RefreshCw
+  RefreshCw,
+  Lock
 } from 'lucide-react';
 
 interface Log {
@@ -66,7 +67,7 @@ const ACAO_INFO: Record<string, { label: string; badge: string; icon: React.Comp
 };
 
 export default function AuditoriaAdmin() {
-  const { authFetch } = useAdminAuth();
+  const { user, loading: authLoading, authFetch } = useAdminAuth();
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,26 +78,6 @@ export default function AuditoriaAdmin() {
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
   const [page, setPage] = useState(1);
   const itemsPerPage = 15;
-
-  const loadLogs = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const res = await authFetch('/admin/audit-logs');
-      if (!res.ok) throw new Error('Não foi possível obter os logs de auditoria');
-      const data = await res.json();
-      setLogs(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
-      if (err instanceof Error) setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadLogs();
-  }, [authFetch]);
 
   // KPIs dinâmicos baseados em todos os logs carregados (até 100 logs mais recentes)
   const kpis = useMemo(() => {
@@ -149,6 +130,59 @@ export default function AuditoriaAdmin() {
   }, [filteredLogs, page]);
 
   const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
+
+  const loadLogs = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const res = await authFetch('/admin/audit-logs');
+      if (!res.ok) throw new Error('Não foi possível obter os logs de auditoria');
+      const data = await res.json();
+      setLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+      if (err instanceof Error) setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchAuditoria = async () => {
+      if (user && user.role === 'SUPER_ADMIN') {
+        await loadLogs();
+      }
+    };
+    fetchAuditoria();
+  }, [authFetch, user]);
+
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div className="cms-spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+        <span style={{ marginTop: '12px', color: 'var(--c-secondary)', fontSize: '14px' }}>Carregando auditoria...</span>
+      </div>
+    );
+  }
+
+  if (user && user.role !== 'SUPER_ADMIN') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '40px', color: 'var(--c-text)' }}>
+        <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '24px', borderRadius: '12px', maxWidth: '480px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Lock size={24} />
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: '700' }}>Acesso Restrito</h2>
+          <p style={{ color: 'var(--c-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
+            Você não possui privilégios de <strong>Super Administrador</strong> para visualizar os logs de auditoria do CMS da TV Russas.
+          </p>
+          <a href="/admin" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--c-accent)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', textDecoration: 'none', marginTop: '8px', transition: 'all 0.2s ease' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.03)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+            Voltar ao Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   // Resetar página ao mudar filtros
   const handleGrupoFiltro = (grupo: 'TUDO' | 'NOTICIAS' | 'SEGURANCA' | 'ESTRUTURA') => {
@@ -226,15 +260,15 @@ export default function AuditoriaAdmin() {
       <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
         {/* Pílulas de Filtro Rápido */}
         <div style={{ display: 'flex', gap: '6px', background: 'rgba(255, 255, 255, 0.02)', padding: '4px', borderRadius: '8px', border: '1px solid var(--c-border)' }}>
-          {[
+          {([
             { id: 'TUDO', label: 'Todos Eventos' },
             { id: 'NOTICIAS', label: 'Notícias' },
             { id: 'SEGURANCA', label: 'Segurança' },
             { id: 'ESTRUTURA', label: 'Estrutura' },
-          ].map(grp => (
+          ] as const).map(grp => (
             <button
               key={grp.id}
-              onClick={() => handleGrupoFiltro(grp.id as any)}
+              onClick={() => handleGrupoFiltro(grp.id)}
               style={{
                 background: grupoFiltro === grp.id ? 'rgba(255, 87, 34, 0.1)' : 'transparent',
                 color: grupoFiltro === grp.id ? 'var(--c-accent)' : 'var(--c-secondary)',

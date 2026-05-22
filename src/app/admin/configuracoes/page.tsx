@@ -34,7 +34,7 @@ interface ConfigSEO {
 }
 
 export default function ConfiguracoesAdmin() {
-  const { user, authFetch } = useAdminAuth();
+  const { user, loading: authLoading, authFetch } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<'geral' | 'seo' | 'seguranca'>('geral');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
@@ -61,14 +61,17 @@ export default function ConfiguracoesAdmin() {
 
   // Carregar dados salvos ao montar componente
   useEffect(() => {
-    const savedGeral = localStorage.getItem('tvr_config_geral');
-    const savedSEO = localStorage.getItem('tvr_config_seo');
-    if (savedGeral) {
-      try { setGeral(JSON.parse(savedGeral)); } catch (e) { console.error(e); }
-    }
-    if (savedSEO) {
-      try { setSeo(JSON.parse(savedSEO)); } catch (e) { console.error(e); }
-    }
+    const loadSavedConfig = async () => {
+      const savedGeral = localStorage.getItem('tvr_config_geral');
+      const savedSEO = localStorage.getItem('tvr_config_seo');
+      if (savedGeral) {
+        try { setGeral(JSON.parse(savedGeral)); } catch (e) { console.error(e); }
+      }
+      if (savedSEO) {
+        try { setSeo(JSON.parse(savedSEO)); } catch (e) { console.error(e); }
+      }
+    };
+    loadSavedConfig();
   }, []);
 
   const handleSaveGeral = async (e: React.FormEvent) => {
@@ -134,6 +137,34 @@ export default function ConfiguracoesAdmin() {
       setError('Erro ao salvar as configurações.');
     }
   };
+
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div className="cms-spinner" style={{ width: 40, height: 40, borderWidth: 3 }} />
+        <span style={{ marginTop: '12px', color: 'var(--c-secondary)', fontSize: '14px' }}>Carregando configurações...</span>
+      </div>
+    );
+  }
+
+  if (user && user.role !== 'SUPER_ADMIN') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '40px', color: 'var(--c-text)' }}>
+        <div style={{ background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '24px', borderRadius: '12px', maxWidth: '480px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Lock size={24} />
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: '700' }}>Acesso Restrito</h2>
+          <p style={{ color: 'var(--c-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
+            Você não possui privilégios de <strong>Super Administrador</strong> para visualizar ou alterar as configurações globais do CMS da TV Russas.
+          </p>
+          <a href="/admin" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--c-accent)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '600', fontSize: '14px', cursor: 'pointer', textDecoration: 'none', marginTop: '8px', transition: 'all 0.2s ease' }} onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.03)')} onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}>
+            Voltar ao Dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
