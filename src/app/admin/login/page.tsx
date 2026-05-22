@@ -1,4 +1,5 @@
 "use client";
+import './login.css';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -6,6 +7,15 @@ import Link from 'next/link';
 import { API_URL } from '@/services/api';
 import { getImagePath } from '@/utils/imagePath';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { 
+  Mail, 
+  Lock, 
+  Eye, 
+  EyeOff, 
+  ArrowLeft,
+  AlertCircle,
+  Loader2
+} from 'lucide-react';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -72,253 +82,125 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="login-wrapper" style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'radial-gradient(circle at 10% 20%, rgb(17, 26, 41) 0%, rgb(28, 38, 57) 90.7%)',
-      fontFamily: 'var(--font-inter), sans-serif',
-      padding: '20px',
-      boxSizing: 'border-box'
-    }}>
-      <div className="login-card" style={{
-        background: 'rgba(255, 255, 255, 0.03)',
-        backdropFilter: 'blur(16px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: '24px',
-        padding: '40px 32px',
-        width: '100%',
-        maxWidth: '440px',
-        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-        textAlign: 'center',
-        animation: 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1)'
-      }}>
-        {/* Animação CSS */}
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes fadeInUp {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          .input-focus:focus-within {
-            border-color: #ff5722 !important;
-            box-shadow: 0 0 0 3px rgba(255, 87, 34, 0.15) !important;
-          }
-          .btn-pulse:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(255, 87, 34, 0.3);
-          }
-          .btn-pulse:active {
-            transform: translateY(0);
-          }
-        `}} />
-
-        <div style={{ marginBottom: '32px' }}>
-          <Link href="/">
+    <div className="login-root">
+      {/* ── COLUNA ÚNICA (Formulário Centralizado) ── */}
+      <div className="login-right">
+        <div className="login-right-container">
+          
+          <div className="login-form-logo">
             <Image
               src={getImagePath("sistema/1.png")}
               alt="TV Russas"
               width={160}
               height={45}
-              style={{ height: '42px', width: 'auto', marginBottom: '16px', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))' }}
+              style={{ height: '42px', width: 'auto' }}
               priority
             />
-          </Link>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#ffffff', margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>
-            Painel de Controle
-          </h2>
-          <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.5)', margin: 0 }}>
-            Insira suas credenciais para gerenciar o portal
-          </p>
-        </div>
-
-        {error && (
-          <div style={{
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            color: '#ef4444',
-            fontSize: '13px',
-            textAlign: 'left',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <i className="fas fa-exclamation-circle" style={{ fontSize: '16px', flexShrink: 0 }}></i>
-            <span>{error}</span>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ textAlign: 'left' }}>
-            <label htmlFor="email" style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '8px' }}>
-              E-mail corporativo
-            </label>
-            <div className="input-focus" style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
-              padding: '0 16px',
-              height: '48px',
-              transition: 'all 0.2s ease'
-            }}>
-              <i className="far fa-envelope" style={{ color: 'rgba(255, 255, 255, 0.3)', marginRight: '12px' }}></i>
+          <div className="login-form-header">
+            <h2>Acesso Administrativo</h2>
+            <p>Entre com suas credenciais corporativas</p>
+          </div>
+
+          {error && (
+            <div className="login-alert">
+              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form className="login-form" onSubmit={handleSubmit}>
+            
+            <div className="login-input-group">
               <input
                 id="email"
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="nome@tvrussas.com.br"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  width: '100%',
-                  height: '100%'
-                }}
+                className="login-input"
+                placeholder=" "
               />
+              <Mail className="login-input-icon" size={18} />
+              <label htmlFor="email" className="login-label">E-mail corporativo</label>
             </div>
-          </div>
 
-          <div style={{ textAlign: 'left' }}>
-            <label htmlFor="password" style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: 'rgba(255, 255, 255, 0.8)', marginBottom: '8px' }}>
-              Senha de acesso
-            </label>
-            <div className="input-focus" style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
-              padding: '0 16px',
-              height: '48px',
-              transition: 'all 0.2s ease'
-            }}>
-              <i className="fas fa-lock" style={{ color: 'rgba(255, 255, 255, 0.3)', marginRight: '12px' }}></i>
+            <div className="login-input-group">
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  width: '100%',
-                  height: '100%'
-                }}
+                className="login-input"
+                placeholder=" "
               />
+              <Lock className="login-input-icon" size={18} />
+              <label htmlFor="password" className="login-label">Senha de acesso</label>
+              
               <button
                 type="button"
+                className="login-btn-reveal"
                 onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  marginLeft: '8px'
-                }}
+                tabIndex={-1}
               >
-                <i className={showPassword ? "far fa-eye-slash" : "far fa-eye"}></i>
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
+            </div>
+
+            <div className="login-checkbox-group">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              <label htmlFor="rememberMe">Lembrar-me neste dispositivo</label>
+            </div>
+
+            <div className="login-turnstile-wrap">
+              <Turnstile
+                key={captchaKey}
+                siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onExpire={resetCaptcha}
+                onError={resetCaptcha}
+                options={{ theme: 'dark' }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="login-submit-btn"
+            >
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="fa-spin" />
+                  Autenticando...
+                </>
+              ) : (
+                <>
+                  Acessar Painel
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="login-footer">
+            <Link href="/" className="login-footer-link">
+              <ArrowLeft size={16} />
+              Voltar ao Portal
+            </Link>
+            <div className="login-footer-copy">
+              TV Russas &copy; {new Date().getFullYear()} — Sistema Editorial
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', margin: '4px 0' }}>
-            <input
-              id="rememberMe"
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-              style={{
-                accentColor: '#ff5722',
-                width: '16px',
-                height: '16px',
-                cursor: 'pointer'
-              }}
-            />
-            <label htmlFor="rememberMe" style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)', cursor: 'pointer', userSelect: 'none' }}>
-              Lembrar-me neste dispositivo
-            </label>
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
-            <Turnstile
-              key={captchaKey}
-              siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-              onSuccess={(token) => setCaptchaToken(token)}
-              onExpire={resetCaptcha}
-              onError={resetCaptcha}
-              options={{
-                theme: 'dark',
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-pulse"
-            style={{
-              background: 'linear-gradient(135deg, #ff5722 0%, #e64a19 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              height: '48px',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              marginTop: '12px',
-              transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-              opacity: loading ? 0.7 : 1
-            }}
-          >
-            {loading ? (
-              <>
-                <i className="fas fa-circle-notch fa-spin"></i>
-                Entrando...
-              </>
-            ) : (
-              <>
-                <span>Acessar Painel</span>
-                <i className="fas fa-arrow-right"></i>
-              </>
-            )}
-          </button>
-        </form>
-
-        <div style={{ marginTop: '32px', fontSize: '13px', color: 'rgba(255, 255, 255, 0.4)' }}>
-          <Link href="/" style={{ color: 'rgba(255, 255, 255, 0.6)', textDecoration: 'none', transition: 'color 0.2s' }}
-            onMouseOver={(e) => e.currentTarget.style.color = '#ff5722'}
-            onMouseOut={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}>
-            ← Voltar para o Portal
-          </Link>
         </div>
       </div>
+      
     </div>
   );
 }

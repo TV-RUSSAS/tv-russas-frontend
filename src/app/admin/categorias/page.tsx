@@ -45,7 +45,7 @@ export default function CategoriasAdmin() {
     try {
       const res = await authFetch('/admin/categorias');
       const data = await res.json();
-      setCategorias(data);
+      setCategorias(Array.isArray(data) ? data : []);
     } catch (err) {
       if (err instanceof Error) setError(err.message);
     } finally {
@@ -60,7 +60,7 @@ export default function CategoriasAdmin() {
         const res = await authFetch('/admin/categorias');
         const data = await res.json();
         if (active) {
-          setCategorias(data);
+          setCategorias(Array.isArray(data) ? data : []);
           setLoading(false);
         }
       } catch (err) {
@@ -370,7 +370,7 @@ export default function CategoriasAdmin() {
             </div>
             <div className="cms-modal-body">
               <p style={{ fontSize: '14px', lineHeight: '1.5' }}>
-                Deseja realmente excluir a categoria <strong style={{ color: 'var(--c-accent)' }}>"{catParaExcluir?.nome}"</strong>?
+                Deseja realmente excluir a categoria <strong style={{ color: 'var(--c-accent)' }}>&quot;{catParaExcluir?.nome}&quot;</strong>?
               </p>
               {catParaExcluir && catParaExcluir._count.noticias > 0 && (
                 <div className="cms-alert cms-alert-error" style={{ marginTop: '14px' }}>

@@ -23,6 +23,7 @@ export default function AnalyticsChart({
   loading = false,
 }: AnalyticsChartProps) {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [pinnedIdx, setPinnedIdx] = useState<number | null>(null);
 
   if (loading) {
     return (
@@ -49,12 +50,11 @@ export default function AnalyticsChart({
     );
   }
 
-  // Dimensões internas da área de plotagem
   const svgWidth = 1000;
-  const svgHeight = 300;
+  const svgHeight = 340;
   const paddingLeft = 60;
   const paddingRight = 30;
-  const paddingTop = 30;
+  const paddingTop = 80;
   const paddingBottom = 40;
 
   const chartWidth = svgWidth - paddingLeft - paddingRight;
@@ -94,19 +94,19 @@ export default function AnalyticsChart({
     areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`;
   }
 
+  const displayIdx = pinnedIdx !== null ? pinnedIdx : activeIdx;
+
+  const handleNodeClick = (idx: number) => {
+    if (pinnedIdx === idx) {
+      setPinnedIdx(null); // desfixa
+    } else {
+      setPinnedIdx(idx); // fixa
+    }
+  };
+
   return (
     <div className="w-full bg-[#12141D] border border-zinc-800/80 rounded-xl p-5 relative group">
-      {/* Tooltip flutuante superior elegante no hover dos nós */}
-      {activeIdx !== null && (
-        <div className="absolute top-4 right-4 bg-zinc-900 border border-zinc-700/60 px-3 py-1.5 rounded-lg shadow-xl flex items-center gap-3.5 z-10 transition-all duration-150">
-          <div className="flex flex-col">
-            <span className="text-xxs text-zinc-500 uppercase tracking-widest font-semibold">{points[activeIdx].label}</span>
-            <span className="text-sm font-bold text-white font-mono tabular-nums">
-              {points[activeIdx].value.toLocaleString('pt-BR')} <span className="text-xs font-normal text-zinc-400">views</span>
-            </span>
-          </div>
-        </div>
-      )}
+      {/* O Tooltip flutuante absoluto foi movido para o interior do SVG como foreignObject para seguir exatamente a linha do ponto. */}
 
       {/* SVG Container responsivo */}
       <div className="w-full overflow-x-auto select-none scrollbar-none">
@@ -172,6 +172,7 @@ export default function AnalyticsChart({
                     key={idx}
                     onMouseEnter={() => setActiveIdx(idx)}
                     onMouseLeave={() => setActiveIdx(null)}
+                    onClick={() => handleNodeClick(idx)}
                     className="cursor-pointer"
                   >
                     {/* Barra Preenchida */}
@@ -183,10 +184,10 @@ export default function AnalyticsChart({
                       fill="url(#barGradient)"
                       rx={rx}
                       className="transition-all duration-300 hover:brightness-125"
-                      opacity={activeIdx === null || activeIdx === idx ? 1 : 0.4}
+                      opacity={displayIdx === null || displayIdx === idx ? 1 : 0.4}
                     />
                     {/* Destaque sutil de topo na barra ativa */}
-                    {activeIdx === idx && (
+                    {displayIdx === idx && (
                       <rect
                         x={pt.x - barWidth / 2}
                         y={pt.y}
@@ -226,40 +227,41 @@ export default function AnalyticsChart({
 
               {/* Nós Interativos (Círculos) sobre a Linha */}
               {points.map((pt, idx) => {
-                const isHovered = activeIdx === idx;
+                const isActive = displayIdx === idx;
                 return (
                   <g
                     key={idx}
                     onMouseEnter={() => setActiveIdx(idx)}
                     onMouseLeave={() => setActiveIdx(null)}
+                    onClick={() => handleNodeClick(idx)}
                     className="cursor-pointer"
                   >
                     {/* Círculo de Detecção Maior (invisível) */}
                     <circle
                       cx={pt.x}
                       cy={pt.y}
-                      r="16"
+                      r="20"
                       fill="transparent"
                     />
                     {/* Círculo Externo com Halo no Hover */}
                     <circle
                       cx={pt.x}
                       cy={pt.y}
-                      r={isHovered ? 8 : 4.5}
+                      r={isActive ? 8 : 4.5}
                       fill={color}
                       stroke="#0B0B0F"
-                      strokeWidth={isHovered ? 2.5 : 1.5}
+                      strokeWidth={isActive ? 2.5 : 1.5}
                       className="transition-all duration-200"
                     />
                     {/* Halo Translúcido Extra no Hover */}
-                    {isHovered && (
+                    {isActive && (
                       <circle
                         cx={pt.x}
                         cy={pt.y}
-                        r="14"
+                        r="16"
                         fill={color}
-                        fillOpacity="0.15"
-                        className="animate-ping"
+                        fillOpacity="0.25"
+                        className="animate-pulse"
                       />
                     )}
                   </g>
@@ -290,9 +292,9 @@ export default function AnalyticsChart({
                 key={idx}
                 x={pt.x}
                 y={paddingTop + chartHeight + 20}
-                fill={activeIdx === idx ? '#white' : '#71717a'}
+                fill={displayIdx === idx ? '#ffffff' : '#71717a'}
                 fontSize="10"
-                fontWeight={activeIdx === idx ? '700' : '500'}
+                fontWeight={displayIdx === idx ? '700' : '500'}
                 textAnchor="middle"
                 className="transition-colors duration-150"
               >
@@ -300,6 +302,47 @@ export default function AnalyticsChart({
               </text>
             );
           })}
+
+          {/* Tooltip Dinâmico Fluído (Fixável com o clique) */}
+          {displayIdx !== null && (
+            <g
+              transform={`translate(${points[displayIdx].x}, ${points[displayIdx].y})`}
+              className="transition-transform duration-300 pointer-events-none"
+            >
+              {/* Sombras da seta e do balão */}
+              <filter id="shadowTooltip">
+                <feDropShadow dx="0" dy="4" stdDeviation="6" floodColor="#000000" floodOpacity="0.5" />
+              </filter>
+              
+              <g filter="url(#shadowTooltip)" transform="translate(0, -10)">
+                {/* Seta do balão (Polygon apontando pro ponto) */}
+                <polygon points="-6,-6 6,-6 0,0" fill="#18181b" stroke="#3f3f46" strokeWidth="1" />
+                <polygon points="-5,-6 5,-6 0,-1" fill="#18181b" stroke="none" />
+                
+                {/* Caixa do Tooltip com borda sutil */}
+                <rect
+                  x="-54"
+                  y="-58"
+                  width="108"
+                  height="52"
+                  rx="8"
+                  fill="#18181b"
+                  stroke="#3f3f46"
+                  strokeWidth="1"
+                />
+                
+                {/* Label da Data (Dia) */}
+                <text x="0" y="-38" fill="#a1a1aa" fontSize="10" fontWeight="600" textAnchor="middle" letterSpacing="0.05em">
+                  {points[displayIdx].label.toUpperCase()}
+                </text>
+                
+                {/* Valor de visualizações */}
+                <text x="0" y="-18" fill="#ffffff" fontSize="14" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+                  {points[displayIdx].value.toLocaleString('pt-BR')} <tspan fill="#71717a" fontSize="10" fontWeight="500">views</tspan>
+                </text>
+              </g>
+            </g>
+          )}
         </svg>
       </div>
     </div>

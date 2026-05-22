@@ -98,6 +98,11 @@ export function Footer() {
             <li>
               <Link href="/reporter">Você Repórter</Link>
             </li>
+            <li>
+              <Link href="/admin" style={{ opacity: 0.6 }}>
+                <i className="fas fa-lock" style={{ marginRight: '4px', fontSize: '0.9em' }} /> Acesso Restrito
+              </Link>
+            </li>
           </ul>
         </div>
         <div className="footer-section">

@@ -152,7 +152,7 @@ export default function NewsPerformanceRow({ news, tipo }: NewsPerformanceRowPro
         <div className="flex items-center justify-end gap-2">
           {/* Link para o Portal */}
           <Link
-            href={`/noticias/${news.slug}`}
+            href={`/noticia/${news.slug}`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-8 h-8 rounded-lg bg-zinc-800/40 text-zinc-400 hover:text-white border border-zinc-700/30 flex items-center justify-center transition-all hover:bg-zinc-800"

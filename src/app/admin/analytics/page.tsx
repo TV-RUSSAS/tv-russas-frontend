@@ -1,5 +1,6 @@
 'use client';
 
+import './analytics.css';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { 
@@ -11,13 +12,20 @@ import {
   Tag, 
   Activity,
   UserCheck,
-  TrendingUp,
-  Loader2
+  Loader2,
+  Calendar
 } from 'lucide-react';
-import PeriodFilter from '@/components/admin/analytics/PeriodFilter';
 import MetricCard from '@/components/admin/analytics/MetricCard';
 import AnalyticsChart from '@/components/admin/analytics/AnalyticsChart';
 import EmptyState from '@/components/admin/analytics/EmptyState';
+
+const PERIOD_OPTIONS = [
+  { value: 'hoje', label: 'Hoje' },
+  { value: '7d', label: '7 Dias' },
+  { value: '30d', label: '30 Dias' },
+  { value: 'mes', label: 'Este Mês' },
+  { value: 'geral', label: 'Geral' },
+];
 
 interface OverviewData {
   totalNoticias: number;
@@ -70,6 +78,16 @@ interface AutorData {
 
 export default function AnalyticsDashboardPage() {
   const { authFetch } = useAdminAuth();
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) setMounted(true);
+    });
+    return () => { active = false; };
+  }, []);
 
   // Estados dos Filtros Globais
   const [periodo, setPeriodo] = useState('7d');
@@ -200,7 +218,7 @@ export default function AnalyticsDashboardPage() {
         <img
           src={src}
           alt={aut.nome}
-          className="w-8 h-8 rounded-full object-cover border border-zinc-800"
+          className="an-author-avatar"
         />
       );
     }
@@ -213,7 +231,7 @@ export default function AnalyticsDashboardPage() {
       .toUpperCase();
 
     return (
-      <div className="w-8 h-8 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700/50 flex items-center justify-center text-xs font-bold font-mono">
+      <div className="an-author-avatar-placeholder">
         {iniciais}
       </div>
     );
@@ -221,38 +239,59 @@ export default function AnalyticsDashboardPage() {
 
   const isGlobalLoading = loadingOverview && loadingGrafico && loadingCategorias && loadingAutores;
 
+  if (!mounted) {
+    return (
+      <div className="an-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#ff5722]" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 pb-12">
+    <div className="an-page">
       {/* Cabeçalho */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-zinc-800/80 pb-6">
+      <div className="an-header">
         <div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-8 h-8 text-[#ff5722]" />
+          <h1 className="an-title">
+            <BarChart3 size={26} />
             Analytics Editorial
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="an-subtitle">
             Métricas integradas e consolidadas de acessos, engajamento e produção jornalística.
           </p>
         </div>
+        {isGlobalLoading && (
+          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
+            <Loader2 className="w-5 h-5 animate-spin text-[#ff5722]" />
+          </div>
+        )}
+      </div>
 
-        {/* Filtro de Período Global */}
-        <div className="flex items-center gap-3 self-start md:self-auto">
-          <PeriodFilter selected={periodo} onChange={setPeriodo} />
-          {isGlobalLoading && (
-            <Loader2 className="w-4 h-4 animate-spin text-[#ff5722]" />
-          )}
+      {/* ── SELETOR DE PERÍODO ── */}
+      <div className="an-period-row">
+        <div className="an-period-bar">
+          <span className="an-period-icon"><Calendar size={15} /></span>
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setPeriodo(opt.value)}
+              className={`an-period-btn${periodo === opt.value ? ' active' : ''}`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Grid de KPIs no Topo (Mapeia o overview consolidado) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="an-kpi-grid">
         <MetricCard
           title="Visualizações do Período"
           value={
             overview 
               ? periodo === 'hoje' ? overview.viewsHoje.toLocaleString('pt-BR') 
               : periodo === '7d' ? overview.views7d.toLocaleString('pt-BR') 
-              : periodo === '30d' ? overview.views30d.toLocaleString('pt-BR')
+              : periodo === '30d' || periodo === 'mes' ? overview.views30d.toLocaleString('pt-BR')
               : overview.totalViews.toLocaleString('pt-BR')
               : '0'
           }
@@ -286,30 +325,26 @@ export default function AnalyticsDashboardPage() {
       </div>
 
       {/* GRÁFICO HISTÓRICO CENTRAL Evolution */}
-      <div className="bg-[#12141D] border border-zinc-800/80 rounded-xl p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-zinc-800/60 pb-4">
+      <div className="an-chart-panel">
+        <div className="an-chart-head">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#ff5722]" />
+            <h2 className="an-chart-title">
+              <Activity size={16} />
               Evolução Diária de Visualizações
             </h2>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="an-chart-subtitle">
               Histórico diário de pageviews nas notícias do portal
             </p>
           </div>
 
           {/* Filtro rápido de dias do gráfico */}
-          <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 p-0.5 rounded-lg self-start sm:self-auto">
+          <div className="an-chart-days-bar">
             {[7, 14, 30].map((dias) => (
               <button
                 key={dias}
                 type="button"
                 onClick={() => setGraficoDias(dias)}
-                className={`px-2.5 py-1 rounded text-xxs font-extrabold tracking-wide uppercase transition-all ${
-                  graficoDias === dias
-                    ? 'bg-zinc-800 text-white border border-zinc-700/50'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
+                className={`an-chart-days-btn${graficoDias === dias ? ' active' : ''}`}
               >
                 {dias} Dias
               </button>
@@ -327,21 +362,18 @@ export default function AnalyticsDashboardPage() {
 
         {/* Comparativo do Gráfico */}
         {historico && !loadingGrafico && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2 text-center sm:text-left divide-y sm:divide-y-0 sm:divide-x divide-zinc-850">
-            <div className="sm:pr-6">
-              <span className="text-xxs text-zinc-500 uppercase font-bold">Visualizações no Intervalo</span>
-              <p className="text-xl font-bold text-white font-mono mt-1">{historico.comparativo.atual.toLocaleString('pt-BR')}</p>
+          <div className="an-comparative-grid">
+            <div className="an-comparative-card">
+              <span className="an-comparative-label">Visualizações no Intervalo</span>
+              <p className="an-comparative-value">{historico.comparativo.atual.toLocaleString('pt-BR')}</p>
             </div>
-            <div className="pt-4 sm:pt-0 sm:px-6">
-              <span className="text-xxs text-zinc-500 uppercase font-bold">Intervalo Anterior</span>
-              <p className="text-xl font-bold text-zinc-400 font-mono mt-1">{historico.comparativo.anterior.toLocaleString('pt-BR')}</p>
+            <div className="an-comparative-card">
+              <span className="an-comparative-label">Intervalo Anterior</span>
+              <p className="an-comparative-value muted">{historico.comparativo.anterior.toLocaleString('pt-BR')}</p>
             </div>
-            <div className="pt-4 sm:pt-0 sm:pl-6">
-              <span className="text-xxs text-zinc-500 uppercase font-bold">Variação Percentual</span>
-              <p className={`text-xl font-bold mt-1 flex items-center justify-center sm:justify-start gap-1 font-mono ${
-                historico.comparativo.variacao.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'
-              }`}>
-                <TrendingUp className={`w-4 h-4 ${historico.comparativo.variacao.startsWith('+') ? '' : 'rotate-180'}`} />
+            <div className="an-comparative-card">
+              <span className="an-comparative-label">Variação Percentual</span>
+              <p className={`an-comparative-value ${historico.comparativo.variacao.startsWith('+') ? 'green' : 'red'}`}>
                 {historico.comparativo.variacao}
               </p>
             </div>
@@ -350,57 +382,57 @@ export default function AnalyticsDashboardPage() {
       </div>
 
       {/* DUAS COLUNAS LADO A LADO: Categorias e Autores */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="an-split-grid">
         {/* Coluna 1: Desempenho de Categorias */}
-        <div className="bg-[#12141D] border border-zinc-800/80 rounded-xl p-6 flex flex-col justify-between">
+        <div className="an-split-card">
           <div>
-            <div className="flex items-center justify-between border-b border-zinc-800/60 pb-4 mb-5">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Tag className="w-4 h-4 text-zinc-500" />
+            <div className="an-split-head">
+              <h2 className="an-split-title">
+                <Tag size={15} style={{ color: '#6b7280' }} />
                 Desempenho por Categorias
               </h2>
-              <span className="text-xxs text-zinc-400 font-semibold px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700/30">
+              <span className="an-split-badge">
                 Filtro: {periodo.toUpperCase()}
               </span>
             </div>
 
             {loadingCategorias ? (
-              <div className="space-y-4">
+              <div className="an-cat-list">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="animate-pulse space-y-2">
-                    <div className="flex justify-between">
-                      <div className="h-4 bg-zinc-850 rounded w-24"></div>
-                      <div className="h-4 bg-zinc-850 rounded w-12"></div>
+                  <div key={i} className="an-cat-item" style={{ opacity: 0.5, animation: 'an-pulse 1.5s ease-in-out infinite' }}>
+                    <div className="an-cat-info">
+                      <div style={{ width: 100, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
+                      <div style={{ width: 60, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
                     </div>
-                    <div className="h-2 bg-zinc-850 rounded w-full"></div>
+                    <div className="an-cat-progress">
+                      <div className="an-cat-bar" style={{ width: '0%' }} />
+                    </div>
+                    <div className="an-cat-meta" style={{ width: 140, height: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 3, marginTop: 4 }} />
                   </div>
                 ))}
               </div>
             ) : categorias.length === 0 ? (
-              <div className="py-8">
+              <div style={{ padding: '32px 0' }}>
                 <EmptyState title="Sem dados de categorias" />
               </div>
             ) : (
-              <div className="space-y-5">
+              <div className="an-cat-list">
                 {categorias.map((cat) => (
-                  <div key={cat.id} className="space-y-1.5 group">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-semibold text-zinc-300 group-hover:text-white transition-colors">
-                        {cat.nome}
-                      </span>
-                      <span className="text-zinc-500 font-medium">
-                        <strong className="text-white font-mono">{cat.views.toLocaleString('pt-BR')}</strong> views ({cat.percentual}%)
+                  <div key={cat.id} className="an-cat-item">
+                    <div className="an-cat-info">
+                      <span className="an-cat-name">{cat.nome}</span>
+                      <span className="an-cat-stat">
+                        <strong>{cat.views.toLocaleString('pt-BR')}</strong> views ({cat.percentual}%)
                       </span>
                     </div>
-                    {/* Barra de Progresso Horizontal Premium */}
-                    <div className="w-full h-2 bg-zinc-900 rounded-full overflow-hidden border border-zinc-800/60 flex">
+                    <div className="an-cat-progress">
                       <div 
-                        className="h-full bg-linear-to-r from-orange-600 to-[#ff5722] rounded-full group-hover:brightness-110 transition-all duration-300"
+                        className="an-cat-bar"
                         style={{ width: `${cat.percentual}%` }}
                       />
                     </div>
-                    <div className="text-[10px] text-zinc-500 flex justify-between">
-                      <span>{cat.noticiasCount} matérias publicadas</span>
+                    <div className="an-cat-meta">
+                      {cat.noticiasCount} matérias publicadas
                     </div>
                   </div>
                 ))}
@@ -410,59 +442,63 @@ export default function AnalyticsDashboardPage() {
         </div>
 
         {/* Coluna 2: Ranking de Autores / Jornalistas */}
-        <div className="bg-[#12141D] border border-zinc-800/80 rounded-xl p-6 flex flex-col justify-between">
+        <div className="an-split-card">
           <div>
-            <div className="flex items-center justify-between border-b border-zinc-800/60 pb-4 mb-5">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-zinc-500" />
+            <div className="an-split-head">
+              <h2 className="an-split-title">
+                <UserCheck size={15} style={{ color: '#6b7280' }} />
                 Desempenho de Autores & Colunistas
               </h2>
-              <span className="text-xxs text-zinc-400 font-semibold px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700/30">
+              <span className="an-split-badge">
                 Produção Ativa
               </span>
             </div>
 
             {loadingAutores ? (
-              <div className="space-y-4">
+              <div className="an-author-list">
                 {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="animate-pulse flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-zinc-850"></div>
-                    <div className="grow space-y-1">
-                      <div className="h-3.5 bg-zinc-850 rounded w-28"></div>
-                      <div className="h-2.5 bg-zinc-850 rounded w-16"></div>
+                  <div key={i} className="an-author-item" style={{ opacity: 0.5, animation: 'an-pulse 1.5s ease-in-out infinite' }}>
+                    <div className="an-author-left">
+                      <span className="an-author-rank">#{i + 1}</span>
+                      <div className="an-author-avatar-placeholder" />
+                      <div className="an-author-info">
+                        <div style={{ width: 90, height: 13, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
+                        <div style={{ width: 40, height: 9, background: 'rgba(255,255,255,0.03)', borderRadius: 3, marginTop: 4 }} />
+                      </div>
                     </div>
-                    <div className="h-4 bg-zinc-850 rounded w-16"></div>
+                    <div className="an-author-right">
+                      <div style={{ width: 70, height: 13, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
+                      <div style={{ width: 110, height: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 3, marginTop: 4 }} />
+                    </div>
                   </div>
                 ))}
               </div>
             ) : autores.length === 0 ? (
-              <div className="py-8">
+              <div style={{ padding: '32px 0' }}>
                 <EmptyState title="Sem dados de autores" />
               </div>
             ) : (
-              <div className="divide-y divide-zinc-800/60">
+              <div className="an-author-list">
                 {autores.map((aut, idx) => (
-                  <div key={aut.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0 group">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono font-bold text-zinc-500 w-4">
+                  <div key={aut.id} className="an-author-item">
+                    <div className="an-author-left">
+                      <span className="an-author-rank">
                         #{idx + 1}
                       </span>
-                      {renderAvatarAutor(aut)}
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors leading-none">
-                          {aut.nome}
-                        </h4>
-                        <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider block mt-1">
-                          {aut.tipo}
-                        </span>
+                      <div className="an-author-avatar-wrap">
+                        {renderAvatarAutor(aut)}
+                      </div>
+                      <div className="an-author-info">
+                        <h4 className="an-author-name">{aut.nome}</h4>
+                        <span className="an-author-role">{aut.tipo}</span>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-xs font-mono font-bold text-zinc-100 block">
+                    <div className="an-author-right">
+                      <span className="an-author-views">
                         {aut.views.toLocaleString('pt-BR')} views
                       </span>
-                      <span className="text-[10px] text-zinc-500 font-medium block mt-0.5">
+                      <span className="an-author-meta">
                         {aut.noticiasCount} matérias • {aut.mediaViews.toLocaleString('pt-BR')}/mat.
                       </span>
                     </div>
