@@ -2,113 +2,88 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminUser } from '@/hooks/useAdminAuth';
+import { useState, useEffect } from 'react';
+import {
+  LayoutDashboard,
+  FileText,
+  FolderTree,
+  PenTool,
+  Image as ImageIcon,
+  Tag,
+  Megaphone,
+  Inbox,
+  MessageCircle,
+  Users,
+  ShieldCheck,
+  BarChart3,
+  TrendingUp,
+  LineChart,
+  Database,
+  Settings,
+  ExternalLink
+} from 'lucide-react';
 
-/* ── SVG Icons ─────────────────────────────────────────── */
-const Icons = {
-  dashboard: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-      <rect x="1.5" y="1.5" width="5" height="5" rx="1"/>
-      <rect x="8.5" y="1.5" width="5" height="5" rx="1"/>
-      <rect x="1.5" y="8.5" width="5" height="5" rx="1"/>
-      <rect x="8.5" y="8.5" width="5" height="5" rx="1"/>
-    </svg>
-  ),
-  noticias: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 1.5h6l3 3v9a.5.5 0 01-.5.5H3a.5.5 0 01-.5-.5V2A.5.5 0 013 1.5z"/>
-      <path d="M9 1.5v3.5h3"/>
-      <line x1="4.5" y1="7.5" x2="10.5" y2="7.5"/>
-      <line x1="4.5" y1="10" x2="8" y2="10"/>
-    </svg>
-  ),
-  categorias: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1.5 1.5h5.5l6.5 6.5-5.5 5.5-6.5-6.5V1.5z"/>
-      <circle cx="5" cy="5" r="1" fill="currentColor" stroke="none"/>
-    </svg>
-  ),
-  colunistas: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.5 2a1.5 1.5 0 012.12 2.12L5.5 11.24l-3 .88.88-3L10.5 2z"/>
-    </svg>
-  ),
-  usuarios: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-      <circle cx="5.5" cy="5" r="2.5"/>
-      <path d="M1 13.5c0-2.8 2-4.5 4.5-4.5s4.5 1.7 4.5 4.5"/>
-      <path d="M11.5 4.5a2 2 0 010 4"/>
-      <path d="M14 13.5c0-2.2-1-3.5-2.5-4"/>
-    </svg>
-  ),
-  reporter: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1.5 5.5H3l1.5-2.5h6L12 5.5h1.5a.5.5 0 01.5.5v7a.5.5 0 01-.5.5H1a.5.5 0 01-.5-.5V6a.5.5 0 01.5-.5z"/>
-      <circle cx="7.5" cy="8.5" r="2"/>
-    </svg>
-  ),
-  auditoria: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M7.5 1.5L2 4v4.2c0 3.1 2.3 5.9 5.5 6.8 3.2-.9 5.5-3.7 5.5-6.8V4L7.5 1.5z"/>
-      <path d="M5 7.5l1.5 1.5 3.5-3.5"/>
-    </svg>
-  ),
-  configuracoes: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-      <circle cx="7.5" cy="7.5" r="2.5"/>
-      <path d="M7.5 1v1.5M7.5 12.5V14M1 7.5h1.5M12.5 7.5H14M3.1 3.1l1.1 1.1M10.8 10.8l1.1 1.1M3.1 11.9l1.1-1.1M10.8 4.2l1.1-1.1"/>
-    </svg>
-  ),
-  portal: (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6.5 2.5H3a1 1 0 00-1 1v8.5a1 1 0 001 1h9a1 1 0 001-1V8.5"/>
-      <path d="M9.5 1.5h4v4"/>
-      <path d="M13.5 1.5L7.5 7.5"/>
-    </svg>
-  ),
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Administrador',
+  EDITOR: 'Editor',
+  COLUNISTA: 'Colunista',
 };
 
-/* ── Estrutura de grupos do nav ─────────────────────────── */
 interface NavItem {
   href: string;
   label: string;
-  icon: keyof typeof Icons;
+  icon: React.ComponentType<{ className?: string; size?: number; strokeWidth?: number }>;
   roles?: string[];
   exact?: boolean;
   badge?: number;
 }
 
 interface NavGroup {
-  label: string | null;
+  label: string;
   items: NavItem[];
 }
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    label: null,
+    label: 'PAINEL',
     items: [
-      { href: '/admin', label: 'Painel', icon: 'dashboard', exact: true },
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
     ],
   },
   {
-    label: 'Conteúdo',
+    label: 'CONTEÚDO',
     items: [
-      { href: '/admin/noticias', label: 'Notícias', icon: 'noticias', roles: ['SUPER_ADMIN','ADMIN','EDITOR','COLUNISTA'] },
-      { href: '/admin/categorias', label: 'Categorias', icon: 'categorias', roles: ['SUPER_ADMIN','ADMIN'] },
-      { href: '/admin/colunistas', label: 'Colunistas', icon: 'colunistas', roles: ['SUPER_ADMIN','ADMIN'] },
+      { href: '/admin/noticias', label: 'Notícias', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'COLUNISTA'] },
+      { href: '/admin/categorias', label: 'Categorias', icon: FolderTree, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { href: '/admin/colunistas', label: 'Colunistas', icon: PenTool, roles: ['SUPER_ADMIN', 'ADMIN'] },
     ],
   },
   {
-    label: 'Gestão',
+    label: 'INTERAÇÃO',
     items: [
-      { href: '/admin/usuarios', label: 'Usuários', icon: 'usuarios', roles: ['SUPER_ADMIN','ADMIN'] },
-      { href: '/admin/sugestoes', label: 'Você Repórter', icon: 'reporter', roles: ['SUPER_ADMIN','ADMIN','EDITOR'] },
+      { href: '/admin/reporter', label: 'Você Repórter', icon: Megaphone, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
     ],
   },
   {
-    label: 'Sistema',
+    label: 'USUÁRIOS',
     items: [
-      { href: '/admin/auditoria', label: 'Auditoria', icon: 'auditoria', roles: ['SUPER_ADMIN','ADMIN'] },
-      { href: '/admin/configuracoes', label: 'Configurações', icon: 'configuracoes', roles: ['SUPER_ADMIN'] },
+      { href: '/admin/usuarios', label: 'Usuários', icon: Users, roles: ['SUPER_ADMIN', 'ADMIN'] },
+    ],
+  },
+  {
+    label: 'ANÁLISES',
+    items: [
+      { href: '/admin/mais-lidas', label: 'Mais lidas', icon: BarChart3, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
+      { href: '/admin/em-alta', label: 'Em alta', icon: TrendingUp, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
+      { href: '/admin/analytics', label: 'Analytics', icon: LineChart, roles: ['SUPER_ADMIN', 'ADMIN'] },
+    ],
+  },
+  {
+    label: 'SISTEMA',
+    items: [
+      { href: '/admin/auditoria', label: 'Auditoria', icon: Database, roles: ['SUPER_ADMIN'] },
+      { href: '/admin/configuracoes', label: 'Configurações', icon: Settings, roles: ['SUPER_ADMIN'] },
     ],
   },
 ];
@@ -129,20 +104,20 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
   };
 
   return (
-    <aside className="cms-sidebar">
-      {/* Logo */}
-      <div className="cms-sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '18px 16px', borderBottom: '1px solid var(--c-border)' }}>
-        <div style={{ width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: '50%', overflow: 'hidden', background: '#fff', border: '1px solid rgba(255,255,255,0.1)', padding: '2px' }}>
+    <aside className="cms-sidebar" style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* Topo / Logo */}
+      <div className="cms-sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '18px 16px', borderBottom: '1px solid var(--c-border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={logoUrl} 
             alt="Logo TV Russas" 
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
               if (target.parentElement) {
-                target.parentElement.innerHTML = '<span style="font-size: 11px; font-weight: 800; color: #111;">TVR</span>';
+                target.parentElement.innerHTML = '<span style="font-size: 11px; font-weight: 800; color: #fff;">TVR</span>';
               }
             }}
           />
@@ -153,48 +128,96 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
         </div>
       </div>
 
-      {/* Grupos de navegação */}
-      {NAV_GROUPS.map((group, gi) => {
-        const visibleItems = group.items.filter(canSee);
-        if (visibleItems.length === 0) return null;
+      {/* Lista de Grupos e Itens de Navegação (Rolável) */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: '16px' }} className="cms-sidebar-nav-scroll">
+        {NAV_GROUPS.map((group, gi) => {
+          const visibleItems = group.items.filter(canSee);
+          if (visibleItems.length === 0) return null;
 
-        return (
-          <div key={gi} className="cms-sidebar-section">
-            {group.label && (
-              <div className="cms-sidebar-section-label">{group.label}</div>
-            )}
-            {visibleItems.map(item => {
-              const isActive = item.exact
-                ? pathname === item.href
-                : pathname.startsWith(item.href);
+          return (
+            <div key={gi} className="cms-sidebar-section" style={{ padding: gi === 0 ? '16px 12px 4px' : '12px 12px 4px' }}>
+              <div className="cms-sidebar-section-label" style={{ fontSize: '10px', color: 'var(--c-muted)', fontWeight: '600', letterSpacing: '0.08em', padding: '0 8px', marginBottom: '6px' }}>
+                {group.label}
+              </div>
+              {visibleItems.map(item => {
+                const isActive = item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
 
-              const hasBadge = item.href === '/admin/sugestoes' && sugestoesCount && sugestoesCount > 0;
+                const IconComponent = item.icon;
+                const hasBadge = item.href === '/admin/sugestoes' && sugestoesCount && sugestoesCount > 0;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`cms-nav-item${isActive ? ' active' : ''}`}
-                >
-                  <span className="cms-nav-icon">{Icons[item.icon]}</span>
-                  <span>{item.label}</span>
-                  {hasBadge && (
-                    <span className="cms-nav-badge">{sugestoesCount}</span>
-                  )}
-                </Link>
-              );
-            })}
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`cms-nav-item${isActive ? ' active' : ''}`}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <span className="cms-nav-icon">
+                      <IconComponent size={15} strokeWidth={isActive ? 2.2 : 1.6} />
+                    </span>
+                    <span>{item.label}</span>
+                    {hasBadge && (
+                      <span className="cms-nav-badge">{sugestoesCount}</span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Rodapé da Sidebar (Métricas do Servidor e Link de Saída) */}
+      <div className="cms-sidebar-footer" style={{ borderTop: '1px solid var(--c-border)', background: 'rgba(0, 0, 0, 0.25)', padding: '14px 16px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Espaço em Disco */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--c-secondary)' }}>
+            <span>Espaço usado</span>
+            <span style={{ fontWeight: '600', color: 'var(--c-text)' }}>3.2 GB / 10 GB</span>
           </div>
-        );
-      })}
+          <div style={{ width: '100%', height: '4px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+            <div style={{ width: '32%', height: '100%', background: 'var(--c-accent)', borderRadius: '2px' }} />
+          </div>
+        </div>
 
-      {/* Rodapé */}
-      <div className="cms-sidebar-footer">
-        <Link href="/" className="cms-nav-item" style={{ fontSize: '12.5px' }}>
-          <span className="cms-nav-icon">{Icons.portal}</span>
+        {/* Métricas de Notícias e Usuários */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '8px', fontSize: '11px', color: 'var(--c-secondary)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ color: 'var(--c-text)', fontWeight: '600' }}>32</span>
+            <span>notícias pub.</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '1px solid rgba(255,255,255,0.04)', paddingLeft: '8px' }}>
+            <span style={{ color: 'var(--c-text)', fontWeight: '600' }}>5</span>
+            <span>usuários ativos</span>
+          </div>
+        </div>
+
+        {/* Link para o Portal Público */}
+        <Link href="/" target="_blank" className="cms-nav-item" style={{ marginTop: '4px', padding: '6px 8px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--c-border)', borderRadius: '4px', fontSize: '12px', justifyContent: 'center', gap: '8px' }}>
+          <ExternalLink size={12} />
           <span>Ver Portal</span>
         </Link>
       </div>
+
+      {/* Estilos locais para animação pulse */}
+      <style jsx global>{`
+        @keyframes pulse {
+          0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+          }
+          70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+          }
+          100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+          }
+        }
+      `}</style>
     </aside>
   );
 }

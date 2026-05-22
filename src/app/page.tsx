@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import Image from "next/image";
 import PremiumCard from "@/components/PremiumCard";
@@ -21,76 +23,44 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
 }
 
 export default async function Home() {
-  const [noticiasRaw, maisLidasRaw, trendingRaw] = await Promise.all([
-    apiService.getNoticias(),
+  const [
+    destaques,
+    ultimasNoticias,
+    maisLidasRaw,
+    trendingRaw,
+    politica,
+    cidade,
+    esporte,
+    brasil,
+    entretenimento,
+    policia,
+    youtube,
+    ceara,
+    fallbackNews
+  ] = await Promise.all([
+    apiService.getDestaques(),
+    apiService.getUltimasNoticias(6),
     apiService.getMaisLidas(),
     apiService.getTrending(),
+    apiService.getNoticiasByCategoria("politica", 3),
+    apiService.getNoticiasByCategoria("cidade", 3),
+    apiService.getNoticiasByCategoria("esporte", 3),
+    apiService.getNoticiasByCategoria("brasil", 3),
+    apiService.getNoticiasByCategoria("entretenimento", 3),
+    apiService.getNoticiasByCategoria("policia", 3),
+    apiService.getNoticiasByCategoria("youtube", 3),
+    apiService.getNoticiasByCategoria("ceara", 3),
+    apiService.getUltimasNoticias(10) // Fallback for sidebar
   ]);
 
-  // --- LÓGICA DE DEDUPLICAÇÃO E ORGANIZAÇÃO ---
-  const exibidasIds = new Set<string>();
+  // 1. Destaques (Top Banner)
+  const destaque = destaques[0];
+  const heroSide1 = destaques[1];
+  const heroSide2 = destaques[2];
 
-  // 1. Pegar os destaques manuais primeiro
-  const destaquesManuais = noticiasRaw
-    .filter((n) => n.featured)
-    .sort(
-      (a, b) =>
-        new Date(b.publicadoEm).getTime() - new Date(a.publicadoEm).getTime(),
-    );
-
-  const idsDestaquesManuais = new Set(destaquesManuais.map((n) => n.id));
-  const poolRestante = noticiasRaw.filter(
-    (n) => !idsDestaquesManuais.has(n.id),
-  );
-
-  const findNews = (keyword: string) =>
-    noticiasRaw.find((n) =>
-      n.titulo.toLowerCase().includes(keyword.toLowerCase()),
-    );
-
-  const destaque =
-    findNews("construção") ||
-    findNews("medicina") ||
-    destaquesManuais[0] ||
-    poolRestante[0];
-  const heroSide1 =
-    findNews("kits natalidade") || destaquesManuais[1] || poolRestante[1];
-  const heroSide2 =
-    findNews("jovem é presa") || destaquesManuais[2] || poolRestante[2];
-
-  if (destaque) exibidasIds.add(destaque.id);
-  if (heroSide1) exibidasIds.add(heroSide1.id);
-  if (heroSide2) exibidasIds.add(heroSide2.id);
-
-  const ultimasNoticias = noticiasRaw
-    .filter((n) => !exibidasIds.has(n.id))
-    .slice(0, 6);
-  ultimasNoticias.forEach((n) => exibidasIds.add(n.id));
-
-  // 3. Mais Lidas e Trending (Sidebar)
-  const maisLidas =
-    maisLidasRaw.length > 0 ? maisLidasRaw : noticiasRaw.slice(0, 5);
-  const trending =
-    trendingRaw.length > 0 ? trendingRaw : noticiasRaw.slice(5, 10);
-
-  const getCategory = (slug: string, limit: number = 4) => {
-    return noticiasRaw
-      .filter(
-        (n) =>
-          n.categoria.slug.toLowerCase() === slug.toLowerCase() ||
-          n.categoria.nome.toLowerCase() === slug.toLowerCase(),
-      )
-      .slice(0, limit);
-  };
-
-  const politica = getCategory("politica", 3);
-  const cidade = getCategory("cidade", 3);
-  const esporte = getCategory("esporte", 3);
-  const brasil = getCategory("brasil", 3);
-  const entretenimento = getCategory("entretenimento", 3);
-  const policia = getCategory("policia", 3);
-  const youtube = getCategory("youtube", 3);
-  const ceara = getCategory("ceara", 3);
+  // 2. Mais Lidas e Trending (Sidebar)
+  const maisLidas = maisLidasRaw.length > 0 ? maisLidasRaw : fallbackNews.slice(0, 5);
+  const trending = trendingRaw.length > 0 ? trendingRaw : fallbackNews.slice(5, 10);
 
   return (
     <main className="premium-home">

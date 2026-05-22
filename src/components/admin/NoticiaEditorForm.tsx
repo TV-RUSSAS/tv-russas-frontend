@@ -183,13 +183,14 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   const [colunistaId, setColunistaId] = useState(initialData?.colunistaId || '');
   const [tags, setTags] = useState(initialData?.tags || '');
   const [featured, setFeatured] = useState(initialData?.featured || false);
-  const [breaking, setBreaking] = useState(initialData?.breaking || false);
+  const breaking = false;
   
   const getApiUrl = (url?: string) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-    return `${baseUrl}${url}`;
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${baseUrl}${cleanUrl}`;
   };
 
   const [capa, setCapa] = useState<File | null>(null);
@@ -199,6 +200,8 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   const [slugManual, setSlugManual] = useState(mode === 'edit');
   const [saveStatus, setSaveStatus] = useState<'idle'|'saving'|'saved'>('idle');
   const [showFeaturedModal, setShowFeaturedModal] = useState(false);
+  const [destaquesAtuais, setDestaquesAtuais] = useState<{ id: string; titulo: string; capaUrl: string; publicadoEm: string }[]>([]);
+  const [replaceFeaturedId, setReplaceFeaturedId] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -238,7 +241,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   };
 
   const [fonteText, setFonteText] = useState(initialData?.conteudo ? extractFonte(initialData.conteudo) : 'TV Russas');
-  const [publicadoPorText, setPublicadoPorText] = useState(initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : '');
+  const [publicadoPorText, setPublicadoPorText] = useState(initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : 'TV RUSSAS');
 
   // Editor Instantiation
   const editor = useEditor({
@@ -331,7 +334,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   };
 
   // Submit Final (com lógica de limite de destaques)
-  const executeSubmit = async (replaceFeatured: boolean = false) => {
+  const executeSubmit = async () => {
     setError('');
     const content = editor?.getHTML() || '';
     if (content === '<p></p>' || !content.trim()) { setError('O conteúdo da notícia não pode estar vazio.'); return; }
@@ -358,7 +361,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
       if (colunistaId) formData.append('colunistaId', colunistaId);
       formData.append('featured', String(featured));
       formData.append('breaking', String(breaking));
-      if (replaceFeatured) formData.append('replaceFeatured', 'true');
+      if (replaceFeaturedId) formData.append('replaceFeaturedId', replaceFeaturedId);
       if (capa) formData.append('capa', capa);
 
       const url = mode === 'edit' ? `/admin/noticias/${initialData?.id}` : '/admin/noticias';
@@ -387,10 +390,13 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     if (featured && !initialData?.featured) {
       // Verificar quantidade atual de destaques antes de enviar
       try {
-        const res = await authFetch('/admin/noticias?limit=20');
+        const res = await authFetch('/admin/noticias?featured=true');
         const data = await res.json();
-        const currentFeatured = data.noticias?.filter((n: { featured: boolean }) => n.featured).length || 0;
-        if (currentFeatured >= 3) {
+        const currentFeatured = data.noticias || [];
+        const top3Featured = currentFeatured.slice(0, 3);
+        if (top3Featured.length >= 3) {
+          setDestaquesAtuais(top3Featured);
+          setReplaceFeaturedId('');
           setShowFeaturedModal(true);
           return;
         }
@@ -398,7 +404,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
         console.error("Erro ao verificar destaques", err);
       }
     }
-    executeSubmit(false);
+    executeSubmit();
   };
 
   const wordCount = editor?.storage.characterCount?.words() || 0;
@@ -499,9 +505,9 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                     <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>Publicado por:</strong>
                     <input 
                       type="text" 
-                      value={publicadoPorText !== '' ? publicadoPorText : (colunistas.find(c => c.id === colunistaId)?.nome || "TV Russas").toUpperCase()} 
+                      value={publicadoPorText} 
                       onChange={e => { setPublicadoPorText(e.target.value); setSaveStatus('saving'); }} 
-                      placeholder="Ex: NOME DO JORNALISTA"
+                      placeholder="Ex: NOME DA BANCA PUBLICADORA"
                       style={{ 
                         fontFamily: 'Merriweather, Lora, serif', 
                         fontSize: '20px', 
@@ -524,25 +530,83 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
           {/* Coluna Lateral */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* Ações e Publicação */}
+             {/* Ações e Publicação */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
               <div style={{ fontWeight: '700', marginBottom: '18px', fontSize: '15px' }}>Publicação</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13.5px', color: 'var(--c-text)', padding: '10px', background: featured ? 'var(--c-accent-dim)' : 'var(--c-raised)', border: `1px solid ${featured ? 'var(--c-accent-low)' : 'var(--c-border)'}`, borderRadius: '6px' }}>
-                  <input type="checkbox" checked={featured} onChange={e => { setFeatured(e.target.checked); setSaveStatus('saving'); }} style={{ accentColor: 'var(--c-accent)', width: '16px', height: '16px' }} />
-                  <div>
-                    <div style={{ fontWeight: '600' }}>Em Destaque</div>
-                    <div style={{ fontSize: '10px', color: 'var(--c-secondary)' }}>Aparecerá no banner principal.</div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--c-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Classificação de Feed</div>
+                
+                {/* Opção 1: Última Notícia */}
+                <div 
+                  onClick={() => { setFeatured(false); setSaveStatus('saving'); }}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px', 
+                    cursor: 'pointer', 
+                    padding: '10px 12px', 
+                    background: !featured ? 'rgba(99, 102, 241, 0.05)' : 'var(--c-raised)', 
+                    border: `1px solid ${!featured ? 'rgba(99, 102, 241, 0.2)' : 'var(--c-border)'}`, 
+                    borderRadius: '6px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    border: `2px solid ${!featured ? '#818cf8' : 'var(--c-secondary)'}`, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    background: 'transparent',
+                    flexShrink: 0
+                  }}>
+                    {!featured && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#818cf8' }} />}
                   </div>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13.5px', color: 'var(--c-text)', padding: '10px', background: breaking ? 'rgba(239, 68, 68, 0.05)' : 'var(--c-raised)', border: `1px solid ${breaking ? 'rgba(239, 68, 68, 0.15)' : 'var(--c-border)'}`, borderRadius: '6px' }}>
-                  <input type="checkbox" checked={breaking} onChange={e => { setBreaking(e.target.checked); setSaveStatus('saving'); }} style={{ accentColor: '#ef4444', width: '16px', height: '16px' }} />
                   <div>
-                    <div style={{ fontWeight: '600', color: breaking ? '#ef4444' : 'inherit' }}>Plantão (Breaking)</div>
-                    <div style={{ fontSize: '10px', color: 'var(--c-secondary)' }}>Notificação de urgência.</div>
+                    <div style={{ fontWeight: '600', fontSize: '13px', color: !featured ? '#fff' : 'var(--c-secondary)' }}>Última Notícia</div>
+                    <div style={{ fontSize: '10px', color: 'var(--c-muted)' }}>Notícia padrão no feed cronológico.</div>
                   </div>
-                </label>
+                </div>
+
+                {/* Opção 2: Em Destaque Banner */}
+                <div 
+                  onClick={() => { setFeatured(true); setSaveStatus('saving'); }}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '10px', 
+                    cursor: 'pointer', 
+                    padding: '10px 12px', 
+                    background: featured ? 'var(--c-accent-dim)' : 'var(--c-raised)', 
+                    border: `1px solid ${featured ? 'var(--c-accent-low)' : 'var(--c-border)'}`, 
+                    borderRadius: '6px',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div style={{ 
+                    width: '16px', 
+                    height: '16px', 
+                    borderRadius: '50%', 
+                    border: `2px solid ${featured ? 'var(--c-accent)' : 'var(--c-secondary)'}`, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    background: 'transparent',
+                    flexShrink: 0
+                  }}>
+                    {featured && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--c-accent)' }} />}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: '600', fontSize: '13px', color: featured ? '#fff' : 'var(--c-secondary)' }}>Destaque do Banner</div>
+                    <div style={{ fontSize: '10px', color: 'var(--c-muted)' }}>Aparecerá no banner principal (máx. 3).</div>
+                  </div>
+                </div>
               </div>
+
+
               
               <button type="submit" disabled={loading} className="cms-btn cms-btn-publish" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '15px', borderRadius: '8px' }}>
                 {loading ? <><div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Publicando...</> : mode === 'create' ? <><i className="fas fa-paper-plane" style={{ marginRight: '8px' }} /> Publicar Matéria</> : <><i className="far fa-save" style={{ marginRight: '8px' }} /> Atualizar Matéria</>}
@@ -623,8 +687,8 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                 
                 {/* Favicon e URL Breadcrumb */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
-                  <div style={{ width: '28px', height: '28px', background: '#f1f3f4', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#202124' }}>
-                    <i className="fas fa-tv" style={{ fontSize: '12px' }} />
+                  <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/sistema/1.png`} alt="TV Russas" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '14px', color: '#202124', lineHeight: '20px' }}>TV Russas</span>
@@ -661,20 +725,78 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
 
       {/* MODAL DE DESTAQUE */}
       {showFeaturedModal && (
-        <div className="cms-modal-overlay">
-          <div className="cms-modal" style={{ maxWidth: '400px' }}>
-            <div className="cms-modal-header" style={{ borderBottom: 'none', paddingBottom: '0' }}>
-              <h3 className="cms-modal-title" style={{ fontSize: '18px' }}><i className="fas fa-star" style={{ color: 'var(--c-warn)', marginRight: '8px' }}/> Limite de Destaques</h3>
+        <div className="cms-modal-overlay" style={{ backdropFilter: 'blur(4px)' }}>
+          <div className="cms-modal" style={{ maxWidth: '500px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
+            <div className="cms-modal-header" style={{ borderBottom: '1px solid var(--c-border)', padding: '24px', background: 'var(--c-surface)' }}>
+              <h3 className="cms-modal-title" style={{ fontSize: '20px', fontWeight: '700', color: 'var(--c-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <i className="fas fa-crown" style={{ color: '#F59E0B' }}/> Substituir Destaque
+              </h3>
               <button type="button" className="cms-modal-close" onClick={() => setShowFeaturedModal(false)}><i className="fas fa-times" /></button>
             </div>
-            <div className="cms-modal-body" style={{ color: 'var(--c-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
-              <p>O portal permite no máximo <strong>3 notícias em destaque</strong> no banner principal simultaneamente.</p>
-              <p style={{ marginTop: '12px' }}>Deseja remover o destaque da matéria mais antiga e substituí-la por esta?</p>
+            <div className="cms-modal-body" style={{ background: 'var(--c-bg)', padding: '24px', color: 'var(--c-secondary)', fontSize: '15px', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '20px' }}>O banner inicial da página suporta no máximo <strong>3 notícias simultâneas</strong>. Selecione qual matéria sairá do topo para dar lugar à sua nova postagem:</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {destaquesAtuais.map(noticia => (
+                  <label 
+                    key={noticia.id} 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '16px', 
+                      padding: '16px', 
+                      background: replaceFeaturedId === noticia.id ? 'var(--c-accent-dim)' : 'var(--c-surface)', 
+                      border: `2px solid ${replaceFeaturedId === noticia.id ? 'var(--c-accent)' : 'transparent'}`, 
+                      borderRadius: '12px', 
+                      cursor: 'pointer',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      boxShadow: replaceFeaturedId === noticia.id ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 6px rgba(0,0,0,0.04)'
+                    }}
+                  >
+                    <input 
+                      type="radio" 
+                      name="replaceFeatured" 
+                      value={noticia.id} 
+                      checked={replaceFeaturedId === noticia.id}
+                      onChange={() => setReplaceFeaturedId(noticia.id)}
+                      style={{ accentColor: 'var(--c-accent)', width: '20px', height: '20px', flexShrink: 0 }}
+                    />
+                    {noticia.capaUrl && (
+                      <div style={{ width: '60px', height: '40px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={getApiUrl(noticia.capaUrl) || ''} alt={noticia.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <span style={{ fontWeight: '600', color: 'var(--c-text)', fontSize: '14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.3' }}>
+                        {noticia.titulo}
+                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--c-tertiary)', marginTop: '4px' }}>
+                        {new Date(noticia.publicadoEm).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="cms-modal-footer" style={{ borderTop: 'none', paddingTop: '0', paddingBottom: '20px' }}>
-              <button type="button" className="cms-btn cms-btn-secondary" onClick={() => setShowFeaturedModal(false)}>Cancelar</button>
-              <button type="button" className="cms-btn cms-btn-primary" onClick={() => { setShowFeaturedModal(false); executeSubmit(true); }}>
-                Sim, Substituir Destaque
+            <div className="cms-modal-footer" style={{ borderTop: '1px solid var(--c-border)', padding: '20px 24px', background: 'var(--c-surface)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button type="button" className="cms-btn" style={{ background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text)', padding: '8px 16px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer' }} onClick={() => setShowFeaturedModal(false)}>Cancelar</button>
+              <button 
+                type="button" 
+                className="cms-btn"
+                style={{ 
+                  background: replaceFeaturedId ? 'var(--c-primary)' : 'var(--c-border)', 
+                  color: replaceFeaturedId ? '#fff' : 'var(--c-secondary)',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: replaceFeaturedId ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s'
+                }} 
+                disabled={!replaceFeaturedId}
+                onClick={() => { setShowFeaturedModal(false); executeSubmit(); }}
+              >
+                Confirmar Substituição
               </button>
             </div>
           </div>

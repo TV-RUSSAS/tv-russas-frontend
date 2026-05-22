@@ -4,21 +4,59 @@ import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 /* ── Tipos ───────────────────────────────────────────────── */
+interface Atividade {
+  id: string;
+  tipo: 'AUDIT' | 'SUGESTAO';
+  acao: string;
+  entidade: string;
+  entidadeId: string | null;
+  usuario?: { nome: string; role: string } | null;
+  ip: string;
+  dataHora: string;
+  detalhes?: any;
+  capaUrl?: string | null;
+  categoriaNome?: string | null;
+}
+
 interface DashboardStats {
   totalNoticias: number;
   totalUsuarios: number;
   totalViews: number;
   totalLikes: number;
   totalSugestoesNovas: number;
-  topNoticias: Array<{ id: string; titulo: string; views: number; categoria: { nome: string } }>;
-  ultimosLogs: Array<{
-    id: string;
-    acao: string;
-    ip: string;
-    dataHora: string;
-    usuario?: { nome: string; role: string } | null;
-  }>;
-  grafico: Array<{ data: string; total: number }>;
+  topNoticias: Array<{ id: string; titulo: string; views: number; categoryId?: string; categoria?: { nome: string } }>;
+  ultimosLogs: Atividade[];
+  atividades?: Atividade[];
+  grafico: Array<{ data: string; total: number; categoriaLider?: string | null }>;
+  analyticsEditorial?: {
+    totalPeriodo: number;
+    mediaDiaria: number;
+    diaRecorde: string;
+    quantidadeRecorde: number;
+    variacaoPeriodo: string;
+  };
+}
+
+interface NoticiaMaisLida {
+  id: string;
+  titulo: string;
+  slug: string;
+  views: number;
+  categoria: { nome: string };
+  posicao: number;
+  variacao: number;
+  status: 'subiu' | 'caiu' | 'manteve';
+}
+
+interface NoticiaEmAlta {
+  id: string;
+  titulo: string;
+  slug: string;
+  viewsRecentes: number;
+  viewsTotais: number;
+  crescimentoPercentual: number;
+  tendencia: 'subindo' | 'caiu' | 'estavel';
+  categoria: { nome: string };
 }
 
 /* ── Utilitários ─────────────────────────────────────────── */
@@ -26,30 +64,6 @@ function formatNumber(n: number): string {
   if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
   if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
   return n.toString();
-}
-
-type AcaoType = 'default' | 'success' | 'danger' | 'warn';
-
-function getAcaoInfo(acao: string): { label: string; type: AcaoType } {
-  const map: Record<string, { label: string; type: AcaoType }> = {
-    LOGIN_SUCESSO:            { label: 'Login realizado',           type: 'success' },
-    LOGIN_FALHA:              { label: 'Tentativa de login falhou', type: 'danger'  },
-    TENTATIVA_LOGIN_INVALIDA: { label: 'Login inválido',            type: 'danger'  },
-    SENHA_INCORRETA:          { label: 'Senha incorreta',           type: 'danger'  },
-    LOGOUT:                   { label: 'Sessão encerrada',          type: 'default' },
-    NOTICIA_CRIADA:           { label: 'Notícia publicada',         type: 'success' },
-    NOTICIA_ATUALIZADA:       { label: 'Notícia editada',           type: 'default' },
-    NOTICIA_EXCLUIDA:         { label: 'Notícia excluída',          type: 'danger'  },
-    USUARIO_CRIADO:           { label: 'Usuário criado',            type: 'success' },
-    USUARIO_ATUALIZADO:       { label: 'Usuário atualizado',        type: 'default' },
-    USUARIO_EXCLUIDO:         { label: 'Usuário excluído',          type: 'danger'  },
-    CATEGORIA_CRIADA:         { label: 'Categoria criada',          type: 'success' },
-    COLUNISTA_CRIADO:         { label: 'Colunista criado',          type: 'success' },
-  };
-  return map[acao] || {
-    label: acao.replace(/_/g, ' ').toLowerCase(),
-    type: 'default',
-  };
 }
 
 function timeAgo(dateStr: string): string {
@@ -62,7 +76,46 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d atrás`;
 }
 
-/* ── Ícones SVG inline ───────────────────────────────────── */
+/* ── Algoritmo de Agrupamento ────────────────────────────── */
+function agruparAtividades(atividades: Atividade[]): Array<Atividade & { agrupadas?: Atividade[]; isAgrupado?: boolean }> {
+  if (!atividades || atividades.length === 0) return [];
+  
+  const result: Array<Atividade & { agrupadas?: Atividade[]; isAgrupado?: boolean }> = [];
+  
+  for (let i = 0; i < atividades.length; i++) {
+    const atual = atividades[i];
+    const userNome = atual.usuario?.nome || 'Sistema';
+    
+    // Tentamos ver se podemos agrupar com o último item no result
+    const ultimoResult = result[result.length - 1];
+    
+    // Regras de agrupamento:
+    // 1. Mesmo tipo ('AUDIT') e não é 'SUGESTAO'
+    // 2. Mesma ação (ex: 'NOTICIA_ATUALIZADA')
+    // 3. Mesmo usuário
+    if (
+      ultimoResult &&
+      atual.tipo === 'AUDIT' &&
+      ultimoResult.tipo === 'AUDIT' &&
+      atual.acao === ultimoResult.acao &&
+      (atual.usuario?.nome || 'Sistema') === (ultimoResult.usuario?.nome || 'Sistema')
+    ) {
+      if (!ultimoResult.agrupadas) {
+        ultimoResult.agrupadas = [
+          { ...ultimoResult } // copia o próprio original
+        ];
+        ultimoResult.isAgrupado = true;
+      }
+      ultimoResult.agrupadas.push(atual);
+    } else {
+      result.push({ ...atual });
+    }
+  }
+  
+  return result;
+}
+
+/* ── Ícones SVG inline dedicados ─────────────────────────── */
 const IconArticle = () => (
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
     <path d="M2.5 1h7l3 3v9H2.5V1z"/>
@@ -120,72 +173,664 @@ const IconExternal = () => (
   </svg>
 );
 
-/* ── Gráfico de barras ───────────────────────────────────── */
-function BarChart({ data }: { data: Array<{ data: string; total: number }> }) {
-  const max = Math.max(...data.map(d => d.total), 1);
-  const WIDTH = 560;
-  const HEIGHT = 96;
-  const COUNT = data.length;
-  const GAP = 8;
-  const BAR_W = Math.floor((WIDTH - (COUNT - 1) * GAP) / COUNT);
+/* ── Novos Ícones SVG Editoriais ─────────────────────────── */
+const IconNewsPaper = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Z" />
+    <path d="M18 14h-8" />
+    <path d="M15 18h-5" />
+    <path d="M10 6h8v4h-8V6Z" />
+  </svg>
+);
 
-  const maxIdx = data.reduce((mi, d, i) => d.total > data[mi].total ? i : mi, 0);
+const IconPencil = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 6h18" />
+    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+  </svg>
+);
+
+const IconStarFull = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+const IconStarEmpty = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+const IconUser = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const IconMessage = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+
+const IconSettings = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+const IconChevronDown = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const IconChevronUp = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15" />
+  </svg>
+);
+
+/* ── Mapeamento Editorial de Ações ─────────────────────────── */
+function getAcaoEditorialInfo(acao: string): {
+  label: string;
+  corBadge: string;
+  corIcon: string;
+  icon: React.ReactNode;
+  categoriaGrupo: 'noticias' | 'usuarios' | 'sistema' | 'sugestoes';
+} {
+  const map: Record<string, { label: string; corBadge: string; corIcon: string; icon: React.ReactNode; categoriaGrupo: 'noticias' | 'usuarios' | 'sistema' | 'sugestoes' }> = {
+    NOTICIA_CRIADA: {
+      label: 'Notícia publicada',
+      corBadge: 'rgba(16, 185, 129, 0.08)',
+      corIcon: '#10b981',
+      icon: <IconNewsPaper />,
+      categoriaGrupo: 'noticias'
+    },
+    NOTICIA_ATUALIZADA: {
+      label: 'Notícia editada',
+      corBadge: 'rgba(59, 130, 246, 0.08)',
+      corIcon: '#3b82f6',
+      icon: <IconPencil />,
+      categoriaGrupo: 'noticias'
+    },
+    NOTICIA_EXCLUIDA: {
+      label: 'Notícia excluída',
+      corBadge: 'rgba(239, 68, 68, 0.08)',
+      corIcon: '#ef4444',
+      icon: <IconTrash />,
+      categoriaGrupo: 'noticias'
+    },
+    NOTICIA_DESTAQUE_ADICIONADA: {
+      label: 'Notícia enviada para destaque',
+      corBadge: 'rgba(245, 158, 11, 0.08)',
+      corIcon: '#f59e0b',
+      icon: <IconStarFull />,
+      categoriaGrupo: 'noticias'
+    },
+    NOTICIA_DESTAQUE_REMOVIDA: {
+      label: 'Notícia removida do destaque',
+      corBadge: 'rgba(107, 114, 128, 0.08)',
+      corIcon: '#9ca3af',
+      icon: <IconStarEmpty />,
+      categoriaGrupo: 'noticias'
+    },
+    USUARIO_CRIADO: {
+      label: 'Novo usuário criado',
+      corBadge: 'rgba(139, 92, 246, 0.08)',
+      corIcon: '#8b5cf6',
+      icon: <IconUser />,
+      categoriaGrupo: 'usuarios'
+    },
+    USUARIO_ATUALIZADO: {
+      label: 'Usuário atualizado',
+      corBadge: 'rgba(99, 102, 241, 0.08)',
+      corIcon: '#6366f1',
+      icon: <IconUser />,
+      categoriaGrupo: 'usuarios'
+    },
+    USUARIO_EXCLUIDO: {
+      label: 'Usuário excluído',
+      corBadge: 'rgba(239, 68, 68, 0.08)',
+      corIcon: '#ef4444',
+      icon: <IconUser />,
+      categoriaGrupo: 'usuarios'
+    },
+    SUGESTAO_RECEBIDA: {
+      label: 'Sugestão recebida',
+      corBadge: 'rgba(236, 72, 153, 0.08)',
+      corIcon: '#ec4899',
+      icon: <IconMessage />,
+      categoriaGrupo: 'sugestoes'
+    },
+    SUGESTAO_STATUS_ATUALIZADO: {
+      label: 'Status de sugestão alterado',
+      corBadge: 'rgba(20, 184, 166, 0.08)',
+      corIcon: '#14b8a6',
+      icon: <IconSettings />,
+      categoriaGrupo: 'sugestoes'
+    },
+    CATEGORIA_CRIADA: {
+      label: 'Categoria criada',
+      corBadge: 'rgba(107, 114, 128, 0.12)',
+      corIcon: '#9ca3af',
+      icon: <IconSettings />,
+      categoriaGrupo: 'sistema'
+    },
+    COLUNISTA_CRIADO: {
+      label: 'Colunista criado',
+      corBadge: 'rgba(107, 114, 128, 0.12)',
+      corIcon: '#9ca3af',
+      icon: <IconSettings />,
+      categoriaGrupo: 'sistema'
+    },
+  };
+
+  return map[acao] || {
+    label: acao.replace(/_/g, ' ').toLowerCase(),
+    corBadge: 'rgba(255, 255, 255, 0.05)',
+    corIcon: '#fff',
+    icon: <IconSettings />,
+    categoriaGrupo: 'sistema'
+  };
+}
+
+/* ── Analytics Editorial ─────────────────────────────────── */
+interface EditorialAnalyticsProps {
+  stats: DashboardStats | null;
+  range: 7 | 14 | 30;
+  setRange: (r: 7 | 14 | 30) => void;
+}
+
+function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps) {
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    visible: boolean;
+    data: string;
+    total: number;
+    mediaMovel: number;
+    variacaoDia: string;
+    categoriaLider: string | null;
+  } | null>(null);
+
+  const data = stats?.grafico ?? [];
+  const analytics = stats?.analyticsEditorial;
+  const count = data.length;
+  
+  const hasData = analytics && analytics.totalPeriodo > 0;
+
+  const max = Math.max(...data.map(d => d.total), 1);
+  const gap = count === 30 ? 4 : count === 14 ? 8 : 12;
+  const barWidth = (600 - (count - 1) * gap) / count;
+
+  // 1. Média Móvel (3 períodos)
+  const mediaMovelData = data.map((d, i) => {
+    let sum = 0;
+    let countMM = 0;
+    for (let j = Math.max(0, i - 2); j <= i; j++) {
+      sum += data[j].total;
+      countMM++;
+    }
+    return parseFloat((sum / countMM).toFixed(1));
+  });
+
+  // 2. Média Geral do período
+  const mediaGeral = data.length > 0 ? data.reduce((sum, d) => sum + d.total, 0) / data.length : 0;
+  const yMedia = 120 - (max > 0 ? (mediaGeral / max) * 110 : 0);
+
+  // 3. Regressão Linear Simples para indicador científico de Tendência
+  let tendencia = 'Estável';
+  let tendenciaIcon = '→';
+  let tendenciaCor = 'var(--c-muted)';
+  
+  if (count > 1) {
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    for (let i = 0; i < count; i++) {
+      const x = i;
+      const y = data[i].total;
+      sumX += x;
+      sumY += y;
+      sumXY += x * y;
+      sumXX += x * x;
+    }
+    const divisor = count * sumXX - sumX * sumX;
+    const slope = divisor === 0 ? 0 : (count * sumXY - sumX * sumY) / divisor;
+    
+    if (slope > 0.05) {
+      tendencia = 'Crescimento';
+      tendenciaIcon = '↗';
+      tendenciaCor = '#10b981'; // verde
+    } else if (slope < -0.05) {
+      tendencia = 'Queda';
+      tendenciaIcon = '↘';
+      tendenciaCor = '#ef4444'; // vermelho
+    }
+  }
+
+  // 4. Detetar baixo volume de dados (se há apenas um dia com matérias no range)
+  const diasComPublicacoes = data.filter(d => d.total > 0).length;
+  const poucosDados = diasComPublicacoes === 1;
+
+  // 5. Linha de tendência (Cálculo de pontos do SVG Path)
+  const pathD = mediaMovelData.map((val, i) => {
+    const mmH = max > 0 ? (val / max) * 110 : 0;
+    const x = i * (barWidth + gap) + barWidth / 2;
+    const y = 120 - mmH;
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
+
+  const handleMouseMove = (e: React.MouseEvent<SVGRectElement>, item: { data: string; total: number; categoriaLider?: string | null }, index: number) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const container = e.currentTarget.ownerDocument.getElementById('editorial-analytics-container');
+    const containerRect = container?.getBoundingClientRect();
+    
+    if (containerRect) {
+      const x = rect.left - containerRect.left + rect.width / 2;
+      const y = rect.top - containerRect.top - 60; // posicionado mais acima para o tooltip de 5 linhas
+      
+      // Calcular variação diária em relação ao dia anterior
+      let variacaoDia = '0%';
+      if (index > 0) {
+        const anterior = data[index - 1].total;
+        const atual = item.total;
+        if (anterior === 0) {
+          variacaoDia = atual > 0 ? `+${atual * 100}%` : '0%';
+        } else {
+          const diff = atual - anterior;
+          const pct = Math.round((diff / anterior) * 100);
+          variacaoDia = pct >= 0 ? `+${pct}%` : `${pct}%`;
+        }
+      }
+
+      setTooltip({
+        x,
+        y,
+        visible: true,
+        data: item.data,
+        total: item.total,
+        mediaMovel: mediaMovelData[index],
+        variacaoDia,
+        categoriaLider: item.categoriaLider ?? null
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setTooltip(null);
+  };
+
+  const showLabel = (index: number) => {
+    if (count === 7) return true;
+    if (count === 14) return index % 2 === 0;
+    if (count === 30) return index % 5 === 0 || index === count - 1;
+    return true;
+  };
+
+  function formatDateTooltip(dateStr: string): string {
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    const weekday = date.toLocaleDateString('pt-BR', { weekday: 'short' });
+    const day = parts[2];
+    const month = date.toLocaleDateString('pt-BR', { month: 'short' });
+    const year = parts[0];
+    return `${weekday.charAt(0).toUpperCase() + weekday.slice(1)}, ${day}/${month.slice(0, 3)}/${year}`;
+  }
+
+  function formatDateShort(dateStr: string): string {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}/${parts[1]}`;
+  }
 
   return (
-    <svg viewBox={`0 0 ${WIDTH} ${HEIGHT + 26}`} style={{ width: '100%', height: 'auto', display: 'block' }}>
-      {[0.25, 0.5, 0.75, 1].map(pct => (
-        <line
-          key={pct}
-          x1={0} y1={HEIGHT - pct * HEIGHT}
-          x2={WIDTH} y2={HEIGHT - pct * HEIGHT}
-          stroke="rgba(255,255,255,0.04)" strokeWidth="1"
-        />
-      ))}
+    <div className="cms-chart-card" id="editorial-analytics-container" style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '350px' }}>
+      {/* Estilos inline para animações SVG de alta performance */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes growBar {
+          from { height: 0; y: 120px; }
+        }
+        .grow-bar-anim {
+          animation: growBar 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes fadeInLine {
+          from { stroke-dashoffset: 1000; }
+          to { stroke-dashoffset: 0; }
+        }
+        .fade-in-line-anim {
+          stroke-dasharray: 1000;
+          stroke-dashoffset: 1000;
+          animation: fadeInLine 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+        }
+        @keyframes fadeInPoint {
+          from { opacity: 0; transform: scale(0); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .fade-in-point-anim {
+          opacity: 0;
+          animation: fadeInPoint 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}} />
 
-      {data.map((d, i) => {
-        const barH = max > 0 ? Math.max((d.total / max) * HEIGHT, 2) : 2;
-        const x = i * (BAR_W + GAP);
-        const y = HEIGHT - barH;
-        const isMax = i === maxIdx && d.total > 0;
-        const label = d.data.slice(5).replace('-', '/');
-
-        return (
-          <g key={d.data}>
-            <rect
-              x={x} y={y} width={BAR_W} height={barH}
-              rx="3" ry="3"
-              fill={
-                isMax
-                  ? 'rgba(214,61,31,0.75)'
-                  : d.total > 0
-                  ? 'rgba(255,255,255,0.1)'
-                  : 'rgba(255,255,255,0.03)'
-              }
-            />
-            {d.total > 0 && (
-              <text
-                x={x + BAR_W / 2} y={y - 5}
-                textAnchor="middle"
-                fontSize="9.5"
-                fontFamily="Inter, sans-serif"
-                fill={isMax ? 'rgba(214,61,31,0.9)' : 'rgba(255,255,255,0.25)'}
-              >
-                {d.total}
-              </text>
-            )}
-            <text
-              x={x + BAR_W / 2} y={HEIGHT + 18}
-              textAnchor="middle"
-              fontSize="9.5"
-              fontFamily="Inter, sans-serif"
-              fill="rgba(255,255,255,0.28)"
+      {/* Cabeçalho */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span className="cms-chart-title" style={{ margin: 0 }}>Ritmo Editorial</span>
+          <span style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '2px' }}>Acompanhamento de fluxo de notícias</span>
+        </div>
+        
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '2px' }}>
+          {([7, 14, 30] as const).map(d => (
+            <button
+              key={d}
+              onClick={() => setRange(d)}
+              style={{
+                background: range === d ? '#e04a2d' : 'transparent',
+                border: 'none',
+                color: range === d ? '#fff' : 'rgba(255,255,255,0.5)',
+                padding: '4px 10px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                fontWeight: range === d ? 500 : 400,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                outline: 'none',
+              }}
             >
-              {label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+              {d} dias
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Conteúdo */}
+      {!hasData ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 24px', textAlign: 'center', flexGrow: 1 }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px', color: 'rgba(255,255,255,0.3)' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+          </div>
+          <h4 style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--c-text)', marginBottom: '4px' }}>Sem publicações no período</h4>
+          <p style={{ fontSize: '11.5px', color: 'var(--c-muted)', maxWidth: '280px', lineHeight: '1.4', marginBottom: '16px' }}>
+            Nenhuma matéria foi publicada na plataforma nos últimos {range} dias.
+          </p>
+          <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary cms-btn-sm" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
+            Escrever notícia
+          </Link>
+        </div>
+      ) : (
+        <>
+          {/* Gráfico SVG */}
+          <div style={{ position: 'relative', width: '100%', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', marginBottom: '8px' }}>
+            <svg viewBox="0 0 600 160" style={{ width: '100%', height: 'auto', display: 'block' }}>
+              <defs>
+                <linearGradient id="grad-recorde" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ff7a5c" />
+                  <stop offset="100%" stopColor="#e04a2d" />
+                </linearGradient>
+              </defs>
+
+              {/* Linhas de Grade Horizontais */}
+              {[0.25, 0.5, 0.75, 1].map(pct => (
+                <line
+                  key={pct}
+                  x1={0}
+                  y1={120 - pct * 110}
+                  x2={600}
+                  y2={120 - pct * 110}
+                  stroke="rgba(255,255,255,0.04)"
+                  strokeWidth="1"
+                />
+              ))}
+
+              {/* Linha Horizontal de Média Geral */}
+              <line
+                x1={0}
+                y1={yMedia}
+                x2={600}
+                y2={yMedia}
+                stroke="rgba(255, 255, 255, 0.22)"
+                strokeDasharray="4 4"
+                strokeWidth="1.2"
+                style={{ pointerEvents: 'none' }}
+              />
+              <text
+                x={595}
+                y={yMedia - 6}
+                textAnchor="end"
+                fontSize="8.5"
+                fontFamily="Inter, sans-serif"
+                fill="rgba(255, 255, 255, 0.35)"
+                fontWeight="400"
+                style={{ pointerEvents: 'none' }}
+              >
+                Média do período: {mediaGeral.toFixed(1)}
+              </text>
+
+              {/* Barras e Eixos */}
+              {data.map((d, i) => {
+                const isRecord = analytics && d.data === analytics.diaRecorde && d.total > 0;
+                const barH = max > 0 ? Math.max((d.total / max) * 110, 2) : 2;
+                const x = i * (barWidth + gap);
+                const y = 120 - barH;
+                const label = d.data.slice(8) + '/' + d.data.slice(5, 7);
+
+                return (
+                  <g key={d.data}>
+                    {/* Área de interação invisível ampla */}
+                    <rect
+                      x={x - gap / 2}
+                      y={0}
+                      width={barWidth + gap}
+                      height={130}
+                      fill="transparent"
+                      style={{ cursor: d.total > 0 ? 'pointer' : 'default' }}
+                      onMouseMove={(e) => handleMouseMove(e, d, i)}
+                      onMouseLeave={handleMouseLeave}
+                    />
+
+                    {/* Barra Real */}
+                    <rect
+                      x={x}
+                      y={y}
+                      width={barWidth}
+                      height={barH}
+                      rx="2.5"
+                      ry="2.5"
+                      fill={isRecord ? 'url(#grad-recorde)' : d.total > 0 ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.03)'}
+                      className="grow-bar-anim"
+                      style={{
+                        transition: 'all 0.2s ease',
+                        pointerEvents: 'none'
+                      }}
+                    />
+
+                    {/* Eixo X labels */}
+                    {showLabel(i) && (
+                      <text
+                        x={x + barWidth / 2}
+                        y={142}
+                        textAnchor="middle"
+                        fontSize="9"
+                        fontFamily="Inter, sans-serif"
+                        fill="rgba(255, 255, 255, 0.3)"
+                        style={{ pointerEvents: 'none' }}
+                      >
+                        {label}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* Linha de Tendência de Média Móvel */}
+              {mediaMovelData.length > 0 && !poucosDados && (
+                <>
+                  <path
+                    d={pathD}
+                    fill="none"
+                    stroke="#4A90E2"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="fade-in-line-anim"
+                    style={{ pointerEvents: 'none' }}
+                  />
+
+                  {/* Pontos da Média Móvel nos Vértices */}
+                  {mediaMovelData.map((val, i) => {
+                    const mmH = max > 0 ? (val / max) * 110 : 0;
+                    const x = i * (barWidth + gap) + barWidth / 2;
+                    const y = 120 - mmH;
+                    return (
+                      <circle
+                        key={i}
+                        cx={x}
+                        cy={y}
+                        r="3.5"
+                        fill="#ffffff"
+                        stroke="#4A90E2"
+                        strokeWidth="2"
+                        className="fade-in-point-anim animate-delay"
+                        style={{
+                          pointerEvents: 'none',
+                          animationDelay: `${i * 0.04}s`,
+                          transformOrigin: `${x}px ${y}px`
+                        }}
+                      />
+                    );
+                  })}
+                </>
+              )}
+            </svg>
+          </div>
+
+          {/* Banner discreto para poucos dados */}
+          {poucosDados && (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px dashed rgba(255, 255, 255, 0.06)',
+              borderRadius: '6px',
+              padding: '10px 14px',
+              fontSize: '11.5px',
+              color: 'var(--c-muted)',
+              marginBottom: '12px',
+              textAlign: 'center'
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#e04a2d' }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Aguardando mais dados para gerar tendências
+            </div>
+          )}
+
+          {/* KPIs de Rodapé */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Publicado</span>
+              <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>
+                {analytics?.totalPeriodo ?? 0}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Média Diária</span>
+              <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>
+                {analytics?.mediaDiaria ?? 0}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dia Recorde</span>
+              <span style={{ fontSize: '12.5px', fontWeight: 550, color: 'var(--c-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                {analytics?.quantidadeRecorde && analytics.quantidadeRecorde > 0
+                  ? `${analytics.quantidadeRecorde} (${formatDateShort(analytics.diaRecorde)})`
+                  : '-'
+                }
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tendência</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: tendenciaCor, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                <span style={{ fontSize: '15px', lineHeight: 1 }}>{tendenciaIcon}</span>
+                {tendencia}
+              </span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Tooltip Absoluto flutuante de 5 linhas */}
+      {tooltip && tooltip.visible && (
+        <div
+          style={{
+            position: 'absolute',
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '11px',
+            color: '#fff',
+            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.6)',
+            zIndex: 100,
+            whiteSpace: 'nowrap',
+            transition: 'left 0.05s ease, top 0.05s ease',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px'
+          }}
+        >
+          <div style={{ fontSize: '9.5px', color: 'rgba(255, 255, 255, 0.45)', fontWeight: 500, borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '3.5px', marginBottom: '2px' }}>
+            {formatDateTooltip(tooltip.data)}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Publicações:</span>
+            <span style={{ fontWeight: 600, color: '#fff' }}>{tooltip.total}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Média móvel:</span>
+            <span style={{ fontWeight: 600, color: '#4A90E2' }}>{tooltip.mediaMovel}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Variação diária:</span>
+            <span style={{ fontWeight: 600, color: tooltip.variacaoDia.startsWith('+') && tooltip.variacaoDia !== '0%' ? '#10b981' : tooltip.variacaoDia.startsWith('-') ? '#ef4444' : 'rgba(255,255,255,0.4)' }}>
+              {tooltip.variacaoDia}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Categoria líder:</span>
+            <span style={{ fontWeight: 600, color: 'var(--c-accent)' }}>{tooltip.categoriaLider ?? 'Nenhuma'}</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -195,6 +840,28 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [range, setRange] = useState<7 | 14 | 30>(7);
+  const [filtroAtividade, setFiltroAtividade] = useState<'tudo' | 'noticias' | 'usuarios' | 'sistema' | 'sugestoes'>('tudo');
+  const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({});
+
+  // Inteligência Editorial (Mais Lidas e Em Alta)
+  const [abaAnalytics, setAbaAnalytics] = useState<'mais-lidas' | 'em-alta'>('mais-lidas');
+  const [maisLidas, setMaisLidas] = useState<NoticiaMaisLida[]>([]);
+  const [emAlta, setEmAlta] = useState<NoticiaEmAlta[]>([]);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+  const toggleGrupo = (id: string) => {
+    setGruposExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  function obterMensagemGrupo(acao: string, total: number, autor: string): string {
+    if (acao === 'NOTICIA_ATUALIZADA') return `${total} edições de notícias realizadas por ${autor}`;
+    if (acao === 'NOTICIA_CRIADA') return `${total} novas notícias publicadas por ${autor}`;
+    if (acao === 'NOTICIA_DESTAQUE_ADICIONADA') return `${total} matérias promovidas a destaque por ${autor}`;
+    if (acao === 'NOTICIA_DESTAQUE_REMOVIDA') return `${total} matérias removidas de destaque por ${autor}`;
+    if (acao === 'USUARIO_ATUALIZADO') return `${total} atualizações de usuários realizadas por ${autor}`;
+    return `${total} ações de "${getAcaoEditorialInfo(acao).label.toLowerCase()}" executadas por ${autor}`;
+  }
 
   useEffect(() => {
     // Só tenta carregar os dados SE o utilizador existir e estiver autenticado
@@ -204,12 +871,30 @@ export default function AdminDashboard() {
 
     const load = async () => {
       try {
-        const res = await authFetch('/admin/dashboard/stats');
-        if (!res.ok) throw new Error('Falha ao carregar métricas.');
-        const data = await res.json();
+        setLoadingAnalytics(true);
+        const [statsRes, maisLidasRes, emAltaRes] = await Promise.all([
+          authFetch(`/admin/dashboard/stats?range=${range}`),
+          authFetch('/admin/analytics/mais-lidas'),
+          authFetch('/admin/analytics/em-alta')
+        ]);
+
+        if (!statsRes.ok) throw new Error('Falha ao carregar métricas.');
+        const statsData = await statsRes.json();
+
+        let maisLidasData = [];
+        if (maisLidasRes.ok) {
+          maisLidasData = await maisLidasRes.json();
+        }
+
+        let emAltaData = [];
+        if (emAltaRes.ok) {
+          emAltaData = await emAltaRes.json();
+        }
         
         if (isMounted) {
-          setStats(data);
+          setStats(statsData);
+          setMaisLidas(maisLidasData);
+          setEmAlta(emAltaData);
           setError('');
         }
       } catch (err) {
@@ -220,7 +905,10 @@ export default function AdminDashboard() {
           if (isMounted) setError(err.message);
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setLoadingAnalytics(false);
+        }
       }
     };
 
@@ -231,7 +919,7 @@ export default function AdminDashboard() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [authFetch, user]); // Dependemos do authFetch e do user agora
+  }, [authFetch, user, range]); // Dependemos do authFetch, user e range agora
 
   if (loading) {
     return (
@@ -248,6 +936,16 @@ export default function AdminDashboard() {
   if (error) {
     return <div className="cms-alert cms-alert-error" style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', borderRadius: '8px' }}>{error}</div>;
   }
+
+  const atividadesOriginais = stats?.atividades || stats?.ultimosLogs || [];
+
+  const atividadesFiltradas = atividadesOriginais.filter(at => {
+    if (filtroAtividade === 'tudo') return true;
+    const info = getAcaoEditorialInfo(at.acao);
+    return info.categoriaGrupo === filtroAtividade;
+  });
+
+  const atividadesAgrupadas = agruparAtividades(atividadesFiltradas).slice(0, 8);
 
   const today = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -304,95 +1002,621 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '12px', marginBottom: '12px' }}>
-        <div className="cms-chart-card">
-          <div className="cms-chart-title">Publicações — últimos 7 dias</div>
-          {stats?.grafico && stats.grafico.length > 0
-            ? <BarChart data={stats.grafico} />
-            : <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--c-muted)', fontSize: '13px' }}>
-                Nenhum dado disponível
-              </div>
-          }
-        </div>
+        <EditorialAnalytics stats={stats} range={range} setRange={setRange} />
 
-        <div className="cms-table-card">
-          <div className="cms-table-header">
-            <span className="cms-table-title">Mais acessadas</span>
-            <Link href="/admin/noticias" className="cms-btn cms-btn-secondary cms-btn-sm">Ver todas</Link>
+        <div className="cms-table-card" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '350px' }}>
+          {/* Estilos inline adicionais de micro-animações e hover */}
+          <style dangerouslySetInnerHTML={{ __html: `
+            .ranking-item {
+              display: flex;
+              align-items: center;
+              padding: 10px 14px;
+              border-radius: 6px;
+              transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+              position: relative;
+            }
+            .ranking-item:hover {
+              background: rgba(255, 255, 255, 0.02);
+            }
+            .ranking-actions {
+              opacity: 0;
+              transition: opacity 0.15s ease;
+              display: flex;
+              gap: 8px;
+              align-items: center;
+              margin-left: auto;
+            }
+            .ranking-item:hover .ranking-actions {
+              opacity: 1;
+            }
+            .ranking-num {
+              font-family: var(--font-mono, monospace);
+              font-size: 20px;
+              font-weight: 300;
+              color: rgba(255, 255, 255, 0.15);
+              margin-right: 14px;
+              width: 24px;
+              text-align: center;
+              flex-shrink: 0;
+            }
+            .ranking-item:hover .ranking-num {
+              color: #e04a2d;
+            }
+            .badge-em-alta {
+              font-size: 9px;
+              font-weight: 600;
+              text-transform: uppercase;
+              color: #ffc107;
+              background: rgba(255, 193, 7, 0.08);
+              border: 1px solid rgba(255, 193, 7, 0.12);
+              padding: 1px 4px;
+              border-radius: 3px;
+              letter-spacing: 0.02em;
+            }
+          `}} />
+
+          {/* Abas ativas minimalistas */}
+          <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px 0 16px', gap: '16px' }}>
+            <button
+              onClick={() => setAbaAnalytics('mais-lidas')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: abaAnalytics === 'mais-lidas' ? '#fff' : 'rgba(255,255,255,0.4)',
+                paddingBottom: '12px',
+                fontSize: '13px',
+                fontWeight: abaAnalytics === 'mais-lidas' ? 600 : 500,
+                cursor: 'pointer',
+                borderBottom: abaAnalytics === 'mais-lidas' ? '2px solid #e04a2d' : '2px solid transparent',
+                transition: 'all 0.2s ease',
+                outline: 'none',
+              }}
+            >
+              Mais Lidas
+            </button>
+            <button
+              onClick={() => setAbaAnalytics('em-alta')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: abaAnalytics === 'em-alta' ? '#fff' : 'rgba(255,255,255,0.4)',
+                paddingBottom: '12px',
+                fontSize: '13px',
+                fontWeight: abaAnalytics === 'em-alta' ? 600 : 500,
+                cursor: 'pointer',
+                borderBottom: abaAnalytics === 'em-alta' ? '2px solid #e04a2d' : '2px solid transparent',
+                transition: 'all 0.2s ease',
+                outline: 'none',
+              }}
+            >
+              Em Alta
+            </button>
           </div>
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Título</th>
-                <th style={{ textAlign: 'right' }}>Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats?.topNoticias.map((n, i) => (
-                <tr key={n.id}>
-                  <td style={{ width: '28px', color: 'var(--c-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {i + 1}
-                  </td>
-                  <td>
-                    <div style={{ fontSize: '12.5px', fontWeight: 450, lineHeight: '1.35' }}>
-                      {n.titulo.length > 42 ? n.titulo.slice(0, 42) + '…' : n.titulo}
+
+          {/* Painel Explicativo / Legenda Metodológica */}
+          <div style={{
+            background: 'rgba(255,255,255,0.01)',
+            borderBottom: '1px solid rgba(255,255,255,0.03)',
+            padding: '8px 16px',
+            fontSize: '10.5px',
+            color: 'var(--c-muted)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#e04a2d', flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <span>
+              {abaAnalytics === 'mais-lidas'
+                ? 'Mais Lidas considera as visualizações acumuladas nos últimos 30 dias (mensal).'
+                : 'Em Alta considera a aceleração e o pico de acessos recentes nas últimas 24 horas.'
+              }
+            </span>
+          </div>
+
+          {/* Lista de Ranking */}
+          <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 8px', flexGrow: 1, gap: '4px' }}>
+            {loadingAnalytics ? (
+              <div style={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', fontSize: '11.5px', padding: '40px 0' }}>
+                Carregando inteligência editorial...
+              </div>
+            ) : abaAnalytics === 'mais-lidas' ? (
+              /* ABA MAIS LIDAS */
+              maisLidas.length === 0 ? (
+                <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-muted)', fontSize: '12px' }}>
+                  Nenhum dado de acesso acumulado ainda.
+                </div>
+              ) : (
+                maisLidas.map((n) => (
+                  <div key={n.id} className="ranking-item">
+                    <span className="ranking-num">{String(n.posicao).padStart(2, '0')}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingRight: '12px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'rgba(255,255,255,0.85)', lineHeight: '1.35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {n.titulo}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--c-muted)', marginTop: '2px' }}>
+                        {n.categoria?.nome}
+                      </span>
                     </div>
-                    <div style={{ fontSize: '10.5px', color: 'var(--c-muted)', marginTop: '2px' }}>
-                      {n.categoria?.nome}
+
+                    {/* Ações contextuais em hover */}
+                    <div className="ranking-actions">
+                      <Link
+                        href={`/admin/noticias/editar/${n.id}`}
+                        title="Editar matéria"
+                        style={{ color: 'rgba(255,255,255,0.4)', display: 'inline-flex', padding: '4px' }}
+                      >
+                        <IconPen />
+                      </Link>
+                      <Link
+                        href={`/noticia/${n.slug}`}
+                        target="_blank"
+                        title="Visualizar no portal"
+                        style={{ color: 'rgba(255,255,255,0.4)', display: 'inline-flex', padding: '4px' }}
+                      >
+                        <IconExternal />
+                      </Link>
                     </div>
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--c-text)' }}>
-                    {formatNumber(n.views)}
-                  </td>
-                </tr>
-              ))}
-              {(!stats?.topNoticias || stats.topNoticias.length === 0) && (
-                <tr>
-                  <td colSpan={3} style={{ textAlign: 'center', padding: '28px', color: 'var(--c-muted)' }}>
-                    Nenhuma notícia ainda
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+
+                    {/* Métricas e Variação */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: '12px', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: 600, color: 'var(--c-text)' }}>
+                        {formatNumber(n.views)}
+                      </span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        fontWeight: 600,
+                        marginTop: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2.5px',
+                        color: n.status === 'subiu' ? '#10b981' : n.status === 'caiu' ? '#ef4444' : 'rgba(255,255,255,0.25)'
+                      }}>
+                        {n.status === 'subiu' && `▲ ${n.variacao}`}
+                        {n.status === 'caiu' && `▼ ${n.variacao}`}
+                        {n.status === 'manteve' && `●`}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )
+            ) : (
+              /* ABA EM ALTA */
+              emAlta.length === 0 ? (
+                <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-muted)', fontSize: '12px' }}>
+                  Nenhum pico de tráfego detectado recentemente.
+                </div>
+              ) : (
+                emAlta.map((n, i) => (
+                  <div key={n.id} className="ranking-item">
+                    <span className="ranking-num">{String(i + 1).padStart(2, '0')}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, paddingRight: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '12.5px', fontWeight: 500, color: 'rgba(255,255,255,0.85)', lineHeight: '1.35', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {n.titulo}
+                        </span>
+                        {n.viewsRecentes > 2 && (
+                          <span className="badge-em-alta">Em Alta</span>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--c-muted)', marginTop: '2px' }}>
+                        {n.categoria?.nome}
+                      </span>
+                    </div>
+
+                    {/* Ações contextuais em hover */}
+                    <div className="ranking-actions">
+                      <Link
+                        href={`/admin/noticias/editar/${n.id}`}
+                        title="Editar matéria"
+                        style={{ color: 'rgba(255,255,255,0.4)', display: 'inline-flex', padding: '4px' }}
+                      >
+                        <IconPen />
+                      </Link>
+                      <Link
+                        href={`/noticia/${n.slug}`}
+                        target="_blank"
+                        title="Visualizar no portal"
+                        style={{ color: 'rgba(255,255,255,0.4)', display: 'inline-flex', padding: '4px' }}
+                      >
+                        <IconExternal />
+                      </Link>
+                    </div>
+
+                    {/* Métricas e Aceleração */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: '12px', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-text)' }} title="Views nas últimas 24h">
+                        {n.viewsRecentes} <span style={{ fontSize: '9px', fontWeight: 400, color: 'var(--c-muted)' }}>views</span>
+                      </span>
+                      <span style={{
+                        fontSize: '9.5px',
+                        fontWeight: 600,
+                        marginTop: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '2.5px',
+                        color: n.tendencia === 'subindo' ? '#10b981' : n.tendencia === 'caiu' ? '#ef4444' : 'rgba(255,255,255,0.25)'
+                      }}>
+                        {n.tendencia === 'subindo' && `↗`}
+                        {n.tendencia === 'caiu' && `↘`}
+                        {n.tendencia === 'estavel' && `→`}
+                        {n.crescimentoPercentual > 0 ? `+${n.crescimentoPercentual}%` : `0%`}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="cms-table-card">
-        <div className="cms-table-header">
-          <span className="cms-table-title">Atividade recente</span>
+      <div className="cms-table-card" style={{ display: 'flex', flexDirection: 'column' }}>
+        {/* Cabeçalho */}
+        <div className="cms-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="cms-table-title" style={{ margin: 0 }}>Timeline Editorial</span>
+            <span style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '2px' }}>Acompanhamento de ações na plataforma</span>
+          </div>
           <Link href="/admin/auditoria" className="cms-btn cms-btn-secondary cms-btn-sm">
             Ver auditoria completa
           </Link>
         </div>
-        <div style={{ padding: '6px 16px 8px' }}>
-          <div className="ed-activity">
-            {stats?.ultimosLogs.map(log => {
-              const info = getAcaoInfo(log.acao);
-              return (
-                <div key={log.id} className="ed-activity-item">
-                  <div className={`ed-dot ed-dot-${info.type}`} />
-                  <div className="ed-activity-body">
-                    <div className="ed-activity-label">{info.label}</div>
-                    <div className="ed-activity-meta">
-                      <span>{log.usuario?.nome || 'Sistema'}</span>
-                      <span style={{ color: 'var(--c-border-h)' }}>·</span>
-                      <code style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '10px', color: 'var(--c-muted)' }}>
-                        {log.ip}
-                      </code>
-                      <span style={{ color: 'var(--c-border-h)' }}>·</span>
-                      <span>{timeAgo(log.dataHora)}</span>
+
+        {/* Filtros em abas estilo pílula */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '0 16px 16px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
+          {(['tudo', 'noticias', 'usuarios', 'sistema', 'sugestoes'] as const).map(tipo => {
+            const labels = {
+              tudo: 'Tudo',
+              noticias: 'Notícias',
+              usuarios: 'Usuários',
+              sistema: 'Sistema',
+              sugestoes: 'Você Repórter'
+            };
+            const isAtivo = filtroAtividade === tipo;
+            return (
+              <button
+                key={tipo}
+                onClick={() => {
+                  setFiltroAtividade(tipo);
+                  setGruposExpandidos({});
+                }}
+                style={{
+                  background: isAtivo ? '#e04a2d' : 'rgba(255, 255, 255, 0.03)',
+                  border: 'none',
+                  color: isAtivo ? '#fff' : 'rgba(255, 255, 255, 0.55)',
+                  padding: '4px 12px',
+                  borderRadius: '16px',
+                  fontSize: '11px',
+                  fontWeight: isAtivo ? 550 : 400,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+                  outline: 'none',
+                }}
+                onMouseOver={(e) => {
+                  if (!isAtivo) e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isAtivo) e.currentTarget.style.color = 'rgba(255, 255, 255, 0.55)';
+                }}
+              >
+                {labels[tipo]}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Timeline real */}
+        <div style={{ padding: '0 16px 16px 16px', flexGrow: 1 }}>
+          {atividadesAgrupadas.length === 0 ? (
+            <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--c-muted)', fontSize: '12.5px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Nenhuma atividade registrada nesta categoria
+            </div>
+          ) : (
+            <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Linha vertical conetora */}
+              <div style={{
+                position: 'absolute',
+                left: '17px',
+                top: '20px',
+                bottom: '20px',
+                width: '1px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                zIndex: 0
+              }} />
+
+              {atividadesAgrupadas.map(at => {
+                const info = getAcaoEditorialInfo(at.acao);
+                const tempo = timeAgo(at.dataHora);
+                const autor = at.usuario?.nome || 'Sistema';
+                const role = at.usuario?.role === 'SUPER_ADMIN' ? 'Super Admin' : at.usuario?.role === 'ADMIN' ? 'Admin' : 'Colunista';
+                const ip = at.ip;
+                
+                // Tratar se for agrupado
+                if (at.isAgrupado) {
+                  const totalGrupo = at.agrupadas?.length || 0;
+                  const isExpandido = !!gruposExpandidos[at.id];
+                  const msgGrupo = obterMensagemGrupo(at.acao, totalGrupo, autor);
+
+                  return (
+                    <div key={at.id} style={{ display: 'flex', flexDirection: 'column', zIndex: 1, position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                        {/* Badge circular para o ícone */}
+                        <div
+                          style={{
+                            width: '34px',
+                            height: '34px',
+                            borderRadius: '50%',
+                            background: info.corBadge,
+                            border: '1px solid rgba(255,255,255,0.03)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: info.corIcon,
+                            flexShrink: 0,
+                            marginRight: '12px',
+                            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                            transition: 'transform 0.2s ease',
+                          }}
+                        >
+                          {info.icon}
+                        </div>
+
+                        {/* Corpo do item agrupado */}
+                        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, paddingTop: '4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <span style={{ fontSize: '12.5px', fontWeight: 550, color: 'rgba(255, 255, 255, 0.9)' }}>
+                              {msgGrupo}
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{tempo}</span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                            <span style={{ fontSize: '10.5px', color: 'var(--c-muted)' }}>{autor}</span>
+                            <span style={{ color: 'rgba(255,255,255,0.08)' }}>·</span>
+                            <span style={{
+                              textTransform: 'lowercase',
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              fontSize: '9px',
+                              color: 'rgba(255,255,255,0.45)'
+                            }}>
+                              {role}
+                            </span>
+                            <span style={{ color: 'rgba(255,255,255,0.08)' }}>·</span>
+                            <button
+                              onClick={() => toggleGrupo(at.id)}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#e04a2d',
+                                fontSize: '10.5px',
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                padding: 0,
+                                outline: 'none',
+                                fontWeight: 500,
+                              }}
+                            >
+                              <span>{isExpandido ? 'Ocultar edições' : `Ver todas as ${totalGrupo} edições`}</span>
+                              <span style={{ display: 'inline-flex', transition: 'transform 0.2s ease', transform: isExpandido ? 'rotate(180deg)' : 'none' }}>
+                                <IconChevronDown />
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lista expandida recuada */}
+                      {isExpandido && at.agrupadas && (
+                        <div style={{
+                          marginLeft: '46px',
+                          paddingLeft: '14px',
+                          borderLeft: '1px dashed rgba(255, 255, 255, 0.08)',
+                          marginTop: '8px',
+                          marginBottom: '4px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                        }}>
+                          <style dangerouslySetInnerHTML={{ __html: `
+                            @keyframes slideDown {
+                              from { opacity: 0; transform: translateY(-4px); }
+                              to { opacity: 1; transform: translateY(0); }
+                            }
+                          `}} />
+                          {at.agrupadas.map(subItem => {
+                            const subTempo = timeAgo(subItem.dataHora);
+                            return (
+                              <div key={subItem.id} style={{ display: 'flex', flexDirection: 'column', padding: '2px 0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: info.corIcon }} />
+                                  <span style={{ fontSize: '11.5px', fontWeight: 500, color: 'rgba(255, 255, 255, 0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '280px' }}>
+                                    {subItem.detalhes?.titulo || subItem.detalhes?.nome || info.label}
+                                  </span>
+                                  <span style={{ fontSize: '9.5px', color: 'var(--c-muted)', marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}>
+                                    {subTempo}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Renderizar atividade normal (Não agrupada)
+                const isSugestao = at.tipo === 'SUGESTAO';
+                const tituloAtividade = isSugestao ? 'Sugestão enviada por leitor' : info.label;
+
+                return (
+                  <div key={at.id} style={{ display: 'flex', alignItems: 'flex-start', zIndex: 1, position: 'relative' }}>
+                    {/* Badge circular para o ícone */}
+                    <div
+                      style={{
+                        width: '34px',
+                        height: '34px',
+                        borderRadius: '50%',
+                        background: info.corBadge,
+                        border: '1px solid rgba(255,255,255,0.03)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: info.corIcon,
+                        flexShrink: 0,
+                        marginRight: '12px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {info.icon}
+                    </div>
+
+                    {/* Corpo do item normal */}
+                    <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0, paddingTop: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ fontSize: '12.5px', fontWeight: 550, color: 'rgba(255, 255, 255, 0.9)' }}>
+                          {tituloAtividade}
+                        </span>
+                        <span style={{ fontSize: '10px', color: 'var(--c-muted)', whiteSpace: 'nowrap' }}>{tempo}</span>
+                      </div>
+
+                      {/* Mini-materia ou sugestão */}
+                      {!isSugestao && at.detalhes?.titulo && (
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                          marginTop: '6px',
+                          background: 'rgba(255,255,255,0.01)',
+                          border: '1px solid rgba(255,255,255,0.03)',
+                          borderRadius: '6px',
+                          padding: '4px 8px',
+                          maxWidth: '100%'
+                        }}>
+                          {at.capaUrl && (
+                            <img
+                              src={at.capaUrl}
+                              alt="capa"
+                              style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '3px',
+                                objectFit: 'cover',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                flexShrink: 0
+                              }}
+                            />
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
+                            <span style={{ fontSize: '11.5px', fontWeight: 500, color: 'rgba(255,255,255,0.75)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {at.detalhes.titulo}
+                            </span>
+                            {at.categoriaNome && (
+                              <span style={{ fontSize: '9.5px', color: 'var(--c-muted)', marginTop: '1px', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#e04a2d' }} />
+                                {at.categoriaNome}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sugestão Você Repórter */}
+                      {isSugestao && (
+                        <div style={{
+                          marginTop: '6px',
+                          background: 'rgba(236, 72, 153, 0.03)',
+                          border: '1px solid rgba(236, 72, 153, 0.08)',
+                          borderRadius: '6px',
+                          padding: '8px 10px',
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'flex-start',
+                          maxWidth: '100%'
+                        }}>
+                          {at.capaUrl && (
+                            <img
+                              src={at.capaUrl}
+                              alt="Você Repórter"
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '4px',
+                                objectFit: 'cover',
+                                border: '1px solid rgba(255,255,255,0.06)',
+                                flexShrink: 0,
+                                marginTop: '1px'
+                              }}
+                            />
+                          )}
+                          <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
+                            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                              <span>Leitor: {at.detalhes?.nome || 'Anônimo'}</span>
+                              <span>·</span>
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{at.detalhes?.email || 'Sem e-mail'}</span>
+                            </span>
+                            <p style={{
+                              fontSize: '11px',
+                              color: 'rgba(255,255,255,0.7)',
+                              margin: '3px 0 0',
+                              fontStyle: 'italic',
+                              lineHeight: '1.35',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical'
+                            }}>
+                              "{at.detalhes?.relato}"
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Metadados de auditoria */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--c-muted)', marginTop: '6px', flexWrap: 'wrap' }}>
+                        <span>{autor}</span>
+                        {!isSugestao && (
+                          <>
+                            <span style={{ color: 'rgba(255,255,255,0.08)' }}>·</span>
+                            <span style={{
+                              textTransform: 'lowercase',
+                              background: 'rgba(255,255,255,0.03)',
+                              border: '1px solid rgba(255,255,255,0.05)',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              fontSize: '9px',
+                              color: 'rgba(255,255,255,0.45)'
+                            }}>
+                              {role}
+                            </span>
+                          </>
+                        )}
+                        <span style={{ color: 'rgba(255,255,255,0.08)' }}>·</span>
+                        <code style={{ fontFamily: 'var(--font-mono, monospace)', color: 'rgba(255,255,255,0.2)' }}>{ip}</code>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            {(!stats?.ultimosLogs || stats.ultimosLogs.length === 0) && (
-              <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--c-muted)', fontSize: '13px' }}>
-                Nenhuma atividade registrada
-              </div>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

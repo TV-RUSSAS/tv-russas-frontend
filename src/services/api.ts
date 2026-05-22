@@ -16,6 +16,39 @@ export const apiService = {
     }
   },
 
+  async getDestaques(): Promise<Noticia[]> {
+    try {
+      const res = await fetch(`${API_URL}/noticias/destaques`, FETCH_OPTIONS);
+      if (!res.ok) return [];
+      return res.json();
+    } catch (error) {
+      console.error("Erro ao buscar destaques:", error);
+      return [];
+    }
+  },
+
+  async getUltimasNoticias(limit: number = 20): Promise<Noticia[]> {
+    try {
+      const res = await fetch(`${API_URL}/noticias/ultimas?limit=${limit}`, FETCH_OPTIONS);
+      if (!res.ok) return [];
+      return res.json();
+    } catch (error) {
+      console.error("Erro ao buscar ultimas:", error);
+      return [];
+    }
+  },
+
+  async getNoticiasByCategoria(slug: string, limit: number = 4): Promise<Noticia[]> {
+    try {
+      const res = await fetch(`${API_URL}/categorias/${slug}/noticias?limit=${limit}`, FETCH_OPTIONS);
+      if (!res.ok) return [];
+      return res.json();
+    } catch (error) {
+      console.error(`Erro ao buscar noticias da categoria ${slug}:`, error);
+      return [];
+    }
+  },
+
   async getMaisLidas(): Promise<Noticia[]> {
     try {
       const res = await fetch(`${API_URL}/noticias/mais-lidas`, FETCH_OPTIONS);

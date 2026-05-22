@@ -1,7 +1,23 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import {
+  Newspaper,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  Eye,
+  Star,
+  Zap,
+  Calendar,
+  User,
+  FolderOpen
+} from 'lucide-react';
 
 interface Noticia {
   id: string;
@@ -9,6 +25,7 @@ interface Noticia {
   slug: string;
   views: number;
   publicadoEm: string;
+  capaUrl?: string | null;
   categoria: { nome: string };
   colunista?: { nome: string } | null;
   usuario?: { nome: string } | null;
@@ -21,25 +38,71 @@ interface Paginacao { total: number; totalPages: number; page: number; }
 
 export default function NoticiasAdmin() {
   const { authFetch, user } = useAdminAuth();
+  
+  // Estados da Listagem e Filtros
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [paginacao, setPaginacao] = useState<Paginacao>({ total: 0, totalPages: 1, page: 1 });
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // Filtros
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [filtroDestaque, setFiltroDestaque] = useState('all'); // 'all', 'featured'
   const [page, setPage] = useState(1);
+  
+  // Alertas
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Estados dos KPIs Analíticos Reais
+  const [totalViewsPortal, setTotalViewsPortal] = useState<number>(0);
+  const [totalNoticiasPortal, setTotalNoticiasPortal] = useState<number>(0);
+  const [totalDestaquesPortal, setTotalDestaquesPortal] = useState<number>(0);
+
   const canDelete = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+
+  const getCapaUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${apiBaseUrl}${cleanUrl}`;
+  };
+
+  // Carrega estatísticas globais para os cards de KPIs (Reais via endpoints)
+  const loadStats = useCallback(async () => {
+    try {
+      // 1. Carrega estatísticas de dashboard (para total de views e matérias)
+      const statsRes = await authFetch('/admin/dashboard/stats?range=30');
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setTotalViewsPortal(statsData.totalViews ?? 0);
+        setTotalNoticiasPortal(statsData.totalNoticias ?? 0);
+      }
+
+      // 2. Carrega contagem exata de notícias marcadas como destaque (featured=true)
+      const destaquesRes = await authFetch('/admin/noticias?featured=true&limit=1');
+      if (destaquesRes.ok) {
+        const destaquesData = await destaquesRes.json();
+        setTotalDestaquesPortal(destaquesData.total ?? 0);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar estatísticas analíticas de notícias:', err);
+    }
+  }, [authFetch]);
 
   const loadNoticias = useCallback(async () => {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '15' });
       if (busca) params.set('busca', busca);
       if (filtroCategoria) params.set('categoria', filtroCategoria);
+      if (filtroDestaque === 'featured') params.set('featured', 'true');
+      else if (filtroDestaque === 'regular') params.set('featured', 'false');
 
       const res = await authFetch(`/admin/noticias?${params}`);
       const data = await res.json();
@@ -50,15 +113,20 @@ export default function NoticiasAdmin() {
     } finally {
       setLoading(false);
     }
-  }, [authFetch, page, busca, filtroCategoria]);
+  }, [authFetch, page, busca, filtroCategoria, filtroDestaque]);
 
+  // Inicialização e atualização de dados
   useEffect(() => {
     let active = true;
+    setLoading(true);
+    
     const fetchInit = async () => {
       try {
         const params = new URLSearchParams({ page: String(page), limit: '15' });
         if (busca) params.set('busca', busca);
         if (filtroCategoria) params.set('categoria', filtroCategoria);
+        if (filtroDestaque === 'featured') params.set('featured', 'true');
+        else if (filtroDestaque === 'regular') params.set('featured', 'false');
 
         const res = await authFetch(`/admin/noticias?${params}`);
         const data = await res.json();
@@ -69,12 +137,16 @@ export default function NoticiasAdmin() {
         }
       } catch (err) {
         if (active && err instanceof Error) setError(err.message);
+        if (active) setLoading(false);
       }
     };
-    fetchInit();
-    return () => { active = false; };
-  }, [authFetch, page, busca, filtroCategoria]);
 
+    fetchInit();
+    loadStats();
+    return () => { active = false; };
+  }, [authFetch, page, busca, filtroCategoria, filtroDestaque, loadStats]);
+
+  // Carrega lista de categorias para o dropdown de filtros
   useEffect(() => {
     let active = true;
     authFetch('/admin/categorias')
@@ -84,19 +156,24 @@ export default function NoticiasAdmin() {
     return () => { active = false; };
   }, [authFetch]);
 
+  // Handler para exclusão
   const handleDelete = async (id: string) => {
     setDeletingId(id);
+    setError('');
     try {
       const res = await authFetch(`/admin/noticias/${id}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Erro ao excluir.');
       }
-      setSuccess('Notícia excluída com sucesso!');
+      setSuccess('Notícia removida com sucesso das bases editoriais!');
       setConfirmDeleteId(null);
       setLoading(true);
-      loadNoticias();
-      setTimeout(() => setSuccess(''), 3000);
+      
+      // Atualiza listagem e KPIs analíticos
+      await Promise.all([loadNoticias(), loadStats()]);
+      
+      setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       if (err instanceof Error) setError(err.message);
     } finally {
@@ -104,198 +181,430 @@ export default function NoticiasAdmin() {
     }
   };
 
+  // Média de visualizações por matéria editorial
+  const mediaViewsPorMateria = useMemo(() => {
+    if (totalNoticiasPortal === 0) return 0;
+    return Math.round(totalViewsPortal / totalNoticiasPortal);
+  }, [totalViewsPortal, totalNoticiasPortal]);
+
   const noticiaParaExcluir = noticias.find(n => n.id === confirmDeleteId);
 
   return (
     <>
+      {/* Cabeçalho Editorial Rico */}
       <div className="cms-page-header">
         <div>
-          <h2 className="cms-page-title">Notícias</h2>
-          <p className="cms-page-subtitle">{paginacao.total} notícias no total</p>
+          <h2 className="cms-page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Newspaper size={24} style={{ color: 'var(--c-accent)' }} />
+            Notícias
+          </h2>
+          <p className="cms-page-subtitle">Gerencie as matérias, destaques, coberturas e publicações editoriais do portal</p>
         </div>
         <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary">
-          <i className="fas fa-plus" style={{ fontSize: '11px', marginRight: '6px' }} /> Nova Notícia
+          <Plus size={16} />
+          <span>Nova Notícia</span>
         </Link>
       </div>
 
+      {/* Alertas */}
       {error && (
         <div className="cms-alert cms-alert-error">
-          <i className="fas fa-exclamation-triangle" style={{ fontSize: '12px', marginRight: '6px' }} /> {error}
+          <AlertTriangle size={16} />
+          <span>{error}</span>
         </div>
       )}
       {success && (
         <div className="cms-alert cms-alert-success">
-          <i className="fas fa-check-circle" style={{ fontSize: '12px', marginRight: '6px' }} /> {success}
+          <CheckCircle size={16} />
+          <span>{success}</span>
         </div>
       )}
 
-      <div className="cms-table-card">
-        {/* Filtros */}
-        <div className="cms-table-header" style={{ gap: '12px' }}>
-          <span className="cms-table-title">Lista de Notícias</span>
-          <div style={{ display: 'flex', gap: '10px', flex: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-            <div className="cms-search-wrap" style={{ width: '220px' }}>
-              <i className="fas fa-search cms-search-icon" />
-              <input
-                className="cms-search-input"
-                placeholder="Buscar por título..."
-                value={busca}
-                onChange={e => { setBusca(e.target.value); setPage(1); setLoading(true); }}
-              />
-            </div>
-            <select
-              className="cms-select"
-              style={{ width: '160px', padding: '9px 12px' }}
-              value={filtroCategoria}
-              onChange={e => { setFiltroCategoria(e.target.value); setPage(1); setLoading(true); }}
-            >
-              <option value="">Todas categorias</option>
-              {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
+      {/* Grid de KPIs Premium no Topo */}
+      <div className="cms-stats-grid">
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: 'var(--c-accent)' }}>
+            <Newspaper size={16} />
           </div>
+          <span className="cms-stat-value">
+            {totalNoticiasPortal > 0 ? totalNoticiasPortal.toLocaleString('pt-BR') : paginacao.total.toLocaleString('pt-BR')}
+          </span>
+          <span className="cms-stat-label">Total Publicado</span>
         </div>
 
-        {/* Tabela */}
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: '#f59e0b' }}>
+            <Star size={16} />
+          </div>
+          <span className="cms-stat-value">
+            {totalDestaquesPortal.toLocaleString('pt-BR')}
+          </span>
+          <span className="cms-stat-label">Destaques Ativos</span>
+        </div>
+
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: '#10b981' }}>
+            <Eye size={16} />
+          </div>
+          <span className="cms-stat-value">
+            {totalViewsPortal > 0 ? totalViewsPortal.toLocaleString('pt-BR') : '—'}
+          </span>
+          <span className="cms-stat-label">Views Totais</span>
+        </div>
+
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: '#818cf8' }}>
+            <Eye size={16} />
+          </div>
+          <span className="cms-stat-value">
+            {mediaViewsPorMateria > 0 ? mediaViewsPorMateria.toLocaleString('pt-BR') : '—'}
+          </span>
+          <span className="cms-stat-label">Média por Matéria</span>
+        </div>
+      </div>
+
+      {/* Painel de Filtros e Busca */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="cms-search-wrap" style={{ flex: 1, minWidth: '240px' }}>
+          <Search className="cms-search-icon" size={15} />
+          <input
+            type="text"
+            className="cms-search-input"
+            placeholder="Pesquisar notícias por título..."
+            value={busca}
+            onChange={e => { setBusca(e.target.value); setPage(1); }}
+          />
+        </div>
+
+        <select
+          className="cms-select"
+          style={{ width: '180px', padding: '9px 12px' }}
+          value={filtroCategoria}
+          onChange={e => { setFiltroCategoria(e.target.value); setPage(1); }}
+        >
+          <option value="">Todas as categorias</option>
+          {categorias.map(c => (
+            <option key={c.id} value={c.id}>{c.nome}</option>
+          ))}
+        </select>
+
+        <select
+          className="cms-select"
+          style={{ width: '220px', padding: '9px 12px' }}
+          value={filtroDestaque}
+          onChange={e => { setFiltroDestaque(e.target.value); setPage(1); }}
+        >
+          <option value="all">Todas as classificações</option>
+          <option value="featured">Destaques do Banner</option>
+          <option value="regular">Apenas Últimas Notícias</option>
+        </select>
+      </div>
+
+      {/* Cartão de Tabela Notion-Style */}
+      <div className="cms-table-card">
+        <div className="cms-table-header">
+          <span className="cms-table-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
+            <Newspaper size={16} style={{ color: 'var(--c-accent)' }} />
+            Lista de Matérias
+          </span>
+          <span className="cms-badge cms-badge-gray" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {paginacao.total} publicações
+          </span>
+        </div>
+
         {loading ? (
-          <div className="cms-loading"><div className="cms-spinner" /> Carregando notícias...</div>
+          <div className="cms-loading">
+            <div className="cms-spinner" />
+            <span>Processando dados editoriais...</span>
+          </div>
         ) : (
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Categoria</th>
-                <th>Autor</th>
-                <th>Data</th>
-                <th style={{ textAlign: 'right' }}>Views</th>
-                <th style={{ textAlign: 'center' }}>Status</th>
-                <th style={{ textAlign: 'right' }}>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {noticias.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#8b98b0' }}>Nenhuma notícia encontrada</td></tr>
-              ) : noticias.map(n => (
-                <tr key={n.id}>
-                  <td>
-                    <div style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontSize: '15.5px',
-                      fontWeight: '500',
-                      lineHeight: '1.4',
-                      color: 'var(--c-text)',
-                      marginBottom: '4px'
-                    }}>
-                      {n.titulo}
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                      {n.featured && <span className="cms-badge cms-badge-yellow">Destaque</span>}
-                      {n.breaking && <span className="cms-badge cms-badge-red">Urgente</span>}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="cms-badge cms-badge-gray">{n.categoria.nome}</span>
-                  </td>
-                  <td style={{ color: 'var(--c-secondary)', fontSize: '13px' }}>
-                    {n.colunista?.nome || n.usuario?.nome || '—'}
-                  </td>
-                  <td style={{ color: 'var(--c-secondary)', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                    {new Date(n.publicadoEm).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td style={{
-                    textAlign: 'right',
-                    fontWeight: '500',
-                    color: 'var(--c-secondary)',
-                    fontVariantNumeric: 'tabular-nums'
-                  }}>
-                    {n.views.toLocaleString('pt-BR')}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    <span className="cms-badge cms-badge-green">Publicada</span>
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                      <Link
-                        href={`/admin/noticias/editar/${n.id}`}
-                        className="cms-btn cms-btn-secondary cms-btn-sm"
-                      >
-                        <i className="far fa-edit" style={{ fontSize: '11px', marginRight: '4px' }} /> Editar
-                      </Link>
-                      {canDelete && (
-                        <button
-                          className="cms-btn cms-btn-danger cms-btn-sm"
-                          onClick={() => setConfirmDeleteId(n.id)}
-                          title="Excluir"
-                        >
-                          <i className="far fa-trash-alt" style={{ fontSize: '12px' }} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '80px' }}>Capa</th>
+                  <th>Título</th>
+                  <th>Categoria</th>
+                  <th>Autor</th>
+                  <th style={{ width: '110px' }}>Data</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>Views</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>Status</th>
+                  <th style={{ width: '120px', textAlign: 'right' }}>Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {noticias.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--c-muted)' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                        <FolderOpen size={32} style={{ color: 'rgba(255,255,255,0.06)' }} />
+                        <span>Nenhuma matéria encontrada com os filtros selecionados</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  noticias.map(n => (
+                    <tr key={n.id}>
+                      {/* Thumbnail Capa */}
+                      <td style={{ verticalAlign: 'middle' }}>
+                        {n.capaUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={getCapaUrl(n.capaUrl)}
+                            alt=""
+                            style={{
+                              width: '56px',
+                              height: '38px',
+                              borderRadius: '4px',
+                              objectFit: 'cover',
+                              border: '1px solid rgba(255,255,255,0.06)',
+                              background: '#181a25'
+                            }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '56px',
+                            height: '38px',
+                            borderRadius: '4px',
+                            background: '#181a25',
+                            border: '1px solid rgba(255,255,255,0.06)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--c-muted)'
+                          }}>
+                            <Newspaper size={14} />
+                          </div>
+                        )}
+                      </td>
+                      
+                      {/* Título com Badges de Destaque */}
+                      <td>
+                        <div style={{
+                          fontSize: '15px',
+                          fontWeight: '500',
+                          lineHeight: '1.4',
+                          color: 'var(--c-text)',
+                          maxWidth: '480px',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}>
+                          {n.titulo}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                          {n.featured ? (
+                            <span className="cms-badge cms-badge-yellow" style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
+                              <Star size={10} fill="currentColor" /> Destaque
+                            </span>
+                          ) : (
+                            <span className="cms-badge cms-badge-blue" style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(59, 130, 246, 0.08)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.2)' }}>
+                              Última Notícia
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Categoria */}
+                      <td>
+                        <span className="cms-badge cms-badge-gray">{n.categoria?.nome || 'Sem Categoria'}</span>
+                      </td>
+
+                      {/* Autor */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--c-secondary)', fontSize: '13px' }}>
+                          <User size={13} style={{ opacity: 0.6 }} />
+                          <span>{n.colunista?.nome || n.usuario?.nome || '—'}</span>
+                        </div>
+                      </td>
+
+                      {/* Data de Publicação */}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--c-secondary)', fontSize: '13px' }}>
+                          <Calendar size={13} style={{ opacity: 0.6 }} />
+                          <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                            {new Date(n.publicadoEm).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Visualizações com Fonte Tabular Mono */}
+                      <td style={{
+                        textAlign: 'right',
+                        fontWeight: '500',
+                        color: 'var(--c-text)',
+                        fontFamily: 'monospace',
+                        fontSize: '14px',
+                        fontVariantNumeric: 'tabular-nums'
+                      }}>
+                        {n.views.toLocaleString('pt-BR')}
+                      </td>
+
+                      {/* Status */}
+                      <td style={{ textAlign: 'center' }}>
+                        <span className="cms-badge cms-badge-green" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.12)' }}>
+                          Publicada
+                        </span>
+                      </td>
+
+                      {/* Botões de Ação com Lucide */}
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <Link
+                            href={`/admin/noticias/editar/${n.id}`}
+                            className="cms-btn cms-btn-secondary cms-btn-sm"
+                            title="Editar Matéria"
+                            style={{ height: '30px', padding: '0 10px', fontSize: '12px' }}
+                          >
+                            <Edit size={12} />
+                            <span>Editar</span>
+                          </Link>
+                          
+                          {canDelete && (
+                            <button
+                              className="cms-btn cms-btn-danger cms-btn-sm"
+                              onClick={() => setConfirmDeleteId(n.id)}
+                              title="Excluir Matéria"
+                              style={{ height: '30px', width: '30px', padding: 0, justifyContent: 'center' }}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
 
-        {/* Paginação */}
+        {/* Paginação Notion-Style */}
         {paginacao.totalPages > 1 && (
-          <div className="cms-pagination">
-            <span className="cms-pagination-info">
-              Exibindo {noticias.length} de {paginacao.total} notícias
+          <div className="cms-pagination" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 20px' }}>
+            <span className="cms-pagination-info" style={{ color: 'var(--c-muted)', fontSize: '13px' }}>
+              Exibindo <strong style={{ color: 'var(--c-text)', fontWeight: '500' }}>{noticias.length}</strong> de <strong style={{ color: 'var(--c-text)', fontWeight: '500' }}>{paginacao.total}</strong> publicações editoriais
             </span>
-            <div className="cms-pagination-btns">
-              <button className="cms-page-btn" disabled={page === 1} onClick={() => { setPage(p => p - 1); setLoading(true); }}>← Anterior</button>
+            <div className="cms-pagination-btns" style={{ display: 'flex', gap: '6px' }}>
+              <button
+                className="cms-page-btn"
+                disabled={page === 1}
+                onClick={() => { setPage(p => p - 1); }}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                Anterior
+              </button>
+              
               {Array.from({ length: paginacao.totalPages }, (_, i) => i + 1).map(p => (
-                <button key={p} className={`cms-page-btn${p === page ? ' active' : ''}`} onClick={() => { setPage(p); setLoading(true); }}>{p}</button>
+                <button
+                  key={p}
+                  className={`cms-page-btn${p === page ? ' active' : ''}`}
+                  onClick={() => { setPage(p); }}
+                  style={{
+                    fontSize: '12px',
+                    padding: '6px 10px',
+                    minWidth: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {p}
+                </button>
               ))}
-              <button className="cms-page-btn" disabled={page === paginacao.totalPages} onClick={() => { setPage(p => p + 1); setLoading(true); }}>Próxima →</button>
+              
+              <button
+                className="cms-page-btn"
+                disabled={page === paginacao.totalPages}
+                onClick={() => { setPage(p => p + 1); }}
+                style={{ fontSize: '12px', padding: '6px 12px' }}
+              >
+                Próxima
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal de Confirmação de Exclusão */}
-      {confirmDeleteId && (
+      {/* Modal Editorial de Confirmação de Exclusão */}
+      {confirmDeleteId && noticiaParaExcluir && (
         <div className="cms-modal-overlay" onClick={() => setConfirmDeleteId(null)}>
-          <div className="cms-modal" onClick={e => e.stopPropagation()}>
+          <div className="cms-modal" style={{ width: '480px' }} onClick={e => e.stopPropagation()}>
             <div className="cms-modal-header">
-              <span className="cms-modal-title">Confirmar Exclusão</span>
-              <button className="cms-modal-close" onClick={() => setConfirmDeleteId(null)}>×</button>
+              <span className="cms-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
+                <AlertTriangle size={18} />
+                Confirmar Remoção
+              </span>
+              <button className="cms-modal-close" onClick={() => setConfirmDeleteId(null)}>
+                <X size={16} />
+              </button>
             </div>
+            
             <div className="cms-modal-body">
-              <p style={{ marginBottom: '12px', lineHeight: '1.6', color: 'var(--c-secondary)' }}>
-                Você está prestes a excluir permanentemente a notícia:
+              <p style={{ marginBottom: '14px', lineHeight: '1.6', color: 'var(--c-secondary)', fontSize: '14px' }}>
+                Você está prestes a excluir definitivamente a publicação editorial abaixo:
               </p>
-              <p style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: '16px',
+              
+              <div style={{
+                fontSize: '15px',
                 fontWeight: '500',
                 color: 'var(--c-text)',
                 lineHeight: '1.4',
-                padding: '10px 12px',
+                padding: '12px 14px',
                 background: 'rgba(255, 255, 255, 0.02)',
-                borderLeft: '2px solid var(--c-accent)',
-                borderRadius: '0 4px 4px 0'
+                borderLeft: '3px solid var(--c-accent)',
+                borderRadius: '0 6px 6px 0',
+                marginBottom: '16px'
               }}>
-                &quot;{noticiaParaExcluir?.titulo}&quot;
-              </p>
-              <p style={{ marginTop: '14px', color: 'var(--c-muted)', fontSize: '12px' }}>
-                Esta ação não pode ser desfeita. O log de auditoria correspondente será registrado.
+                {noticiaParaExcluir.titulo}
+              </div>
+              
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>Visualizações</span>
+                  <span style={{ fontSize: '14px', color: 'var(--c-text)', fontWeight: '500', fontFamily: 'monospace' }}>
+                    {noticiaParaExcluir.views.toLocaleString('pt-BR')}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>Categoria</span>
+                  <span style={{ fontSize: '13px', color: 'var(--c-text)', fontWeight: '500' }}>
+                    {noticiaParaExcluir.categoria?.nome}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>Data</span>
+                  <span style={{ fontSize: '13px', color: 'var(--c-text)', fontWeight: '500' }}>
+                    {new Date(noticiaParaExcluir.publicadoEm).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
+
+              <p style={{ marginTop: '16px', color: 'var(--c-muted)', fontSize: '12.5px', lineHeight: '1.5' }}>
+                Esta exclusão limpará os registros de interações e visualizações. O evento de exclusão será registrado no painel de auditoria do sistema.
               </p>
             </div>
+            
             <div className="cms-modal-footer">
               <button className="cms-btn cms-btn-secondary" onClick={() => setConfirmDeleteId(null)}>
                 Cancelar
               </button>
+              
               <button
                 className="cms-btn cms-btn-danger"
                 disabled={deletingId === confirmDeleteId}
                 onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
               >
                 {deletingId === confirmDeleteId ? (
-                  <><div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Excluindo...</>
+                  <>
+                    <div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                    <span>Processando...</span>
+                  </>
                 ) : (
-                  <><i className="far fa-trash-alt" style={{ fontSize: '12px', marginRight: '6px' }} /> Excluir Definitivamente</>
+                  <>
+                    <Trash2 size={14} />
+                    <span>Excluir Definitivamente</span>
+                  </>
                 )}
               </button>
             </div>

@@ -1,6 +1,32 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import {
+  Database,
+  ShieldAlert,
+  LogOut,
+  FilePlus,
+  Edit3,
+  Trash2,
+  UserPlus,
+  UserCheck,
+  UserMinus,
+  FolderPlus,
+  FolderSync,
+  FolderMinus,
+  PenTool,
+  Search,
+  KeyRound,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Activity,
+  ShieldCheck,
+  AlertTriangle,
+  Clock,
+  Terminal,
+  RefreshCw
+} from 'lucide-react';
 
 interface Log {
   id: string;
@@ -14,183 +40,456 @@ interface Log {
   usuario?: { nome: string; role: string } | null;
 }
 
-const ACAO_LABELS: Record<string, { label: string; badge: string }> = {
-  LOGIN_SUCESSO:      { label: '🟢 Login bem-sucedido', badge: 'cms-badge-green' },
-  LOGIN_FALHA:        { label: '🔴 Tentativa de login falhou', badge: 'cms-badge-red' },
-  LOGOUT:             { label: '🚪 Logout', badge: 'cms-badge-gray' },
-  NOTICIA_CRIADA:     { label: '📰 Notícia criada', badge: 'cms-badge-blue' },
-  NOTICIA_ATUALIZADA: { label: '✏️ Notícia editada', badge: 'cms-badge-yellow' },
-  NOTICIA_EXCLUIDA:   { label: '🗑️ Notícia excluída', badge: 'cms-badge-red' },
-  USUARIO_CRIADO:     { label: '👤 Usuário criado', badge: 'cms-badge-blue' },
-  USUARIO_ATUALIZADO: { label: '🔄 Usuário atualizado', badge: 'cms-badge-yellow' },
-  USUARIO_EXCLUIDO:   { label: '❌ Usuário excluído', badge: 'cms-badge-red' },
-  CATEGORIA_CRIADA:   { label: '🏷️ Categoria criada', badge: 'cms-badge-blue' },
-  CATEGORIA_ATUALIZADA:{ label: '🏷️ Categoria editada', badge: 'cms-badge-yellow' },
-  CATEGORIA_EXCLUIDA: { label: '🏷️ Categoria excluída', badge: 'cms-badge-red' },
-  COLUNISTA_CRIADO:   { label: '✍️ Colunista criado', badge: 'cms-badge-blue' },
-  COLUNISTA_ATUALIZADO:{ label: '✍️ Colunista atualizado', badge: 'cms-badge-yellow' },
-  COLUNISTA_EXCLUIDO: { label: '✍️ Colunista excluído', badge: 'cms-badge-red' },
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  ADMIN: 'Administrador',
+  EDITOR: 'Editor',
+  COLUNISTA: 'Colunista',
+};
+
+const ACAO_INFO: Record<string, { label: string; badge: string; icon: React.ComponentType<{ className?: string; size?: number }> }> = {
+  LOGIN_SUCESSO:      { label: 'Login bem-sucedido', badge: 'cms-badge-green', icon: KeyRound },
+  LOGIN_FALHA:        { label: 'Tentativa de login falhou', badge: 'cms-badge-red', icon: ShieldAlert },
+  LOGOUT:             { label: 'Logout do painel', badge: 'cms-badge-gray', icon: LogOut },
+  NOTICIA_CRIADA:     { label: 'Notícia criada', badge: 'cms-badge-blue', icon: FilePlus },
+  NOTICIA_ATUALIZADA: { label: 'Notícia editada', badge: 'cms-badge-yellow', icon: Edit3 },
+  NOTICIA_EXCLUIDA:   { label: 'Notícia excluída', badge: 'cms-badge-red', icon: Trash2 },
+  USUARIO_CRIADO:     { label: 'Usuário criado', badge: 'cms-badge-blue', icon: UserPlus },
+  USUARIO_ATUALIZADO: { label: 'Usuário atualizado', badge: 'cms-badge-yellow', icon: UserCheck },
+  USUARIO_EXCLUIDO:   { label: 'Usuário excluído', badge: 'cms-badge-red', icon: UserMinus },
+  CATEGORIA_CRIADA:   { label: 'Categoria criada', badge: 'cms-badge-blue', icon: FolderPlus },
+  CATEGORIA_ATUALIZADA:{ label: 'Categoria editada', badge: 'cms-badge-yellow', icon: FolderSync },
+  CATEGORIA_EXCLUIDA: { label: 'Categoria excluída', badge: 'cms-badge-red', icon: FolderMinus },
+  COLUNISTA_CRIADO:   { label: 'Colunista cadastrado', badge: 'cms-badge-blue', icon: PenTool },
+  COLUNISTA_ATUALIZADO:{ label: 'Colunista atualizado', badge: 'cms-badge-yellow', icon: PenTool },
+  COLUNISTA_EXCLUIDO: { label: 'Colunista excluído', badge: 'cms-badge-red', icon: Trash2 },
 };
 
 export default function AuditoriaAdmin() {
   const { authFetch } = useAdminAuth();
   const [logs, setLogs] = useState<Log[]>([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [filtroAcao, setFiltroAcao] = useState('');
+  const [error, setError] = useState('');
+  
+  // Filtros & Paginação no Cliente
+  const [busca, setBusca] = useState('');
+  const [grupoFiltro, setGrupoFiltro] = useState<'TUDO' | 'NOTICIAS' | 'SEGURANCA' | 'ESTRUTURA'>('TUDO');
   const [selectedLog, setSelectedLog] = useState<Log | null>(null);
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 15;
 
-  const load = useCallback(async () => {
+  const loadLogs = async () => {
     try {
-      const params = new URLSearchParams({ page: String(page), limit: '20' });
-      if (filtroAcao) params.set('acao', filtroAcao);
-      const res = await authFetch(`/admin/audit-logs?${params}`);
+      setLoading(true);
+      setError('');
+      const res = await authFetch('/admin/audit-logs');
+      if (!res.ok) throw new Error('Não foi possível obter os logs de auditoria');
       const data = await res.json();
-      setLogs(Array.isArray(data) ? data : data.logs || []);
-      setTotal(data.total || 0);
-      setTotalPages(data.totalPages || 1);
+      setLogs(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
+      if (err instanceof Error) setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [authFetch, page, filtroAcao]);
+  };
 
   useEffect(() => {
-    let active = true;
-    const fetchInit = async () => {
-      try {
-        const params = new URLSearchParams({ page: String(page), limit: '20' });
-        if (filtroAcao) params.set('acao', filtroAcao);
-        const res = await authFetch(`/admin/audit-logs?${params}`);
-        const data = await res.json();
-        if (active) {
-          setLogs(Array.isArray(data) ? data : data.logs || []);
-          setTotal(data.total || 0);
-          setTotalPages(data.totalPages || 1);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error(err);
-        if (active) setLoading(false);
-      }
-    };
-    fetchInit();
-    return () => { active = false; };
-  }, [authFetch, page, filtroAcao]);
+    loadLogs();
+  }, [authFetch]);
+
+  // KPIs dinâmicos baseados em todos os logs carregados (até 100 logs mais recentes)
+  const kpis = useMemo(() => {
+    const total = logs.length;
+    
+    const noticias = logs.filter(l => 
+      l.acao.startsWith('NOTICIA_')
+    ).length;
+
+    const seguranca = logs.filter(l => 
+      l.acao.startsWith('LOGIN_') || l.acao === 'LOGOUT' || l.acao.startsWith('USUARIO_')
+    ).length;
+
+    const exclusoes = logs.filter(l => 
+      l.acao.endsWith('_EXCLUIDA') || l.acao.endsWith('_EXCLUIDO')
+    ).length;
+
+    return { total, noticias, seguranca, exclusoes };
+  }, [logs]);
+
+  // Filtro completo local
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      // 1. Filtro por grupo
+      if (grupoFiltro === 'NOTICIAS' && !log.acao.startsWith('NOTICIA_')) return false;
+      if (grupoFiltro === 'SEGURANCA' && !(log.acao.startsWith('LOGIN_') || log.acao === 'LOGOUT' || log.acao.startsWith('USUARIO_'))) return false;
+      if (grupoFiltro === 'ESTRUTURA' && !(log.acao.startsWith('CATEGORIA_') || log.acao.startsWith('COLUNISTA_'))) return false;
+
+      // 2. Filtro de busca textual
+      if (!busca.trim()) return true;
+      const term = busca.toLowerCase();
+      const acaoInfo = ACAO_INFO[log.acao]?.label.toLowerCase() || log.acao.toLowerCase();
+      const responsavel = log.usuario?.nome.toLowerCase() || 'anônimo';
+      const ip = log.ip.toLowerCase();
+      const rota = log.rota?.toLowerCase() || '';
+      const entidade = log.entidade?.toLowerCase() || '';
+
+      return acaoInfo.includes(term) ||
+             responsavel.includes(term) ||
+             ip.includes(term) ||
+             rota.includes(term) ||
+             entidade.includes(term);
+    });
+  }, [logs, grupoFiltro, busca]);
+
+  // Paginação local
+  const paginatedLogs = useMemo(() => {
+    const start = (page - 1) * itemsPerPage;
+    return filteredLogs.slice(start, start + itemsPerPage);
+  }, [filteredLogs, page]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / itemsPerPage));
+
+  // Resetar página ao mudar filtros
+  const handleGrupoFiltro = (grupo: 'TUDO' | 'NOTICIAS' | 'SEGURANCA' | 'ESTRUTURA') => {
+    setGrupoFiltro(grupo);
+    setPage(1);
+  };
+
+  const handleBusca = (val: string) => {
+    setBusca(val);
+    setPage(1);
+  };
 
   return (
     <>
+      {/* Cabeçalho Editorial Rico */}
       <div className="cms-page-header">
         <div>
-          <h2 className="cms-page-title">Logs de Auditoria</h2>
-          <p className="cms-page-subtitle">Registro completo de todas as ações realizadas no sistema</p>
+          <h2 className="cms-page-title">Auditoria do Sistema</h2>
+          <p className="cms-page-subtitle">Rastreabilidade e segurança integral de todas as modificações editoriais e acessos</p>
+        </div>
+        <button 
+          onClick={loadLogs} 
+          className="cms-btn cms-btn-secondary" 
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          disabled={loading}
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <span>Atualizar Logs</span>
+        </button>
+      </div>
+
+      {error && (
+        <div className="cms-alert cms-alert-error">
+          <AlertTriangle size={16} />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Grid de KPIs Premium */}
+      <div className="cms-stats-grid">
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: 'var(--c-accent)' }}>
+            <Activity size={16} />
+          </div>
+          <span className="cms-stat-value">{kpis.total}</span>
+          <span className="cms-stat-label">Total de Eventos (Recentes)</span>
+        </div>
+
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: '#6366f1' }}>
+            <FilePlus size={16} />
+          </div>
+          <span className="cms-stat-value">{kpis.noticias}</span>
+          <span className="cms-stat-label">Modificações de Notícias</span>
+        </div>
+
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: '#10b981' }}>
+            <ShieldCheck size={16} />
+          </div>
+          <span className="cms-stat-value">{kpis.seguranca}</span>
+          <span className="cms-stat-label">Segurança & Usuários</span>
+        </div>
+
+        <div className="cms-stat-card">
+          <div className="cms-stat-icon" style={{ color: '#ef4444' }}>
+            <Trash2 size={16} />
+          </div>
+          <span className="cms-stat-value">{kpis.exclusoes}</span>
+          <span className="cms-stat-label">Exclusões Realizadas</span>
         </div>
       </div>
 
+      {/* Barra de Ferramentas / Busca & Pílulas de Filtro */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* Pílulas de Filtro Rápido */}
+        <div style={{ display: 'flex', gap: '6px', background: 'rgba(255, 255, 255, 0.02)', padding: '4px', borderRadius: '8px', border: '1px solid var(--c-border)' }}>
+          {[
+            { id: 'TUDO', label: 'Todos Eventos' },
+            { id: 'NOTICIAS', label: 'Notícias' },
+            { id: 'SEGURANCA', label: 'Segurança' },
+            { id: 'ESTRUTURA', label: 'Estrutura' },
+          ].map(grp => (
+            <button
+              key={grp.id}
+              onClick={() => handleGrupoFiltro(grp.id as any)}
+              style={{
+                background: grupoFiltro === grp.id ? 'rgba(255, 87, 34, 0.1)' : 'transparent',
+                color: grupoFiltro === grp.id ? 'var(--c-accent)' : 'var(--c-secondary)',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '12.5px',
+                fontWeight: grupoFiltro === grp.id ? '600' : '400',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {grp.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Caixa de Busca */}
+        <div className="cms-search-wrap" style={{ flex: 1, minWidth: '260px' }}>
+          <Search className="cms-search-icon" size={15} />
+          <input
+            type="text"
+            className="cms-search-input"
+            placeholder="Filtrar por ação, responsável, IP, rota ou entidade..."
+            value={busca}
+            onChange={e => handleBusca(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Timeline de Eventos / Tabela Minimalista Notion-Style */}
       <div className="cms-table-card">
         <div className="cms-table-header">
-          <span className="cms-table-title">🔍 Histórico de Eventos</span>
-          <select
-            className="cms-select"
-            style={{ width: '220px', padding: '8px 12px' }}
-            value={filtroAcao}
-            onChange={e => { setLoading(true); setFiltroAcao(e.target.value); setPage(1); }}
-          >
-            <option value="">Todos os eventos</option>
-            {Object.keys(ACAO_LABELS).map(k => (
-              <option key={k} value={k}>{ACAO_LABELS[k].label}</option>
-            ))}
-          </select>
+          <span className="cms-table-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
+            <Terminal size={15} style={{ color: 'var(--c-accent)' }} />
+            Logs Recentes do Sistema
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--c-secondary)' }}>
+            Exibindo {filteredLogs.length} eventos
+          </span>
         </div>
 
         {loading ? (
-          <div className="cms-loading"><div className="cms-spinner" /> Carregando logs...</div>
+          <div className="cms-loading">
+            <div className="cms-spinner" />
+            <span>Processando auditoria...</span>
+          </div>
         ) : (
-          <table className="cms-table">
-            <thead>
-              <tr>
-                <th>Ação</th>
-                <th>Usuário</th>
-                <th>Entidade</th>
-                <th>Rota</th>
-                <th>IP</th>
-                <th>Data/Hora</th>
-                <th style={{ textAlign: 'right' }}>Detalhes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#8b98b0' }}>Nenhum log encontrado</td></tr>
-              ) : logs.map(log => {
-                const acaoInfo = ACAO_LABELS[log.acao] || { label: log.acao, badge: 'cms-badge-gray' };
-                return (
-                  <tr key={log.id}>
-                    <td><span className={`cms-badge ${acaoInfo.badge}`}>{acaoInfo.label}</span></td>
-                    <td style={{ fontWeight: '500' }}>
-                      {log.usuario?.nome || <span style={{ color: '#8b98b0' }}>Anônimo</span>}
-                    </td>
-                    <td style={{ color: '#8b98b0', fontSize: '13px' }}>
-                      {log.entidade ? `${log.entidade}` : '—'}
-                    </td>
-                    <td>
-                      {log.rota && (
-                        <code style={{ fontSize: '11px', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>
-                          {log.rota}
-                        </code>
-                      )}
-                    </td>
-                    <td>
-                      <code style={{ fontSize: '11px', background: 'rgba(255,255,255,0.04)', padding: '2px 6px', borderRadius: '4px' }}>
-                        {log.ip}
-                      </code>
-                    </td>
-                    <td style={{ color: '#8b98b0', fontSize: '12px', whiteSpace: 'nowrap' }}>
-                      {new Date(log.dataHora).toLocaleString('pt-BR')}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {log.detalhes && Object.keys(log.detalhes).length > 0 && (
-                        <button className="cms-btn cms-btn-secondary cms-btn-sm" onClick={() => setSelectedLog(log)}>
-                          Ver
-                        </button>
-                      )}
+          <div style={{ overflowX: 'auto' }}>
+            <table className="cms-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '22%' }}>Ação Realizada</th>
+                  <th style={{ width: '18%' }}>Integrante</th>
+                  <th style={{ width: '18%' }}>Entidade</th>
+                  <th style={{ width: '16%' }}>Rota / Endpoint</th>
+                  <th style={{ width: '10%' }}>IP</th>
+                  <th style={{ width: '16%' }}>Data & Hora</th>
+                  <th style={{ width: '5%', textAlign: 'right' }}>Detalhes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ textAlign: 'center', padding: '48px', color: 'var(--c-secondary)' }}>
+                      Nenhum registro de auditoria corresponde aos filtros aplicados.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ) : (
+                  paginatedLogs.map(log => {
+                    const acaoMeta = ACAO_INFO[log.acao] || { label: log.acao, badge: 'cms-badge-gray', icon: Database };
+                    const IconComponent = acaoMeta.icon;
+                    const date = new Date(log.dataHora);
+                    
+                    return (
+                      <tr key={log.id}>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              color: 'var(--c-accent)', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              padding: '5px',
+                              background: 'rgba(255,255,255,0.02)',
+                              borderRadius: '4px',
+                              border: '1px solid rgba(255,255,255,0.03)'
+                            }}>
+                              <IconComponent size={13} />
+                            </span>
+                            <span className={`cms-badge ${acaoMeta.badge}`} style={{ fontWeight: '600' }}>
+                              {acaoMeta.label}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          {log.usuario ? (
+                            <div>
+                              <div style={{ fontWeight: '500', color: 'var(--c-text)' }}>{log.usuario.nome}</div>
+                              <div style={{ fontSize: '10px', color: 'var(--c-secondary)' }}>{ROLE_LABELS[log.usuario.role] || log.usuario.role}</div>
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--c-muted)', fontStyle: 'italic', fontSize: '13px' }}>Sistema Externo / Anônimo</span>
+                          )}
+                        </td>
+                        <td style={{ color: 'var(--c-secondary)', fontSize: '13px' }}>
+                          {log.entidade ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              <span style={{ fontWeight: '500', color: 'var(--c-text)' }}>{log.entidade}</span>
+                              {log.entidadeId && <code style={{ fontSize: '10px', color: 'var(--c-muted)', fontFamily: 'var(--font-mono)' }}>ID: {log.entidadeId.slice(0, 8)}...</code>}
+                            </div>
+                          ) : (
+                            <span style={{ color: 'var(--c-muted)' }}>—</span>
+                          )}
+                        </td>
+                        <td>
+                          {log.rota ? (
+                            <code style={{ fontSize: '11px', background: 'rgba(255,255,255,0.03)', padding: '3px 6px', borderRadius: '4px', color: 'var(--c-secondary)', fontFamily: 'var(--font-mono)' }}>
+                              {log.rota}
+                            </code>
+                          ) : (
+                            <span style={{ color: 'var(--c-muted)' }}>—</span>
+                          )}
+                        </td>
+                        <td>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--c-secondary)' }}>
+                            {log.ip === '::1' || log.ip === '127.0.0.1' ? 'Localhost' : log.ip}
+                          </span>
+                        </td>
+                        <td style={{ color: 'var(--c-secondary)', fontSize: '12.5px', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <Clock size={12} style={{ color: 'var(--c-muted)' }} />
+                            <span>{date.toLocaleDateString('pt-BR')} às {date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          {log.detalhes && Object.keys(log.detalhes).length > 0 ? (
+                            <button
+                              onClick={() => setSelectedLog(log)}
+                              className="cms-btn cms-btn-secondary cms-btn-sm"
+                              style={{ padding: '4px 8px' }}
+                            >
+                              Analisar
+                            </button>
+                          ) : (
+                            <span style={{ color: 'var(--c-muted)', fontSize: '12px' }}>Vazio</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
 
+        {/* Paginação */}
         {totalPages > 1 && (
           <div className="cms-pagination">
-            <span className="cms-pagination-info">{total} registros no total</span>
+            <span className="cms-pagination-info">
+              Página {page} de {totalPages} ({filteredLogs.length} eventos filtrados)
+            </span>
             <div className="cms-pagination-btns">
-              <button className="cms-page-btn" disabled={page === 1} onClick={() => { setLoading(true); setPage(p => p - 1); }}>← Anterior</button>
-              <button className={`cms-page-btn active`}>{page}</button>
-              <button className="cms-page-btn" disabled={page === totalPages} onClick={() => { setLoading(true); setPage(p => p + 1); }}>Próxima →</button>
+              <button 
+                className="cms-page-btn" 
+                disabled={page === 1} 
+                onClick={() => setPage(p => p - 1)}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <ChevronLeft size={14} />
+                <span>Anterior</span>
+              </button>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button 
+                  key={p} 
+                  className={`cms-page-btn${p === page ? ' active' : ''}`} 
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+
+              <button 
+                className="cms-page-btn" 
+                disabled={page === totalPages} 
+                onClick={() => setPage(p => p + 1)}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <span>Próxima</span>
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal de Detalhes */}
+      {/* Modal Premium de Detalhes do Log */}
       {selectedLog && (
         <div className="cms-modal-overlay" onClick={() => setSelectedLog(null)}>
-          <div className="cms-modal" onClick={e => e.stopPropagation()}>
+          <div className="cms-modal" style={{ maxWidth: '600px', width: '90%' }} onClick={e => e.stopPropagation()}>
             <div className="cms-modal-header">
-              <span className="cms-modal-title">Detalhes do Log</span>
-              <button className="cms-modal-close" onClick={() => setSelectedLog(null)}>×</button>
+              <span className="cms-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Terminal size={16} style={{ color: 'var(--c-accent)' }} />
+                <span>Parâmetros de Auditoria</span>
+              </span>
+              <button className="cms-modal-close" onClick={() => setSelectedLog(null)}>
+                <X size={18} />
+              </button>
             </div>
             <div className="cms-modal-body">
-              <pre style={{
-                background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '16px',
-                fontSize: '13px', overflowX: 'auto', color: '#e2e8f0', lineHeight: '1.6'
-              }}>
-                {JSON.stringify(selectedLog.detalhes, null, 2)}
-              </pre>
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Ação Executada</div>
+                <div className="cms-badge cms-badge-orange" style={{ fontSize: '12px' }}>
+                  {ACAO_INFO[selectedLog.acao]?.label || selectedLog.acao}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Responsável</div>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--c-text)' }}>
+                    {selectedLog.usuario?.nome || 'Sistema (Automático)'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>Endereço IP</div>
+                  <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--c-text)' }}>
+                    {selectedLog.ip}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Metadados do Payload (JSON)</div>
+                <pre style={{
+                  background: '#0B0B0F', 
+                  borderRadius: '6px', 
+                  padding: '14px',
+                  fontSize: '12px', 
+                  overflowX: 'auto', 
+                  color: '#10b981', 
+                  lineHeight: '1.5',
+                  border: '1px solid var(--c-border)',
+                  fontFamily: 'var(--font-mono)'
+                }}>
+                  {JSON.stringify(selectedLog.detalhes, null, 2)}
+                </pre>
+              </div>
+            </div>
+            <div className="cms-modal-footer">
+              <button className="cms-btn cms-btn-primary" onClick={() => setSelectedLog(null)}>
+                Fechar Análise
+              </button>
             </div>
           </div>
         </div>
@@ -198,3 +497,4 @@ export default function AuditoriaAdmin() {
     </>
   );
 }
+

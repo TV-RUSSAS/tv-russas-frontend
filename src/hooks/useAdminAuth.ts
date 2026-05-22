@@ -24,42 +24,90 @@ function parseJwtPayload(token: string): { exp?: number; id?: string } | null {
 function isTokenExpired(token: string): boolean {
   const payload = parseJwtPayload(token);
   if (!payload?.exp) return true;
-  return Date.now() / 1000 > (payload.exp - 5);
+  // Expira se faltar menos de 10 segundos para expirar
+  return Date.now() / 1000 > (payload.exp - 10);
+}
+
+// Mecanismo Global de Lock para evitar concorrência nas chamadas de refresh token
+let refreshPromise: Promise<any> | null = null;
+
+async function executeRefresh(): Promise<any> {
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        sessionStorage.setItem('accessToken', data.accessToken);
+        sessionStorage.setItem('userName', data.user.nome);
+        sessionStorage.setItem('userRole', data.user.role);
+        sessionStorage.setItem('userId', data.user.id);
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('[useAdminAuth] Erro na requisição de refresh:', error);
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 export function useAdminAuth() {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const verificarAuth = useCallback(async () => {
+    let token = sessionStorage.getItem('accessToken');
+    
+    // Se não há token ou está prestes a expirar, tenta renovar antes de qualquer coisa!
+    if (!token || isTokenExpired(token)) {
+      console.log('[useAdminAuth] Token expirado ou ausente. Tentando renovar...');
+      const refreshResult = await executeRefresh();
+      if (refreshResult) {
+        token = refreshResult.accessToken;
+      }
+    }
+
+    if (!token || isTokenExpired(token)) {
+      console.warn('[useAdminAuth] Sessão inválida após tentativa de refresh. Redirecionando para login...');
+      sessionStorage.clear();
+      if (window.location.pathname !== '/admin/login') {
+        window.location.href = '/admin/login';
+      }
+      return;
+    }
+
+    const nome = sessionStorage.getItem('userName') || '';
+    const role = sessionStorage.getItem('userRole') as AdminUser['role'] || 'EDITOR';
+    const payload = parseJwtPayload(token);
+
+    setUser({ id: payload?.id || '', nome, email: '', role });
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
-    const verificarAuth = () => {
-      const token = sessionStorage.getItem('accessToken');
-      
-      // A marretada: Se não há token, limpa e força o navegador a ir para o login IMEDIATAMENTE
-      if (!token || isTokenExpired(token)) {
-        sessionStorage.clear();
-        window.location.href = '/admin/login';
-        return;
-      }
-
-      const nome = sessionStorage.getItem('userName') || '';
-      const role = sessionStorage.getItem('userRole') as AdminUser['role'] || 'EDITOR';
-      const payload = parseJwtPayload(token);
-
-      if (isMounted) {
-        setUser({ id: payload?.id || '', nome, email: '', role });
-        setLoading(false);
-      }
+    const init = async () => {
+      await verificarAuth();
     };
 
-    verificarAuth();
+    init();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [verificarAuth]);
 
   const logout = useCallback(async () => {
     try {
@@ -72,8 +120,16 @@ export function useAdminAuth() {
   }, []);
 
   const authFetch = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
-    const token = sessionStorage.getItem('accessToken');
+    let token = sessionStorage.getItem('accessToken');
     
+    // 1. Garantir que o token está atualizado antes do fetch
+    if (!token || isTokenExpired(token)) {
+      const refreshResult = await executeRefresh();
+      if (refreshResult) {
+        token = refreshResult.accessToken;
+      }
+    }
+
     if (!token || isTokenExpired(token)) {
       sessionStorage.clear();
       window.location.href = '/admin/login';
@@ -84,8 +140,20 @@ export function useAdminAuth() {
     headers.set('Authorization', `Bearer ${token}`);
 
     const cleanUrl = url.startsWith('/') ? url : `/${url}`;
-    const res = await fetch(`${API_BASE}${cleanUrl}`, { ...options, headers });
+    let res = await fetch(`${API_BASE}${cleanUrl}`, { ...options, headers });
 
+    // 2. Se receber 401 (expirou nesse milissegundo), tenta renovar UMA vez
+    if (res.status === 401) {
+      console.warn('[useAdminAuth] Recebido 401. Tentando renovação de token emergencial...');
+      const refreshResult = await executeRefresh();
+      if (refreshResult) {
+        token = refreshResult.accessToken;
+        headers.set('Authorization', `Bearer ${token}`);
+        res = await fetch(`${API_BASE}${cleanUrl}`, { ...options, headers });
+      }
+    }
+
+    // 3. Se ainda der erro, desloga
     if (res.status === 401 || res.status === 403) {
       sessionStorage.clear();
       window.location.href = '/admin/login';

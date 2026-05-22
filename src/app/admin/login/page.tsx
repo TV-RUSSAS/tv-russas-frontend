@@ -10,6 +10,7 @@ import { Turnstile } from '@marsidev/react-turnstile';
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [captchaKey, setCaptchaKey] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +40,7 @@ export default function AdminLogin() {
           'Content-Type': 'application/json',
         },
         credentials: 'include', // necessário para salvar o cookie refreshToken (HttpOnly)
-        body: JSON.stringify({ email, password, captchaToken }),
+        body: JSON.stringify({ email, password, rememberMe, captchaToken }),
       });
 
       const data = await response.json();
@@ -54,6 +55,7 @@ export default function AdminLogin() {
       sessionStorage.setItem('accessToken', data.accessToken);
       sessionStorage.setItem('userName', data.user.nome);
       sessionStorage.setItem('userRole', data.user.role);
+      sessionStorage.setItem('userId', data.user.id);
 
       // Redireciona para o dashboard administrativo
       router.push('/admin');
@@ -240,6 +242,24 @@ export default function AdminLogin() {
                 <i className={showPassword ? "far fa-eye-slash" : "far fa-eye"}></i>
               </button>
             </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', margin: '4px 0' }}>
+            <input
+              id="rememberMe"
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              style={{
+                accentColor: '#ff5722',
+                width: '16px',
+                height: '16px',
+                cursor: 'pointer'
+              }}
+            />
+            <label htmlFor="rememberMe" style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.8)', cursor: 'pointer', userSelect: 'none' }}>
+              Lembrar-me neste dispositivo
+            </label>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: '8px' }}>
