@@ -1,11 +1,40 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { getImagePath } from "@/utils/imagePath";
+import { TEXTS } from "@/constants/texts";
+import { apiService } from "@/services/api";
+
+const CATEGORIAS_FALLBACK = [
+  { nome: "Cidade", slug: "cidade" },
+  { nome: "Política", slug: "politica" },
+  { nome: "Esporte", slug: "esporte" },
+  { nome: "Entretenimento", slug: "entretenimento" },
+  { nome: "Polícia", slug: "policia" },
+  { nome: "Youtube", slug: "youtube" },
+  { nome: "Brasil", slug: "brasil" },
+  { nome: "Ceará", slug: "ceara" },
+];
 
 export function Footer() {
   const pathname = usePathname();
+  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FALLBACK);
+
+  useEffect(() => {
+    let active = true;
+    const fetchCategorias = async () => {
+      const cats = await apiService.getCategorias();
+      if (cats && cats.length > 0 && active) {
+        setCategorias(cats);
+      }
+    };
+    fetchCategorias();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -18,17 +47,16 @@ export function Footer() {
           <div className="footer-logo-wrapper">
             <Image
               src={getImagePath("sistema/5.png")}
-              alt="TV Russas"
+              alt={TEXTS.brand.name}
               width={60}
               height={60}
               className="footer-logo-img"
               style={{ width: "60px", height: "60px" }}
             />
-            <span className="footer-logo-text">TV RUSSAS</span>
+            <span className="footer-logo-text">{TEXTS.brand.name.toUpperCase()}</span>
           </div>
           <p>
-            O portal de notícias da sua cidade. Informação com credibilidade e
-            agilidade.
+            {TEXTS.brand.sloganFooter}
           </p>
           <div className="footer-social">
             <a
@@ -58,71 +86,51 @@ export function Footer() {
           </div>
         </div>
         <div className="footer-section">
-          <h4>Categorias</h4>
+          <h4>{TEXTS.navigation.categories}</h4>
           <ul>
-            <li>
-              <Link href="/categoria/cidade">Cidade</Link>
-            </li>
-            <li>
-              <Link href="/categoria/politica">Política</Link>
-            </li>
-            <li>
-              <Link href="/categoria/esporte">Esporte</Link>
-            </li>
-            <li>
-              <Link href="/categoria/entretenimento">Entretenimento</Link>
-            </li>
-            <li>
-              <Link href="/categoria/policia">Polícia</Link>
-            </li>
-            <li>
-              <Link href="/categoria/youtube">YouTube</Link>
-            </li>
-            <li>
-              <Link href="/categoria/brasil">Brasil</Link>
-            </li>
-            <li>
-              <Link href="/categoria/ceara">Ceará</Link>
-            </li>
+            {categorias.map((cat) => (
+              <li key={cat.slug}>
+                <Link href={`/categoria/${cat.slug}`}>{cat.nome}</Link>
+              </li>
+            ))}
           </ul>
         </div>
         <div className="footer-section">
-          <h4>Navegação</h4>
+          <h4>{TEXTS.navigation.navigation}</h4>
           <ul>
             <li>
-              <Link href="/">Página Inicial</Link>
+              <Link href="/">{TEXTS.navigation.home}</Link>
             </li>
             <li>
-              <Link href="/colunistas">Colunistas</Link>
+              <Link href="/colunistas">{TEXTS.navigation.columnists}</Link>
             </li>
             <li>
-              <Link href="/reporter">Você Repórter</Link>
+              <Link href="/reporter">{TEXTS.navigation.reporter}</Link>
             </li>
             <li>
               <Link href="/admin" style={{ opacity: 0.6 }}>
-                <i className="fas fa-lock" style={{ marginRight: '4px', fontSize: '0.9em' }} /> Acesso Restrito
+                <i className="fas fa-lock" style={{ marginRight: '4px', fontSize: '0.9em' }} /> {"Acesso Restrito"}
               </Link>
             </li>
           </ul>
         </div>
         <div className="footer-section">
-          <h4>Contato</h4>
+          <h4>{TEXTS.navigation.contact}</h4>
           <ul>
             <li>
-              <i className="fas fa-envelope" /> contato@tvrussas.com.br
+              <i className="fas fa-envelope" /> {"contato@tvrussas.com.br"}
             </li>
             <li>
-              <i className="fas fa-phone" /> (88) 99692-5964
+              <i className="fas fa-phone" /> {"(88) 99692-5964"}
             </li>
             <li>
-              <i className="fas fa-map-marker-alt" /> Russas, CE
+              <i className="fas fa-map-marker-alt" /> {"Russas, CE"}
             </li>
           </ul>
         </div>
       </div>
       <div className="footer-bottom">
-        &copy; {new Date().getFullYear()} TV Russas. Todos os direitos
-        reservados.
+        &copy; {new Date().getFullYear()} {TEXTS.brand.name}. {TEXTS.brand.rights}
       </div>
     </footer>
   );

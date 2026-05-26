@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { TEXTS } from '@/constants/texts';
 
 interface ChartDataItem {
   label: string;
@@ -33,7 +34,7 @@ export default function AnalyticsChart({
       >
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-t-zinc-600 border-zinc-800 rounded-full animate-spin"></div>
-          <span className="text-xs text-zinc-500 font-medium">Carregando dados estatísticos...</span>
+          <span className="text-xs text-zinc-500 font-medium">{TEXTS.admin.loadingStats}</span>
         </div>
       </div>
     );
@@ -45,7 +46,7 @@ export default function AnalyticsChart({
         className="w-full bg-[#12141D] border border-zinc-800 rounded-xl flex items-center justify-center"
         style={{ height }}
       >
-        <span className="text-sm text-zinc-500">Nenhum dado histórico disponível</span>
+        <span className="text-sm text-zinc-500">{TEXTS.admin.noHistoryData}</span>
       </div>
     );
   }
@@ -82,16 +83,19 @@ export default function AnalyticsChart({
   // Gerar caminho d do SVG Line
   let linePath = '';
   if (points.length > 0) {
-    linePath = `M ${points[0].x} ${points[0].y}`;
+    linePath = `M ${points.at(0)!.x} ${points.at(0)!.y}`;
     for (let i = 1; i < points.length; i++) {
-      linePath += ` L ${points[i].x} ${points[i].y}`;
+      const pt = points.at(i)!;
+      linePath += ` L ${pt.x} ${pt.y}`;
     }
   }
 
   // Gerar caminho preenchido para gradiente sutil
   let areaPath = '';
   if (points.length > 0) {
-    areaPath = `${linePath} L ${points[points.length - 1].x} ${paddingTop + chartHeight} L ${points[0].x} ${paddingTop + chartHeight} Z`;
+    const lastPt = points.at(-1)!;
+    const firstPt = points.at(0)!;
+    areaPath = `${linePath} L ${lastPt.x} ${paddingTop + chartHeight} L ${firstPt.x} ${paddingTop + chartHeight} Z`;
   }
 
   const displayIdx = pinnedIdx !== null ? pinnedIdx : activeIdx;
@@ -338,7 +342,7 @@ export default function AnalyticsChart({
                 
                 {/* Valor de visualizações */}
                 <text x="0" y="-18" fill="#ffffff" fontSize="14" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
-                  {points[displayIdx].value.toLocaleString('pt-BR')} <tspan fill="#71717a" fontSize="10" fontWeight="500">views</tspan>
+                  {points[displayIdx].value.toLocaleString('pt-BR')} <tspan fill="#71717a" fontSize="10" fontWeight="500">{TEXTS.admin.views}</tspan>
                 </text>
               </g>
             </g>

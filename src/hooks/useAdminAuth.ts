@@ -28,15 +28,20 @@ function isTokenExpired(token: string): boolean {
   return Date.now() / 1000 > (payload.exp - 10);
 }
 
-// Mecanismo Global de Lock para evitar concorrência nas chamadas de refresh token
-let refreshPromise: Promise<any> | null = null;
+interface RefreshResponse {
+  accessToken: string;
+  user: AdminUser;
+}
 
-async function executeRefresh(): Promise<any> {
+// Mecanismo Global de Lock para evitar concorrência nas chamadas de refresh token
+let refreshPromise: Promise<RefreshResponse | null> | null = null;
+
+async function executeRefresh(): Promise<RefreshResponse | null> {
   if (refreshPromise) {
     return refreshPromise;
   }
 
-  refreshPromise = (async () => {
+  refreshPromise = (async (): Promise<RefreshResponse | null> => {
     try {
       const res = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
@@ -96,17 +101,11 @@ export function useAdminAuth() {
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-
     const init = async () => {
       await verificarAuth();
     };
 
     init();
-
-    return () => {
-      isMounted = false;
-    };
   }, [verificarAuth]);
 
   const logout = useCallback(async () => {

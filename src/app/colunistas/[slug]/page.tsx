@@ -120,7 +120,9 @@ export default async function ColunistaPerfil({
       {/* Schema estruturado injetado via SSR */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(columnistSchema) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(columnistSchema).replace(/</g, "\\u003c"),
+        }}
       />
       {/* Cabeçalho Centralizado estilo SVM */}
       <div className="colunista-header-hero" style={{ 

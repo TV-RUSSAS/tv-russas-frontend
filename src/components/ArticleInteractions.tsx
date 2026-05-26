@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { TEXTS } from "@/constants/texts";
 
 export function ArticleInteractions({
   title,
@@ -183,7 +184,7 @@ export function InlineShare({ title, url }: { title: string; url: string }) {
 
   return (
     <div className="article-share-inline-container">
-      <span className="share-inline-title">Compartilhe esta matéria:</span>
+      <span className="share-inline-title">{TEXTS.widgets.shareTitle}</span>
       <div className="share-inline-buttons">
         <button
           onClick={shareWhatsApp}

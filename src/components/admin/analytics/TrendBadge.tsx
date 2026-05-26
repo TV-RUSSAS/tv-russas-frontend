@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { TEXTS } from '@/constants/texts';
 
 interface TrendBadgeProps {
   tendencia: 'subindo' | 'caiu' | 'estavel';
@@ -31,7 +32,7 @@ export default function TrendBadge({ tendencia, variacao, className = '' }: Tren
   return (
     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-zinc-800 text-zinc-400 border border-zinc-700/50 ${className}`}>
       <Minus className="w-3.5 h-3.5" />
-      <span>Estável</span>
+      <span>{TEXTS.admin.stable}</span>
     </span>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { TEXTS } from '@/constants/texts';
 import {
   Megaphone,
   Inbox,
@@ -27,22 +28,30 @@ interface Sugestao {
   criadoEm: string;
 }
 
-const STATUS_BADGE: Record<string, string> = {
-  pendente: 'cms-badge-yellow',
-  lida: 'cms-badge-green',
-  arquivada: 'cms-badge-gray',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  pendente: 'Pendente',
-  lida: 'Lida',
-  arquivada: 'Arquivada',
-};
+// Os mapeamentos de status antigos foram removidos para evitar o uso de notação de colchetes vulnerável a prototype pollution. Mapeamentos seguros agora são feitos via switch-case nas funções auxiliares abaixo.
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function SugestoesAdmin() {
   const { authFetch } = useAdminAuth();
+  
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pendente': return 'cms-badge-yellow';
+      case 'lida': return 'cms-badge-green';
+      case 'arquivada': return 'cms-badge-gray';
+      default: return '';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pendente': return 'Pendente';
+      case 'lida': return 'Lida';
+      case 'arquivada': return 'Arquivada';
+      default: return '';
+    }
+  };
   const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
@@ -121,8 +130,8 @@ export default function SugestoesAdmin() {
       {/* Cabeçalho Editorial */}
       <div className="cms-page-header">
         <div>
-          <h2 className="cms-page-title">Você Repórter</h2>
-          <p className="cms-page-subtitle">Denúncias, relatos e fotos enviados em tempo real pelos leitores do portal</p>
+          <h2 className="cms-page-title">{TEXTS.navigation.reporter}</h2>
+          <p className="cms-page-subtitle">{TEXTS.admin.reporterSub}</p>
         </div>
         
         {/* Filtros em Pílulas */}
@@ -131,25 +140,25 @@ export default function SugestoesAdmin() {
             className={`cms-btn ${filtroStatus === '' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
             onClick={() => setFiltroStatus('')}
           >
-            Todas
+            {TEXTS.admin.statusAll}
           </button>
           <button
             className={`cms-btn ${filtroStatus === 'pendente' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
             onClick={() => setFiltroStatus('pendente')}
           >
-            Pendentes ({kpis.pendentes})
+            {TEXTS.admin.statusPending} ({kpis.pendentes})
           </button>
           <button
             className={`cms-btn ${filtroStatus === 'lida' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
             onClick={() => setFiltroStatus('lida')}
           >
-            Lidas ({kpis.lidas})
+            {TEXTS.admin.statusRead} ({kpis.lidas})
           </button>
           <button
             className={`cms-btn ${filtroStatus === 'arquivada' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
             onClick={() => setFiltroStatus('arquivada')}
           >
-            Arquivadas
+            {TEXTS.admin.statusArchived}
           </button>
         </div>
       </div>
@@ -175,7 +184,7 @@ export default function SugestoesAdmin() {
             <Megaphone size={16} />
           </div>
           <span className="cms-stat-value">{kpis.total}</span>
-          <span className="cms-stat-label">Sugestões Recebidas</span>
+          <span className="cms-stat-label">{TEXTS.admin.suggestionsReceived}</span>
         </div>
 
         <div className="cms-stat-card">
@@ -183,7 +192,7 @@ export default function SugestoesAdmin() {
             <Inbox size={16} />
           </div>
           <span className="cms-stat-value">{kpis.pendentes}</span>
-          <span className="cms-stat-label">Aguardando Revisão</span>
+          <span className="cms-stat-label">{TEXTS.admin.awaitingReview}</span>
         </div>
 
         <div className="cms-stat-card">
@@ -191,7 +200,7 @@ export default function SugestoesAdmin() {
             <CheckCircle size={16} />
           </div>
           <span className="cms-stat-value">{kpis.lidas}</span>
-          <span className="cms-stat-label">Relatos Lidos</span>
+          <span className="cms-stat-label">{TEXTS.admin.readReports}</span>
         </div>
 
         <div className="cms-stat-card">
@@ -199,7 +208,7 @@ export default function SugestoesAdmin() {
             <Paperclip size={16} />
           </div>
           <span className="cms-stat-value">{kpis.comMidia}</span>
-          <span className="cms-stat-label">Com Anexo de Mídia</span>
+          <span className="cms-stat-label">{TEXTS.admin.withMedia}</span>
         </div>
       </div>
 
@@ -207,13 +216,13 @@ export default function SugestoesAdmin() {
       {loading ? (
         <div className="cms-loading">
           <div className="cms-spinner" />
-          <span>Carregando sugestões...</span>
+          <span>{TEXTS.admin.loadingSuggestions}</span>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
           {filtered.length === 0 ? (
             <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '64px', color: 'var(--c-secondary)' }}>
-              Nenhum relato encontrado nesta categoria
+              {TEXTS.admin.noReportsFound}
             </div>
           ) : (
             filtered.map(s => {
@@ -259,8 +268,8 @@ export default function SugestoesAdmin() {
                         </div>
                       </div>
                     </div>
-                    <span className={`cms-badge ${STATUS_BADGE[s.status]}`} style={{ fontSize: '10px', fontWeight: '600' }}>
-                      {STATUS_LABELS[s.status]}
+                    <span className={`cms-badge ${getStatusBadge(s.status)}`} style={{ fontSize: '10px', fontWeight: '600' }}>
+                      {getStatusLabel(s.status)}
                     </span>
                   </div>
 
@@ -277,7 +286,7 @@ export default function SugestoesAdmin() {
                       borderRadius: '4px',
                       borderLeft: '2px solid rgba(255,255,255,0.08)'
                     }}>
-                      "{s.relato.length > 140 ? s.relato.slice(0, 140) + '...' : s.relato}"
+                      &quot;{s.relato.length > 140 ? s.relato.slice(0, 140) + '...' : s.relato}&quot;
                     </p>
                   </div>
 
@@ -322,7 +331,7 @@ export default function SugestoesAdmin() {
                       onClick={() => setSelectedId(s.id)}
                     >
                       <Eye size={13} />
-                      <span>Analisar</span>
+                      <span>{TEXTS.admin.analyzing}</span>
                     </button>
                     
                     {s.status !== 'lida' && (
@@ -383,7 +392,7 @@ export default function SugestoesAdmin() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <User size={14} style={{ color: 'var(--c-secondary)' }} />
                   <div>
-                    <span style={{ fontSize: '10.5px', color: 'var(--c-secondary)', display: 'block' }}>Remetente</span>
+                    <span style={{ fontSize: '10.5px', color: 'var(--c-secondary)', display: 'block' }}>{TEXTS.admin.sender}</span>
                     <span style={{ fontSize: '13px', fontWeight: '600' }}>{selected.nome}</span>
                   </div>
                 </div>
@@ -402,7 +411,7 @@ export default function SugestoesAdmin() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Phone size={14} style={{ color: 'var(--c-secondary)' }} />
                     <div>
-                      <span style={{ fontSize: '10.5px', color: 'var(--c-secondary)', display: 'block' }}>Telefone</span>
+                      <span style={{ fontSize: '10.5px', color: 'var(--c-secondary)', display: 'block' }}>{TEXTS.admin.phone}</span>
                       <span style={{ fontSize: '13px', fontWeight: '500' }}>{selected.telefone}</span>
                     </div>
                   </div>
@@ -411,7 +420,7 @@ export default function SugestoesAdmin() {
 
               {/* Corpo da Denúncia */}
               <div>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Relato do Cidadão</span>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{TEXTS.admin.citizenReport}</span>
                 <p style={{ 
                   marginTop: '8px', 
                   lineHeight: '1.8', 
@@ -423,14 +432,14 @@ export default function SugestoesAdmin() {
                   color: 'var(--c-text)',
                   whiteSpace: 'pre-wrap'
                 }}>
-                  "{selected.relato}"
+                  &quot;{selected.relato}&quot;
                 </p>
               </div>
 
               {/* Mídia Anexada em Resolução Completa */}
               {selected.midiaUrl && (
                 <div>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>Evidência / Mídia Anexada</span>
+                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>{TEXTS.admin.evidenceMedia}</span>
                   <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--c-border)' }}>
                     {selected.midiaUrl.endsWith('.mp4') ? (
                       <video src={`${API_BASE_URL}${selected.midiaUrl}`} controls style={{ width: '100%', display: 'block' }} />
@@ -444,7 +453,7 @@ export default function SugestoesAdmin() {
             </div>
             
             <div className="cms-modal-footer">
-              <button className="cms-btn cms-btn-secondary" onClick={() => setSelectedId(null)}>Fechar</button>
+              <button className="cms-btn cms-btn-secondary" onClick={() => setSelectedId(null)}>{TEXTS.actions.close}</button>
               
               {selected.status !== 'lida' && (
                 <button 
@@ -452,7 +461,7 @@ export default function SugestoesAdmin() {
                   onClick={() => { updateStatus(selected.id, 'lida'); setSelectedId(null); }}
                 >
                   <CheckCircle size={14} />
-                  <span>Marcar como Lida</span>
+                  <span>{TEXTS.admin.markAsRead}</span>
                 </button>
               )}
             </div>

@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { API_URL } from '@/services/api';
 import './reporter-premium.css';
+import { TEXTS } from '@/constants/texts';
 
 export default function ReporterPage() {
   const [enviado, setEnviado] = useState(false);
@@ -80,14 +81,14 @@ export default function ReporterPage() {
       <section className="reporter-hero">
         <div className="reporter-hero-content">
           <i className="fas fa-bullhorn reporter-hero-icon"></i>
-          <h1 className="reporter-hero-title">Você Repórter</h1>
+          <h1 className="reporter-hero-title">{TEXTS.reporter.heroTitle}</h1>
           <p className="reporter-hero-subtitle">
-            Envie denúncias, sugestões de pautas, vídeos e fotos de acontecimentos importantes da sua cidade e região.
+            {TEXTS.reporter.heroSubtitle}
           </p>
           <div className="hero-stats">
-            <div className="stat-badge"><i className="fas fa-shield-alt"></i> Canal Seguro</div>
-            <div className="stat-badge"><i className="fas fa-user-secret"></i> Identidade Preservada</div>
-            <div className="stat-badge"><i className="fas fa-bolt"></i> Resposta Rápida</div>
+            <div className="stat-badge"><i className="fas fa-shield-alt"></i> {TEXTS.reporter.secureChannel}</div>
+            <div className="stat-badge"><i className="fas fa-user-secret"></i> {TEXTS.reporter.identityPreserved}</div>
+            <div className="stat-badge"><i className="fas fa-bolt"></i> {TEXTS.reporter.fastResponse}</div>
           </div>
         </div>
       </section>
@@ -102,25 +103,25 @@ export default function ReporterPage() {
               
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="nome" className="form-label"><i className="far fa-user"></i> Nome completo</label>
-                  <input type="text" id="nome" name="nome" className="premium-input" placeholder="Como devemos te chamar?" required />
+                  <label htmlFor="nome" className="form-label"><i className="far fa-user"></i> {TEXTS.reporter.fullName}</label>
+                  <input type="text" id="nome" name="nome" className="premium-input" placeholder={TEXTS.reporter.fullNamePlaceholder} required />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="email" className="form-label"><i className="far fa-envelope"></i> E-mail</label>
-                  <input type="email" id="email" name="email" className="premium-input" placeholder="Para receber atualizações" required />
+                  <label htmlFor="email" className="form-label"><i className="far fa-envelope"></i> {"E-mail"}</label>
+                  <input type="email" id="email" name="email" className="premium-input" placeholder={TEXTS.reporter.emailPlaceholder} required />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                  <label htmlFor="telefone" className="form-label"><i className="fab fa-whatsapp"></i> WhatsApp ou Telefone</label>
+                  <label htmlFor="telefone" className="form-label"><i className="fab fa-whatsapp"></i> {TEXTS.reporter.whatsappPhone}</label>
                   <input type="tel" id="telefone" name="telefone" className="premium-input" placeholder="(88) 99999-9999" required />
                 </div>
               </div>
 
               {/* UPLOAD DRAG AND DROP */}
               <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label className="form-label"><i className="fas fa-paperclip"></i> Anexar Mídia (Foto, Vídeo ou PDF)</label>
+                <label className="form-label"><i className="fas fa-paperclip"></i> {TEXTS.reporter.attachMedia}</label>
                 <div 
                   className={`upload-area ${dragActive ? 'drag-active' : ''}`}
                   onDragEnter={handleDrag}
@@ -142,8 +143,8 @@ export default function ReporterPage() {
                   {!file ? (
                     <>
                       <i className="fas fa-cloud-upload-alt upload-icon"></i>
-                      <div className="upload-text">Arraste e solte seu arquivo aqui</div>
-                      <div className="upload-subtext">ou clique para procurar no seu dispositivo (Max 50MB)</div>
+                      <div className="upload-text">{TEXTS.reporter.dragDropHere}</div>
+                      <div className="upload-subtext">{TEXTS.reporter.clickBrowseDevice}</div>
                     </>
                   ) : (
                     <div className="file-preview">
@@ -156,40 +157,40 @@ export default function ReporterPage() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="informacoes" className="form-label"><i className="far fa-edit"></i> Relato do Acontecimento</label>
+                <label htmlFor="informacoes" className="form-label"><i className="far fa-edit"></i> {TEXTS.reporter.eventReport}</label>
                 <textarea
                   id="relato"
                   name="relato"
                   className="premium-input premium-textarea"
-                  placeholder="Descreva o acontecimento com o máximo de detalhes possível: O que aconteceu? Onde? Quando? Quem estava envolvido?"
+                  placeholder={TEXTS.reporter.eventReportPlaceholder}
                   onChange={handleTextChange}
                   required
                 />
-                <div className="char-counter">{charCount} caracteres digitados</div>
+                <div className="char-counter">{charCount} {TEXTS.reporter.charCounter}</div>
               </div>
 
               <div className="checkbox-group">
                 <input type="checkbox" id="autorizo" name="autorizo" className="premium-checkbox" defaultChecked required />
                 <label htmlFor="autorizo" className="checkbox-label">
-                  <strong>Declaro que as informações são verdadeiras</strong> e autorizo a equipe de jornalismo da TV Russas a investigar, editar e publicar este relato de acordo com os critérios editoriais.
+                  <strong>{TEXTS.reporter.truthDeclaration}</strong>{TEXTS.reporter.truthDeclarationSub}
                 </label>
               </div>
 
               <button type="submit" className={`btn-submit-premium ${isSubmitting ? 'btn-loading' : ''}`} disabled={isSubmitting}>
                 {isSubmitting ? (
-                  <><i className="fas fa-spinner"></i> Enviando...</>
+                  <><i className="fas fa-spinner"></i> {TEXTS.reporter.sending}</>
                 ) : (
-                  <><i className="fas fa-paper-plane"></i> Enviar Informação Segura</>
+                  <><i className="fas fa-paper-plane"></i> {TEXTS.reporter.sendSecureInfo}</>
                 )}
               </button>
             </form>
           ) : (
             <div className="success-banner">
               <i className="fas fa-check-circle"></i>
-              <h3>Relato Recebido com Sucesso!</h3>
-              <p>Nossa equipe de jornalismo já foi notificada e está analisando sua informação. Entraremos em contato caso precisemos de mais detalhes.</p>
+              <h3>{TEXTS.reporter.receivedSuccess}</h3>
+              <p>{TEXTS.reporter.receivedSuccessSub}</p>
               <button onClick={() => setEnviado(false)} className="btn-submit-premium" style={{ marginTop: '24px', background: '#2e7d32' }}>
-                Enviar nova informação
+                {TEXTS.reporter.sendNewInfo}
               </button>
             </div>
           )}
@@ -199,28 +200,28 @@ export default function ReporterPage() {
         <aside className="reporter-sidebar">
           
           <div className="sidebar-box">
-            <h3 className="sidebar-box-title"><i className="fas fa-shield-check"></i> Compromisso TV Russas</h3>
+            <h3 className="sidebar-box-title"><i className="fas fa-shield-check"></i> {TEXTS.reporter.commitmentTitle}</h3>
             <ul className="trust-list">
-              <li><i className="fas fa-check-circle"></i> Sua identidade e dados pessoais jamais serão publicados sem autorização expressa.</li>
-              <li><i className="fas fa-check-circle"></i> Todo material recebido passa por checagem rigorosa de nossa redação.</li>
-              <li><i className="fas fa-check-circle"></i> Você está protegido pela lei de sigilo da fonte jornalística.</li>
+              <li><i className="fas fa-check-circle"></i> {TEXTS.reporter.commitmentItem1}</li>
+              <li><i className="fas fa-check-circle"></i> {TEXTS.reporter.commitmentItem2}</li>
+              <li><i className="fas fa-check-circle"></i> {TEXTS.reporter.commitmentItem3}</li>
             </ul>
           </div>
 
           <div className="sidebar-box">
-            <h3 className="sidebar-box-title"><i className="far fa-lightbulb"></i> O que enviar?</h3>
+            <h3 className="sidebar-box-title"><i className="far fa-lightbulb"></i> {TEXTS.reporter.whatToSend}</h3>
             <div className="faq-list">
               <div className="faq-item">
-                <h4>⚠️ Denúncias</h4>
-                <p>Problemas de infraestrutura, buracos, falta de água, iluminação, ou descaso público.</p>
+                <h4>⚠️ {TEXTS.reporter.faqDenuncias}</h4>
+                <p>{TEXTS.reporter.faqDenunciasDesc}</p>
               </div>
               <div className="faq-item">
-                <h4>🚔 Ocorrências</h4>
-                <p>Acidentes, incêndios, ou movimentação policial na sua rua ou bairro.</p>
+                <h4>🚔 {TEXTS.reporter.faqOcorrencias}</h4>
+                <p>{TEXTS.reporter.faqOcorrenciasDesc}</p>
               </div>
               <div className="faq-item">
-                <h4>🎉 Eventos Locais</h4>
-                <p>Ações da comunidade, feiras, esportes amadores e festividades.</p>
+                <h4>🎉 {TEXTS.reporter.faqEventos}</h4>
+                <p>{TEXTS.reporter.faqEventosDesc}</p>
               </div>
             </div>
           </div>

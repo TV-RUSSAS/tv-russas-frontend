@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+export function middleware() {
 
   // Como o backend (Render) e o frontend (Vercel) estão em domínios diferentes,
   // o Next.js Middleware (rodando no server do Vercel) NÃO TEM ACESSO ao cookie 'refreshToken'

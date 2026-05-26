@@ -5,16 +5,19 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SearchInput } from "./SearchInput";
 import { getImagePath } from "@/utils/imagePath";
+import { TEXTS } from "@/constants/texts";
 
-const CATEGORIAS = [
-  { label: "Cidade", slug: "cidade" },
-  { label: "Política", slug: "politica" },
-  { label: "Esporte", slug: "esporte" },
-  { label: "Entretenimento", slug: "entretenimento" },
-  { label: "Polícia", slug: "policia" },
-  { label: "Youtube", slug: "youtube" },
-  { label: "Brasil", slug: "brasil" },
-  { label: "Ceará", slug: "ceara" },
+import { apiService } from "@/services/api";
+
+const CATEGORIAS_FALLBACK = [
+  { nome: "Cidade", slug: "cidade" },
+  { nome: "Política", slug: "politica" },
+  { nome: "Esporte", slug: "esporte" },
+  { nome: "Entretenimento", slug: "entretenimento" },
+  { nome: "Polícia", slug: "policia" },
+  { nome: "Youtube", slug: "youtube" },
+  { nome: "Brasil", slug: "brasil" },
+  { nome: "Ceará", slug: "ceara" },
 ];
 
 export function Header() {
@@ -22,6 +25,21 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const pathname = usePathname();
+  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FALLBACK);
+
+  useEffect(() => {
+    let active = true;
+    const fetchCategorias = async () => {
+      const cats = await apiService.getCategorias();
+      if (cats && cats.length > 0 && active) {
+        setCategorias(cats);
+      }
+    };
+    fetchCategorias();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -80,32 +98,32 @@ export function Header() {
             <Link href="/" className="logo-wrapper">
               <Image
                 src={getImagePath(encodeURI("sistema/1.png"))}
-                alt="TV Russas"
+                alt={TEXTS.brand.name}
                 width={200}
                 height={56}
                 className="logo-img"
                 priority
                 style={{ height: "52px", width: "auto" }}
               />
-              <span className="logo-text">TV RUSSAS</span>
+              <span className="logo-text">{TEXTS.brand.name.toUpperCase()}</span>
             </Link>
 
             <div className="header-actions">
               <nav className="nav-links">
                 <Link href="/" className={pathname === "/" ? "active" : ""}>
-                  Página Inicial
+                  {TEXTS.navigation.home}
                 </Link>
                 <Link
                   href="/colunistas"
                   className={pathname === "/colunistas" ? "active" : ""}
                 >
-                  Colunistas
+                  {TEXTS.navigation.columnists}
                 </Link>
                 <Link
                   href="/reporter"
                   className={pathname === "/reporter" ? "active" : ""}
                 >
-                  Você Repórter
+                  {TEXTS.navigation.reporter}
                 </Link>
               </nav>
 
@@ -115,14 +133,14 @@ export function Header() {
                 <button
                   className="mobile-action-btn"
                   onClick={() => setShowSearch(!showSearch)}
-                  aria-label="Buscar"
+                  aria-label={TEXTS.actions.search}
                 >
                   <i className="fas fa-search" />
                 </button>
                 <button
                   className="mobile-menu-btn"
                   onClick={() => setMobileOpen(true)}
-                  aria-label="Menu"
+                  aria-label={TEXTS.navigation.menu}
                 >
                   <i className="fas fa-bars" />
                 </button>
@@ -148,7 +166,7 @@ export function Header() {
 
         <nav className="category-nav">
           <ul className="category-list">
-            {CATEGORIAS.map((cat) => (
+            {categorias.map((cat) => (
               <li key={cat.slug}>
                 <Link
                   href={`/categoria/${cat.slug}`}
@@ -156,7 +174,7 @@ export function Header() {
                     pathname === `/categoria/${cat.slug}` ? "active" : ""
                   }
                 >
-                  {cat.label}
+                  {cat.nome}
                 </Link>
               </li>
             ))}
@@ -171,7 +189,7 @@ export function Header() {
       />
       <div className={`mobile-drawer ${mobileOpen ? "open" : ""}`}>
         <div className="drawer-header">
-          <span className="drawer-logo">MENU</span>
+          <span className="drawer-logo">{TEXTS.navigation.menu}</span>
           <button className="drawer-close" onClick={() => setMobileOpen(false)}>
             <i className="fas fa-times" />
           </button>
@@ -179,26 +197,26 @@ export function Header() {
 
         <div className="drawer-content">
           <div className="drawer-section">
-            <span className="drawer-section-title">Navegação</span>
+            <span className="drawer-section-title">{TEXTS.navigation.navigation}</span>
             <nav className="drawer-nav">
               <Link href="/">
-                <i className="fas fa-home" /> Início
+                <i className="fas fa-home" /> {TEXTS.navigation.inicio}
               </Link>
               <Link href="/colunistas">
-                <i className="fas fa-user-edit" /> Colunistas
+                <i className="fas fa-user-edit" /> {TEXTS.navigation.columnists}
               </Link>
               <Link href="/reporter">
-                <i className="fas fa-camera" /> Você Repórter
+                <i className="fas fa-camera" /> {TEXTS.navigation.reporter}
               </Link>
             </nav>
           </div>
 
           <div className="drawer-section">
-            <span className="drawer-section-title">Categorias</span>
+            <span className="drawer-section-title">{TEXTS.navigation.categories}</span>
             <nav className="drawer-categories">
-              {CATEGORIAS.map((cat) => (
+              {categorias.map((cat) => (
                 <Link key={cat.slug} href={`/categoria/${cat.slug}`}>
-                  {cat.label}
+                  {cat.nome}
                 </Link>
               ))}
             </nav>

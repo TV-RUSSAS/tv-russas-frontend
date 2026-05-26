@@ -123,11 +123,13 @@ export default function MaisLidasPage() {
   const totalViews = rankingData.reduce((acc, item) => acc + (item.views || 0), 0);
   const avgViews = rankingData.length > 0 ? Math.round(totalViews / rankingData.length) : 0;
 
-  const categoryViews: Record<string, number> = {};
+  const categoryViewsMap = new Map<string, number>();
   rankingData.forEach(item => {
-    if (item.categoria) categoryViews[item.categoria] = (categoryViews[item.categoria] || 0) + (item.views || 0);
+    if (item.categoria) {
+      categoryViewsMap.set(item.categoria, (categoryViewsMap.get(item.categoria) ?? 0) + (item.views || 0));
+    }
   });
-  const topCategory = Object.entries(categoryViews).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+  const topCategory = Array.from(categoryViewsMap.entries()).sort((a, b) => b[1] - a[1]).at(0)?.[0] ?? '—';
 
   return (
     <div className="ml-page">

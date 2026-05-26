@@ -12,13 +12,15 @@ import {
   Trash2,
   AlertTriangle,
   CheckCircle,
-  X
+  X,
+  GripVertical
 } from 'lucide-react';
 
 interface Categoria {
   id: string;
   nome: string;
   slug: string;
+  ordem: number;
   _count: { noticias: number };
 }
 
@@ -35,11 +37,78 @@ export default function CategoriasAdmin() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nome, setNome] = useState('');
+  const [ordem, setOrdem] = useState<number>(0);
   const [saving, setSaving] = useState(false);
 
   // Confirm delete
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Drag and Drop
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (searchTerm !== '') return;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (searchTerm !== '') return;
+    if (draggedIndex === null || draggedIndex === index) return;
+    setDragOverIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    if (searchTerm !== '') return;
+    if (draggedIndex === null || draggedIndex === targetIndex) return;
+
+    // Criar nova lista reordenada localmente
+    const newList = categorias.map(c => ({ ...c }));
+    const draggedItem = newList[draggedIndex];
+    newList.splice(draggedIndex, 1);
+    newList.splice(targetIndex, 0, draggedItem);
+
+    // Sincronizar as ordens locais para index + 1 (comportamento idêntico ao backend)
+    const updatedList = newList.map((c, index) => ({
+      ...c,
+      ordem: index + 1,
+    }));
+
+    // Atualizar estado local
+    setCategorias(updatedList);
+
+    // Limpar índices
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+
+    // Enviar para o backend salvar a nova ordem em lote
+    try {
+      const idsOrdenados = newList.map(c => c.id);
+      const res = await authFetch('/admin/categorias/reordenar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: idsOrdenados }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao reordenar.');
+      
+      setSuccess('Ordenação de categorias atualizada com sucesso!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      if (err instanceof Error) setError(err.message);
+      load();
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -72,11 +141,11 @@ export default function CategoriasAdmin() {
   }, [authFetch]);
 
   const openCreate = () => {
-    setModalMode('create'); setNome(''); setEditingId(null); setModalOpen(true);
+    setModalMode('create'); setNome(''); setOrdem(0); setEditingId(null); setModalOpen(true);
   };
 
   const openEdit = (cat: Categoria) => {
-    setModalMode('edit'); setNome(cat.nome); setEditingId(cat.id); setModalOpen(true);
+    setModalMode('edit'); setNome(cat.nome); setOrdem(cat.ordem || 0); setEditingId(cat.id); setModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -89,7 +158,7 @@ export default function CategoriasAdmin() {
       const res = await authFetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome }),
+        body: JSON.stringify({ nome, ordem }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar.');
@@ -245,64 +314,97 @@ export default function CategoriasAdmin() {
           <table className="cms-table">
             <thead>
               <tr>
-                <th style={{ width: '40%' }}>Nome</th>
-                <th style={{ width: '30%' }}>Slug</th>
+                <th style={{ width: '4%' }}></th>
+                <th style={{ width: '31%' }}>Nome</th>
+                <th style={{ width: '25%' }}>Slug</th>
+                <th style={{ width: '15%', textAlign: 'center' }}>Ordem</th>
                 <th style={{ width: '15%', textAlign: 'center' }}>Notícias</th>
-                <th style={{ width: '15%', textAlign: 'right' }}>Ações</th>
+                <th style={{ width: '10%', textAlign: 'right' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredCategorias.length === 0 ? (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center', padding: '48px', color: 'var(--c-secondary)' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '48px', color: 'var(--c-secondary)' }}>
                     Nenhuma categoria encontrada
                   </td>
                 </tr>
               ) : (
-                filteredCategorias.map(cat => (
-                  <tr key={cat.id}>
-                    <td style={{ fontWeight: '600', color: 'var(--c-text)', verticalAlign: 'middle' }}>
-                      {cat.nome}
-                    </td>
-                    <td style={{ verticalAlign: 'middle' }}>
-                      <code style={{ 
-                        fontSize: '11px', 
-                        fontFamily: 'var(--font-mono)',
-                        background: 'rgba(255, 255, 255, 0.04)', 
-                        border: '1px solid rgba(255,255,255,0.06)',
-                        padding: '3px 8px', 
-                        borderRadius: '4px',
-                        color: 'var(--c-secondary)'
+                filteredCategorias.map((cat, index) => {
+                  const isDragging = draggedIndex === index;
+                  const isDragOver = dragOverIndex === index;
+                  
+                  return (
+                    <tr 
+                      key={cat.id}
+                      draggable={searchTerm === ''}
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDrop={(e) => handleDrop(e, index)}
+                      style={{
+                        opacity: isDragging ? 0.3 : 1,
+                        background: isDragOver ? 'rgba(224, 74, 45, 0.05)' : undefined,
+                        borderBottom: isDragOver ? '2px solid var(--c-accent)' : undefined,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <td style={{ 
+                        verticalAlign: 'middle', 
+                        textAlign: 'center', 
+                        cursor: searchTerm === '' ? 'grab' : 'default',
+                        padding: '12px 8px'
                       }}>
-                        {cat.slug}
-                      </code>
-                    </td>
-                    <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                      <span className="cms-badge cms-badge-blue" style={{ fontWeight: '600' }}>
-                        {cat._count.noticias} matérias
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                        <button 
-                          className="cms-btn cms-btn-secondary cms-btn-sm" 
-                          onClick={() => openEdit(cat)}
-                          title="Editar Categoria"
-                        >
-                          <Edit size={13} />
-                          <span>Editar</span>
-                        </button>
-                        <button 
-                          className="cms-btn cms-btn-danger cms-btn-sm" 
-                          onClick={() => setConfirmDeleteId(cat.id)}
-                          title="Excluir Categoria"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        {searchTerm === '' && (
+                          <GripVertical size={14} style={{ color: 'var(--c-muted)', opacity: 0.4 }} />
+                        )}
+                      </td>
+                      <td style={{ fontWeight: '600', color: 'var(--c-text)', verticalAlign: 'middle' }}>
+                        {cat.nome}
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <code style={{ 
+                          fontSize: '11px', 
+                          fontFamily: 'var(--font-mono)',
+                          background: 'rgba(255, 255, 255, 0.04)', 
+                          border: '1px solid rgba(255,255,255,0.06)',
+                          padding: '3px 8px', 
+                          borderRadius: '4px',
+                          color: 'var(--c-secondary)'
+                        }}>
+                          {cat.slug}
+                        </code>
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle', fontWeight: 'bold', color: 'var(--c-accent)' }}>
+                        {cat.ordem ?? 0}
+                      </td>
+                      <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                        <span className="cms-badge cms-badge-blue" style={{ fontWeight: '600' }}>
+                          {cat._count.noticias} matérias
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                          <button 
+                            className="cms-btn cms-btn-secondary cms-btn-sm" 
+                            onClick={() => openEdit(cat)}
+                            title="Editar Categoria"
+                          >
+                            <Edit size={13} />
+                            <span>Editar</span>
+                          </button>
+                          <button 
+                            className="cms-btn cms-btn-danger cms-btn-sm" 
+                            onClick={() => setConfirmDeleteId(cat.id)}
+                            title="Excluir Categoria"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -324,7 +426,7 @@ export default function CategoriasAdmin() {
             </div>
             <form onSubmit={handleSave}>
               <div className="cms-modal-body">
-                <div className="cms-form-group" style={{ marginBottom: 0 }}>
+                <div className="cms-form-group" style={{ marginBottom: '16px' }}>
                   <label className="cms-label">Nome da Categoria <span>*</span></label>
                   <input
                     className="cms-input"
@@ -335,6 +437,18 @@ export default function CategoriasAdmin() {
                     autoFocus
                   />
                   <span className="cms-form-hint">O slug identificador na URL será gerado automaticamente.</span>
+                </div>
+                <div className="cms-form-group" style={{ marginBottom: 0 }}>
+                  <label className="cms-label">Ordem de Exibição <span>*</span></label>
+                  <input
+                    type="number"
+                    className="cms-input"
+                    required
+                    value={ordem}
+                    onChange={e => setOrdem(parseInt(e.target.value) || 0)}
+                    placeholder="Ex: 0, 1, 2..."
+                  />
+                  <span className="cms-form-hint">Define a ordem de prioridade para a exibição no portal (menor número aparece primeiro).</span>
                 </div>
               </div>
               <div className="cms-modal-footer">

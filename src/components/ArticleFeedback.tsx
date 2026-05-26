@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ThumbsUp, ThumbsDown, CheckCircle2 } from 'lucide-react';
 import { API_URL } from '@/services/api';
+import { TEXTS } from '@/constants/texts';
 
 interface ArticleFeedbackProps {
   articleId: string;
@@ -44,8 +45,8 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
       <div className="article-feedback-container voted animate-in fade-in zoom-in duration-500">
         <div className="flex flex-col items-center gap-3">
           <CheckCircle2 className="w-12 h-12 text-green-500" />
-          <h4 className="text-xl font-bold text-gray-800">Obrigado pelo seu feedback!</h4>
-          <p className="text-gray-500">Sua opinião ajuda a melhorar nosso conteúdo.</p>
+          <h4 className="text-xl font-bold text-gray-800">{TEXTS.feedback.thankYou}</h4>
+          <p className="text-gray-500">{TEXTS.feedback.subText}</p>
         </div>
       </div>
     );
@@ -53,21 +54,21 @@ export function ArticleFeedback({ articleId }: ArticleFeedbackProps) {
 
   return (
     <div className="article-feedback-container">
-      <h4 className="feedback-title">O que você achou desta matéria?</h4>
+      <h4 className="feedback-title">{TEXTS.feedback.title}</h4>
       <div className="feedback-buttons">
         <button 
           onClick={() => handleVote('positive')}
           className="feedback-btn positive"
         >
           <ThumbsUp size={20} />
-          <span>Excelente</span>
+          <span>{TEXTS.feedback.excellent}</span>
         </button>
         <button 
           onClick={() => handleVote('negative')}
           className="feedback-btn negative"
         >
           <ThumbsDown size={20} />
-          <span>Poderia melhorar</span>
+          <span>{TEXTS.feedback.couldImprove}</span>
         </button>
       </div>
     </div>

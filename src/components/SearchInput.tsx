@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { API_URL } from "@/services/api";
 import { getImagePath } from "@/utils/imagePath";
+import { TEXTS } from "@/constants/texts";
 
 interface SearchResult {
   id: string;
@@ -47,6 +48,12 @@ export function SearchInput() {
 
   // Debounce search
   useEffect(() => {
+    const isEconomy = process.env.NEXT_PUBLIC_ECONOMY_MODE === "true";
+    const delay = isEconomy ? 1000 : 300;
+
+    // ECONOMY_MODE: debounce maior para reduzir chamadas ao backend no Render.
+    // TODO: Reativar quando backend estiver em plano com banda suficiente.
+    // Para reativar, defina ECONOMY_MODE=false no .env.
     const timer = setTimeout(async () => {
       if (query.length >= 3) {
         setLoading(true);
@@ -66,7 +73,7 @@ export function SearchInput() {
         setResults([]);
         setIsOpen(false);
       }
-    }, 300);
+    }, delay);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -96,7 +103,7 @@ export function SearchInput() {
         <i className="fas fa-search search-icon-v2" />
         <input
           type="text"
-          placeholder="Buscar no portal..."
+          placeholder={TEXTS.actions.search + " no portal..."}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.length >= 3 && setIsOpen(true)}
@@ -109,7 +116,7 @@ export function SearchInput() {
         <div className="search-dropdown-v2">
           {results.length > 0 ? (
             <div className="search-results-v2">
-              <div className="search-dropdown-header-v2">Resultados para &quot;{query}&quot;</div>
+              <div className="search-dropdown-header-v2">{TEXTS.search.resultsFor}&quot;{query}&quot;</div>
               {results.slice(0, 3).map((noticia) => (
                 <Link
                   key={noticia.id}
@@ -141,7 +148,7 @@ export function SearchInput() {
             </div>
           ) : (
             <div className="search-empty-v2">
-              Nenhuma notícia encontrada para &quot;{query}&quot;
+              {TEXTS.search.noNewsFoundFor}&quot;{query}&quot;
             </div>
           )}
         </div>

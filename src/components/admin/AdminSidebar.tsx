@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AdminUser } from '@/hooks/useAdminAuth';
 import { useState, useEffect } from 'react';
+import { TEXTS } from '@/constants/texts';
 import {
   LayoutDashboard,
   FileText,
@@ -111,7 +112,7 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img 
             src={logoUrl} 
-            alt="Logo TV Russas" 
+            alt={"Logo " + TEXTS.brand.name} 
             style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
@@ -123,8 +124,8 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span className="cms-sidebar-logo-text" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--c-text)', letterSpacing: '-0.01em' }}>TV Russas</span>
-          <span className="cms-sidebar-logo-sub" style={{ fontSize: '10px', color: 'var(--c-secondary)', fontWeight: '400', opacity: 0.8 }}>Painel Editorial</span>
+          <span className="cms-sidebar-logo-text" style={{ fontSize: '14px', fontWeight: '700', color: 'var(--c-text)', letterSpacing: '-0.01em' }}>{TEXTS.brand.name}</span>
+          <span className="cms-sidebar-logo-sub" style={{ fontSize: '10px', color: 'var(--c-secondary)', fontWeight: '400', opacity: 0.8 }}>{TEXTS.brand.panel}</span>
         </div>
       </div>
 
@@ -174,7 +175,7 @@ export function AdminSidebar({ user, sugestoesCount }: Props) {
         {/* Link para o Portal Público */}
         <Link href="/" target="_blank" className="cms-nav-item" style={{ padding: '8px 12px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--c-border)', borderRadius: '4px', fontSize: '13px', justifyContent: 'center', gap: '8px', display: 'flex', width: '100%' }}>
           <ExternalLink size={14} />
-          <span>Ver Portal</span>
+          <span>{"Ver Portal"}</span>
         </Link>
       </div>
 

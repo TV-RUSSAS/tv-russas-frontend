@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { TEXTS } from '@/constants/texts';
 
 // TipTap imports
 import { useEditor, EditorContent } from '@tiptap/react';
@@ -25,6 +26,15 @@ interface Colunista  { id: string; nome: string; }
 
 function generateSlug(title: string): string {
   return title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 // ── TOOLBAR DO EDITOR ─────────────────────────────────────────────
@@ -71,14 +81,14 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       {/* Font Family Dropdown */}
       <div className="ed-dropdown" onMouseLeave={() => setShowFontMenu(false)}>
         <button type="button" className="ed-btn" style={{ width: 'auto', padding: '0 8px', fontSize: '12px', fontWeight: '600' }} onClick={() => setShowFontMenu(!showFontMenu)}>
-          Fonte <i className="fas fa-chevron-down" style={{ fontSize: '10px', marginLeft: '4px' }}/>
+          {TEXTS.admin.source} <i className="fas fa-chevron-down" style={{ fontSize: '10px', marginLeft: '4px' }}/>
         </button>
         {showFontMenu && (
           <div className="ed-dropdown-content" style={{ display: 'block' }}>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().unsetFontFamily().run(); setShowFontMenu(false); }} style={{ fontFamily: 'var(--font-sans)' }}>Padrão (Inter)</button>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Lora').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Lora, serif' }}>Lora (Serifada)</button>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Merriweather').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Merriweather, serif' }}>Merriweather</button>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Georgia').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Georgia, serif' }}>Georgia</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().unsetFontFamily().run(); setShowFontMenu(false); }} style={{ fontFamily: 'var(--font-sans)' }}>{"Padrão (Inter)"}</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Lora').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Lora, serif' }}>{"Lora (Serifada)"}</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Merriweather').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Merriweather, serif' }}>{"Merriweather"}</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Georgia').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Georgia, serif' }}>{"Georgia"}</button>
           </div>
         )}
       </div>
@@ -110,7 +120,7 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
               <div key={color} onClick={() => { editor.chain().focus().setColor(color).run(); setShowColorMenu(false); }}
                    style={{ width: '20px', height: '20px', background: color, borderRadius: '50%', cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }} />
             ))}
-            <button type="button" onClick={() => { editor.chain().focus().unsetColor().run(); setShowColorMenu(false); }} style={{ gridColumn: 'span 4', fontSize: '11px', marginTop: '4px', background: 'transparent', border: 'none', color: 'var(--c-text)', cursor: 'pointer' }}>Resetar</button>
+            <button type="button" onClick={() => { editor.chain().focus().unsetColor().run(); setShowColorMenu(false); }} style={{ gridColumn: 'span 4', fontSize: '11px', marginTop: '4px', background: 'transparent', border: 'none', color: 'var(--c-text)', cursor: 'pointer' }}>{"Resetar"}</button>
           </div>
         )}
       </div>
@@ -337,18 +347,18 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   const executeSubmit = async () => {
     setError('');
     const content = editor?.getHTML() || '';
-    if (content === '<p></p>' || !content.trim()) { setError('O conteúdo da notícia não pode estar vazio.'); return; }
-    if (mode === 'create' && !capa) { setError('A imagem de capa é obrigatória.'); return; }
+    if (content === '<p></p>' || !content.trim()) { setError(TEXTS.admin.newsContentEmpty); return; }
+    if (mode === 'create' && !capa) { setError(TEXTS.admin.coverRequired); return; }
 
     setLoading(true);
     try {
       // Reconstrói a tag da Fonte no formato que o frontend espera
       let finalContent = content;
       if (fonteText && fonteText.trim() !== '') {
-        finalContent += `\n<p><strong>Fonte: ${fonteText.trim()}</strong></p>`;
+        finalContent += '\n<p><strong>Fonte: ' + escapeHtml(fonteText.trim()) + '</strong></p>';
       }
       if (publicadoPorText && publicadoPorText.trim() !== '') {
-        finalContent += `\n<p class="article-author-attribution"><strong>Publicado por: ${publicadoPorText.trim()}</strong></p>`;
+        finalContent += '\n<p class="article-author-attribution"><strong>Publicado por: ' + escapeHtml(publicadoPorText.trim()) + '</strong></p>';
       }
 
       const formData = new FormData();
@@ -417,19 +427,19 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
           <div>
             <h2 className="cms-page-title">
               {mode === 'create' ? (
-                <><i className="fas fa-feather-alt" style={{ fontSize: '20px', marginRight: '10px', color: 'var(--c-accent)' }} /> Escrever Matéria</>
+                <><i className="fas fa-feather-alt" style={{ fontSize: '20px', marginRight: '10px', color: 'var(--c-accent)' }} /> {TEXTS.admin.writeMatter}</>
               ) : (
-                <><i className="far fa-edit" style={{ fontSize: '20px', marginRight: '10px', color: 'var(--c-accent)' }} /> Editar Matéria</>
+                <><i className="far fa-edit" style={{ fontSize: '20px', marginRight: '10px', color: 'var(--c-accent)' }} /> {TEXTS.admin.editMatter}</>
               )}
             </h2>
             <p className="cms-page-subtitle" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span>{mode === 'edit' ? 'Modo de edição editorial.' : 'Modo de criação editorial.'}</span>
-              {saveStatus === 'saving' && <span style={{ color: 'var(--c-warn)', fontSize: '11px', fontWeight: '500' }}><i className="fas fa-circle-notch fa-spin"/> Salvando rascunho...</span>}
-              {saveStatus === 'saved' && <span style={{ color: 'var(--c-positive)', fontSize: '11px', fontWeight: '500' }}><i className="fas fa-check"/> Rascunho salvo localmente</span>}
+              <span>{mode === 'edit' ? TEXTS.admin.editMode : TEXTS.admin.createMode}</span>
+              {saveStatus === 'saving' && <span style={{ color: 'var(--c-warn)', fontSize: '11px', fontWeight: '500' }}><i className="fas fa-circle-notch fa-spin"/> {TEXTS.admin.savingDraft}</span>}
+              {saveStatus === 'saved' && <span style={{ color: 'var(--c-positive)', fontSize: '11px', fontWeight: '500' }}><i className="fas fa-check"/> {TEXTS.admin.draftSaved}</span>}
             </p>
           </div>
           <Link href="/admin/noticias" className="cms-btn cms-btn-secondary">
-            <i className="fas fa-arrow-left" style={{ fontSize: '11px', marginRight: '6px' }} /> Cancelar
+            <i className="fas fa-arrow-left" style={{ fontSize: '11px', marginRight: '6px' }} /> {TEXTS.actions.cancel}
           </Link>
         </div>
 
@@ -481,7 +491,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                 {/* Container de Atribuição (Fonte e Publicado Por) */}
                 <div className="admin-article-preview" style={{ marginTop: '50px', paddingTop: '30px', borderTop: '1px solid #f4f4f5', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>Fonte:</strong>
+                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>{TEXTS.admin.sourceColon}</strong>
                     <input 
                       type="text" 
                       value={fonteText} 
@@ -502,7 +512,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                   </div>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>Publicado por:</strong>
+                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>{TEXTS.admin.publishedBy}</strong>
                     <input 
                       type="text" 
                       value={publicadoPorText} 
@@ -532,10 +542,10 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
             
              {/* Ações e Publicação */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
-              <div style={{ fontWeight: '700', marginBottom: '18px', fontSize: '15px' }}>Publicação</div>
+              <div style={{ fontWeight: '700', marginBottom: '18px', fontSize: '15px' }}>{TEXTS.admin.publication}</div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '11px', color: 'var(--c-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Classificação de Feed</div>
+                <div style={{ fontSize: '11px', color: 'var(--c-muted)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{TEXTS.admin.feedClassification}</div>
                 
                 {/* Opção 1: Última Notícia */}
                 <div 
@@ -566,8 +576,8 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                     {!featured && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#818cf8' }} />}
                   </div>
                   <div>
-                    <div style={{ fontWeight: '600', fontSize: '13px', color: !featured ? '#fff' : 'var(--c-secondary)' }}>Última Notícia</div>
-                    <div style={{ fontSize: '10px', color: 'var(--c-muted)' }}>Notícia padrão no feed cronológico.</div>
+                    <div style={{ fontWeight: '600', fontSize: '13px', color: !featured ? '#fff' : 'var(--c-secondary)' }}>{"Última Notícia"}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--c-muted)' }}>{TEXTS.admin.standardFeedNews}</div>
                   </div>
                 </div>
 
@@ -600,8 +610,8 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                     {featured && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--c-accent)' }} />}
                   </div>
                   <div>
-                    <div style={{ fontWeight: '600', fontSize: '13px', color: featured ? '#fff' : 'var(--c-secondary)' }}>Destaque do Banner</div>
-                    <div style={{ fontSize: '10px', color: 'var(--c-muted)' }}>Aparecerá no banner principal (máx. 3).</div>
+                    <div style={{ fontWeight: '600', fontSize: '13px', color: featured ? '#fff' : 'var(--c-secondary)' }}>{TEXTS.admin.bannerHighlight}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--c-muted)' }}>{TEXTS.admin.bannerHighlightSub}</div>
                   </div>
                 </div>
               </div>
@@ -609,25 +619,25 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
 
               
               <button type="submit" disabled={loading} className="cms-btn cms-btn-publish" style={{ width: '100%', justifyContent: 'center', height: '48px', fontSize: '15px', borderRadius: '8px' }}>
-                {loading ? <><div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Publicando...</> : mode === 'create' ? <><i className="fas fa-paper-plane" style={{ marginRight: '8px' }} /> Publicar Matéria</> : <><i className="far fa-save" style={{ marginRight: '8px' }} /> Atualizar Matéria</>}
+                {loading ? <><div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> {"Publicando..."}</> : mode === 'create' ? <><i className="fas fa-paper-plane" style={{ marginRight: '8px' }} /> {TEXTS.actions.publish}</> : <><i className="far fa-save" style={{ marginRight: '8px' }} /> {TEXTS.actions.save}</>}
               </button>
             </div>
 
             {/* Imagem de Capa */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
               <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>
-                Capa da Matéria {mode === 'create' && <span style={{ color: 'var(--c-accent)' }}>*</span>}
+                {TEXTS.admin.matterCover} {mode === 'create' && <span style={{ color: 'var(--c-accent)' }}>*</span>}
               </div>
               {capaPreview ? (
                 <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', aspectRatio: '16/9', border: '1px solid var(--c-border)', position: 'relative' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={capaPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>Trocar</button>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>{TEXTS.admin.change}</button>
                 </div>
               ) : (
                 <div onClick={() => fileInputRef.current?.click()} style={{ marginBottom: '16px', borderRadius: '6px', height: '140px', border: '2px dashed var(--c-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
                   <i className="far fa-image" style={{ fontSize: '24px', marginBottom: '8px' }} />
-                  <span style={{ fontSize: '12px', fontWeight: '500' }}>Clique para enviar a capa</span>
+                  <span style={{ fontSize: '12px', fontWeight: '500' }}>{TEXTS.admin.clickUploadCover}</span>
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
@@ -635,44 +645,44 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
 
             {/* Classificação */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
-              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>Organização</div>
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>{TEXTS.admin.organization}</div>
               <div className="cms-form-group">
-                <label className="cms-label">Slug (URL SEO)</label>
+                <label className="cms-label">{TEXTS.admin.slugSeo}</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input className="cms-input" style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }} value={slug} onChange={e => { setSlug(e.target.value); setSlugManual(true); setSaveStatus('saving'); }} placeholder="url-da-noticia" />
                   <button type="button" className="cms-btn cms-btn-secondary cms-btn-sm" onClick={() => { setSlug(generateSlug(titulo)); setSlugManual(false); }}>↻</button>
                 </div>
               </div>
               <div className="cms-form-group">
-                <label className="cms-label">Categoria <span>*</span></label>
+                <label className="cms-label">{TEXTS.admin.category} <span>*</span></label>
                 <select className="cms-select" required value={categoriaId} onChange={e => { setCategoriaId(e.target.value); setSaveStatus('saving'); }}>
-                  <option value="">Selecione...</option>
+                  <option value="">{TEXTS.admin.select}</option>
                   {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
               <div className="cms-form-group">
-                <label className="cms-label">Autor da Matéria</label>
+                <label className="cms-label">{TEXTS.admin.matterAuthor}</label>
                 <select className="cms-select" value={colunistaId} onChange={e => { setColunistaId(e.target.value); setSaveStatus('saving'); }}>
-                  <option value="">Redação TV Russas</option>
+                  <option value="">{TEXTS.admin.defaultAuthor}</option>
                   {colunistas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
               <div className="cms-form-group" style={{ marginBottom: 0 }}>
-                <label className="cms-label">Tags Opcionais</label>
+                <label className="cms-label">{TEXTS.admin.optionalTags}</label>
                 <input className="cms-input" value={tags} onChange={e => { setTags(e.target.value); setSaveStatus('saving'); }} placeholder="ex: russas, política" />
               </div>
             </div>
 
             {/* Stats Editoriais */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
-              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>Análise Editorial</div>
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>{"Análise Editorial"}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={{ background: 'var(--c-raised)', padding: '12px', borderRadius: '6px', border: '1px solid var(--c-border)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Palavras</div>
+                  <div style={{ fontSize: '11px', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{TEXTS.admin.words}</div>
                   <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--c-text)' }}>{wordCount}</div>
                 </div>
                 <div style={{ background: 'var(--c-raised)', padding: '12px', borderRadius: '6px', border: '1px solid var(--c-border)' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Tempo Leitura</div>
+                  <div style={{ fontSize: '11px', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{TEXTS.admin.readTimeLabel}</div>
                   <div style={{ fontSize: '20px', fontWeight: '700', color: 'var(--c-text)' }}>{readTime}m</div>
                 </div>
               </div>
@@ -681,21 +691,21 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
             {/* Google Preview */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
               <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <i className="fab fa-google" style={{ color: '#4285F4' }} /> Preview da Busca
+                <i className="fab fa-google" style={{ color: '#4285F4' }} /> {"Preview da Busca"}
               </div>
               <div style={{ background: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #e4e4e7', fontFamily: 'arial, sans-serif', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                 
                 {/* Favicon e URL Breadcrumb */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                   <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/sistema/1.png`} alt="TV Russas" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/sistema/1.png`} alt={TEXTS.brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '14px', color: '#202124', lineHeight: '20px' }}>TV Russas</span>
+                    <span style={{ fontSize: '14px', color: '#202124', lineHeight: '20px' }}>{TEXTS.brand.name}</span>
                     <div style={{ fontSize: '12px', color: '#4d5156', lineHeight: '18px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                      <span style={{ color: '#202124' }}>https://tvrussas.com.br</span>
-                      <span style={{ fontSize: '10px', color: '#70757a' }}>›</span>
-                      <span>noticia</span>
+                      <span style={{ color: '#202124' }}>{"https://tvrussas.com.br"}</span>
+                      <span style={{ fontSize: '10px', color: '#70757a' }}>{"›"}</span>
+                      <span>{"noticia"}</span>
                       {slug && (
                         <>
                           <span style={{ fontSize: '10px', color: '#70757a' }}>›</span>
@@ -729,12 +739,14 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
           <div className="cms-modal" style={{ maxWidth: '500px', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 24px 48px rgba(0,0,0,0.2)' }}>
             <div className="cms-modal-header" style={{ borderBottom: '1px solid var(--c-border)', padding: '24px', background: 'var(--c-surface)' }}>
               <h3 className="cms-modal-title" style={{ fontSize: '20px', fontWeight: '700', color: 'var(--c-text)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <i className="fas fa-crown" style={{ color: '#F59E0B' }}/> Substituir Destaque
+                <i className="fas fa-crown" style={{ color: '#F59E0B' }}/> {"Substituir Destaque"}
               </h3>
               <button type="button" className="cms-modal-close" onClick={() => setShowFeaturedModal(false)}><i className="fas fa-times" /></button>
             </div>
             <div className="cms-modal-body" style={{ background: 'var(--c-bg)', padding: '24px', color: 'var(--c-secondary)', fontSize: '15px', lineHeight: '1.6' }}>
-              <p style={{ marginBottom: '20px' }}>O banner inicial da página suporta no máximo <strong>3 notícias simultâneas</strong>. Selecione qual matéria sairá do topo para dar lugar à sua nova postagem:</p>
+              <p style={{ marginBottom: '20px' }}>
+                {TEXTS.admin.bannerMaxAlert} <strong>{"3 notícias simultâneas"}</strong>{". Selecione qual matéria sairá do topo para dar lugar à sua nova postagem:"}
+              </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {destaquesAtuais.map(noticia => (
@@ -779,7 +791,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
               </div>
             </div>
             <div className="cms-modal-footer" style={{ borderTop: '1px solid var(--c-border)', padding: '20px 24px', background: 'var(--c-surface)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button type="button" className="cms-btn" style={{ background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text)', padding: '8px 16px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer' }} onClick={() => setShowFeaturedModal(false)}>Cancelar</button>
+              <button type="button" className="cms-btn" style={{ background: 'transparent', border: '1px solid var(--c-border)', color: 'var(--c-text)', padding: '8px 16px', borderRadius: '8px', fontWeight: '500', cursor: 'pointer' }} onClick={() => setShowFeaturedModal(false)}>{TEXTS.actions.cancel}</button>
               <button 
                 type="button" 
                 className="cms-btn"
@@ -796,7 +808,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                 disabled={!replaceFeaturedId}
                 onClick={() => { setShowFeaturedModal(false); executeSubmit(); }}
               >
-                Confirmar Substituição
+                {TEXTS.admin.confirmReplacement}
               </button>
             </div>
           </div>

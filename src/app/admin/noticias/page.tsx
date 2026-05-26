@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { TEXTS } from '@/constants/texts';
 import {
   Newspaper,
   Plus,
@@ -217,13 +218,13 @@ export default function NoticiasAdmin() {
         <div>
           <h2 className="cms-page-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Newspaper size={24} style={{ color: 'var(--c-accent)' }} />
-            Notícias
+            {TEXTS.admin.news}
           </h2>
-          <p className="cms-page-subtitle">Gerencie as matérias, destaques, coberturas e publicações editoriais do portal</p>
+          <p className="cms-page-subtitle">{TEXTS.admin.manageNewsDescription}</p>
         </div>
         <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary">
           <Plus size={16} />
-          <span>Nova Notícia</span>
+          <span>{TEXTS.admin.newNews}</span>
         </Link>
       </div>
 
@@ -250,7 +251,7 @@ export default function NoticiasAdmin() {
           <span className="cms-stat-value">
             {totalNoticiasPortal > 0 ? totalNoticiasPortal.toLocaleString('pt-BR') : paginacao.total.toLocaleString('pt-BR')}
           </span>
-          <span className="cms-stat-label">Total Publicado</span>
+          <span className="cms-stat-label">{TEXTS.admin.totalPublished}</span>
         </div>
 
         <div className="cms-stat-card">
@@ -260,7 +261,7 @@ export default function NoticiasAdmin() {
           <span className="cms-stat-value">
             {totalDestaquesPortal.toLocaleString('pt-BR')}
           </span>
-          <span className="cms-stat-label">Destaques Ativos</span>
+          <span className="cms-stat-label">{TEXTS.admin.activeHighlights}</span>
         </div>
 
         <div className="cms-stat-card">
@@ -270,7 +271,7 @@ export default function NoticiasAdmin() {
           <span className="cms-stat-value">
             {totalViewsPortal > 0 ? totalViewsPortal.toLocaleString('pt-BR') : '—'}
           </span>
-          <span className="cms-stat-label">Views Totais</span>
+          <span className="cms-stat-label">{TEXTS.admin.totalViewsMetric}</span>
         </div>
 
         <div className="cms-stat-card">
@@ -280,7 +281,7 @@ export default function NoticiasAdmin() {
           <span className="cms-stat-value">
             {mediaViewsPorMateria > 0 ? mediaViewsPorMateria.toLocaleString('pt-BR') : '—'}
           </span>
-          <span className="cms-stat-label">Média por Matéria</span>
+          <span className="cms-stat-label">{"Média por Matéria"}</span>
         </div>
       </div>
 
@@ -291,7 +292,7 @@ export default function NoticiasAdmin() {
           <input
             type="text"
             className="cms-search-input"
-            placeholder="Pesquisar notícias por título..."
+            placeholder={TEXTS.actions.search + " notícias..."}
             value={busca}
             onChange={e => { setBusca(e.target.value); setPage(1); }}
           />
@@ -303,7 +304,7 @@ export default function NoticiasAdmin() {
           value={filtroCategoria}
           onChange={e => { setFiltroCategoria(e.target.value); setPage(1); }}
         >
-          <option value="">Todas as categorias</option>
+          <option value="">{TEXTS.admin.allCategoriesFilter}</option>
           {categorias.map(c => (
             <option key={c.id} value={c.id}>{c.nome}</option>
           ))}
@@ -315,9 +316,9 @@ export default function NoticiasAdmin() {
           value={filtroDestaque}
           onChange={e => { setFiltroDestaque(e.target.value); setPage(1); }}
         >
-          <option value="all">Todas as classificações</option>
-          <option value="featured">Destaques do Banner</option>
-          <option value="regular">Apenas Últimas Notícias</option>
+          <option value="all">{TEXTS.admin.allClassificationsFilter}</option>
+          <option value="featured">{TEXTS.admin.activeHighlightsFilter}</option>
+          <option value="regular">{TEXTS.admin.onlyLatestFilter}</option>
         </select>
       </div>
 
@@ -326,31 +327,31 @@ export default function NoticiasAdmin() {
         <div className="cms-table-header">
           <span className="cms-table-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600' }}>
             <Newspaper size={16} style={{ color: 'var(--c-accent)' }} />
-            Lista de Matérias
+            {"Lista de Matérias"}
           </span>
           <span className="cms-badge cms-badge-gray" style={{ fontVariantNumeric: 'tabular-nums' }}>
-            {paginacao.total} publicações
+            {paginacao.total} {"publicações"}
           </span>
         </div>
 
         {loading ? (
           <div className="cms-loading">
             <div className="cms-spinner" />
-            <span>Processando dados editoriais...</span>
+            <span>{TEXTS.admin.processingEditorialData}</span>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table className="cms-table">
               <thead>
                 <tr>
-                  <th style={{ width: '80px' }}>Capa</th>
-                  <th>Título</th>
-                  <th>Categoria</th>
-                  <th>Autor</th>
-                  <th style={{ width: '110px' }}>Data</th>
-                  <th style={{ width: '100px', textAlign: 'right' }}>Views</th>
-                  <th style={{ width: '100px', textAlign: 'center' }}>Status</th>
-                  <th style={{ width: '120px', textAlign: 'right' }}>Ações</th>
+                  <th style={{ width: '80px' }}>{TEXTS.admin.coverLabel}</th>
+                  <th>{"Título"}</th>
+                  <th>{TEXTS.admin.categoryLabel}</th>
+                  <th>{TEXTS.admin.authorLabel}</th>
+                  <th style={{ width: '110px' }}>{TEXTS.admin.dateLabel}</th>
+                  <th style={{ width: '100px', textAlign: 'right' }}>{TEXTS.admin.viewsLabel}</th>
+                  <th style={{ width: '100px', textAlign: 'center' }}>{TEXTS.admin.statusLabel}</th>
+                  <th style={{ width: '120px', textAlign: 'right' }}>{"Ações"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,7 +360,7 @@ export default function NoticiasAdmin() {
                     <td colSpan={8} style={{ textAlign: 'center', padding: '48px', color: 'var(--c-muted)' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
                         <FolderOpen size={32} style={{ color: 'rgba(255,255,255,0.06)' }} />
-                        <span>Nenhuma matéria encontrada com os filtros selecionados</span>
+                        <span>{TEXTS.admin.noNewsMatchingFilters}</span>
                       </div>
                     </td>
                   </tr>
@@ -415,11 +416,11 @@ export default function NoticiasAdmin() {
                         <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
                           {n.featured ? (
                             <span className="cms-badge cms-badge-yellow" style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(245, 158, 11, 0.08)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.2)' }}>
-                              <Star size={10} fill="currentColor" /> Destaque
+                              <Star size={10} fill="currentColor" /> {"Destaque"}
                             </span>
                           ) : ultimasNoticiasIds.includes(n.id) ? (
                             <span className="cms-badge cms-badge-blue" style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'rgba(59, 130, 246, 0.08)', color: '#60a5fa', borderColor: 'rgba(59, 130, 246, 0.2)' }}>
-                              Última Notícia
+                              {"Última Notícia"}
                             </span>
                           ) : null}
                         </div>
@@ -463,7 +464,7 @@ export default function NoticiasAdmin() {
                       {/* Status */}
                       <td style={{ textAlign: 'center' }}>
                         <span className="cms-badge cms-badge-green" style={{ background: 'rgba(16, 185, 129, 0.08)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.12)' }}>
-                          Publicada
+                          {TEXTS.admin.publishedStatus}
                         </span>
                       </td>
 
@@ -477,7 +478,7 @@ export default function NoticiasAdmin() {
                             style={{ height: '30px', padding: '0 10px', fontSize: '12px' }}
                           >
                             <Edit size={12} />
-                            <span>Editar</span>
+                            <span>{TEXTS.admin.editAction}</span>
                           </Link>
                           
                           {canDelete && (
@@ -504,7 +505,7 @@ export default function NoticiasAdmin() {
         {paginacao.totalPages > 1 && (
           <div className="cms-pagination" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '16px 20px' }}>
             <span className="cms-pagination-info" style={{ color: 'var(--c-muted)', fontSize: '13px' }}>
-              Exibindo <strong style={{ color: 'var(--c-text)', fontWeight: '500' }}>{noticias.length}</strong> de <strong style={{ color: 'var(--c-text)', fontWeight: '500' }}>{paginacao.total}</strong> publicações editoriais
+              {TEXTS.admin.displaying} <strong style={{ color: 'var(--c-text)', fontWeight: '500' }}>{noticias.length}</strong> de <strong style={{ color: 'var(--c-text)', fontWeight: '500' }}>{paginacao.total}</strong> {"publicações editoriais"}
             </span>
             <div className="cms-pagination-btns" style={{ display: 'flex', gap: '6px' }}>
               <button
@@ -513,7 +514,7 @@ export default function NoticiasAdmin() {
                 onClick={() => { setPage(p => p - 1); }}
                 style={{ fontSize: '12px', padding: '6px 12px' }}
               >
-                Anterior
+                {TEXTS.admin.previous}
               </button>
               
               {Array.from({ length: paginacao.totalPages }, (_, i) => i + 1).map(p => (
@@ -540,7 +541,7 @@ export default function NoticiasAdmin() {
                 onClick={() => { setPage(p => p + 1); }}
                 style={{ fontSize: '12px', padding: '6px 12px' }}
               >
-                Próxima
+                {TEXTS.admin.next}
               </button>
             </div>
           </div>
@@ -554,7 +555,7 @@ export default function NoticiasAdmin() {
             <div className="cms-modal-header">
               <span className="cms-modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
                 <AlertTriangle size={18} />
-                Confirmar Remoção
+                {"Confirmar Remoção"}
               </span>
               <button className="cms-modal-close" onClick={() => setConfirmDeleteId(null)}>
                 <X size={16} />
@@ -563,7 +564,7 @@ export default function NoticiasAdmin() {
             
             <div className="cms-modal-body">
               <p style={{ marginBottom: '14px', lineHeight: '1.6', color: 'var(--c-secondary)', fontSize: '14px' }}>
-                Você está prestes a excluir definitivamente a publicação editorial abaixo:
+                {"Você está prestes a excluir definitivamente a publicação editorial abaixo:"}
               </p>
               
               <div style={{
@@ -582,19 +583,19 @@ export default function NoticiasAdmin() {
               
               <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>Visualizações</span>
+                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>{"Visualizações"}</span>
                   <span style={{ fontSize: '14px', color: 'var(--c-text)', fontWeight: '500', fontFamily: 'monospace' }}>
                     {noticiaParaExcluir.views.toLocaleString('pt-BR')}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>Categoria</span>
+                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>{"Categoria"}</span>
                   <span style={{ fontSize: '13px', color: 'var(--c-text)', fontWeight: '500' }}>
                     {noticiaParaExcluir.categoria?.nome}
                   </span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>Data</span>
+                  <span style={{ fontSize: '11px', color: 'var(--c-muted)', textTransform: 'uppercase' }}>{"Data"}</span>
                   <span style={{ fontSize: '13px', color: 'var(--c-text)', fontWeight: '500' }}>
                     {new Date(noticiaParaExcluir.publicadoEm).toLocaleDateString('pt-BR')}
                   </span>
@@ -602,13 +603,13 @@ export default function NoticiasAdmin() {
               </div>
 
               <p style={{ marginTop: '16px', color: 'var(--c-muted)', fontSize: '12.5px', lineHeight: '1.5' }}>
-                Esta exclusão limpará os registros de interações e visualizações. O evento de exclusão será registrado no painel de auditoria do sistema.
+                {"Esta exclusão limpará os registros de interações e visualizações. O evento de exclusão será registrado no painel de auditoria do sistema."}
               </p>
             </div>
             
             <div className="cms-modal-footer">
               <button className="cms-btn cms-btn-secondary" onClick={() => setConfirmDeleteId(null)}>
-                Cancelar
+                {TEXTS.actions.cancel}
               </button>
               
               <button
@@ -619,12 +620,12 @@ export default function NoticiasAdmin() {
                 {deletingId === confirmDeleteId ? (
                   <>
                     <div className="cms-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                    <span>Processando...</span>
+                    <span>{"Processando..."}</span>
                   </>
                 ) : (
                   <>
                     <Trash2 size={14} />
-                    <span>Excluir Definitivamente</span>
+                    <span>{"Excluir Definitivamente"}</span>
                   </>
                 )}
               </button>

@@ -1877,3 +1877,63 @@ body {
   color: #64748b;
   font-size: 14px;
 }
+
+/* ===== ESTILOS E ANIMAÇÕES EDITORIAIS DO PAINEL ADMINISTRATIVO ===== */
+@keyframes growBar {
+  from { height: 0; y: 120px; }
+}
+.grow-bar-anim {
+  animation: growBar 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInLine {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+.fade-in-line-anim {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: fadeInLine 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+}
+
+@keyframes fadeInPoint {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+.fade-in-point-anim {
+  opacity: 0;
+  animation: fadeInPoint 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); } 
+  100% { transform: rotate(360deg); } 
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.ranking-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.ranking-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+.ranking-item:hover .ranking-actions {
+  opacity: 1;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

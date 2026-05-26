@@ -1,4 +1,4 @@
-import { Noticia, Colunista } from '@/types';
+import { Noticia, Colunista, Categoria } from '@/types';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : 'http://localhost:3001/api';
 // Forçar busca de dados sempre fresca do backend
@@ -100,6 +100,28 @@ export const apiService = {
       return res.json();
     } catch (error) {
       console.error(`Erro ao buscar colunista ${slug}:`, error);
+      return null;
+    }
+  },
+
+  async getCategorias(): Promise<Categoria[]> {
+    try {
+      const res = await fetch(`${API_URL}/categorias`, FETCH_OPTIONS);
+      if (!res.ok) return [];
+      return res.json();
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+      return [];
+    }
+  },
+
+  async getCategoriaBySlug(slug: string): Promise<Categoria | null> {
+    try {
+      const res = await fetch(`${API_URL}/categorias/${slug}`, FETCH_OPTIONS);
+      if (!res.ok) return null;
+      return res.json();
+    } catch (error) {
+      console.error(`Erro ao buscar categoria ${slug}:`, error);
       return null;
     }
   }

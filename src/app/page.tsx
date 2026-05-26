@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import Image from "next/image";
+import { TEXTS } from "@/constants/texts";
 import PremiumCard from "@/components/PremiumCard";
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
@@ -15,7 +16,7 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
       <h2 className="section-title-premium">{title}</h2>
       {link && (
         <Link href={link} className="section-view-all">
-          Ver todas <i className="fas fa-chevron-right"></i>
+          {TEXTS.navigation.verTodas} <i className="fas fa-chevron-right"></i>
         </Link>
       )}
     </div>
@@ -28,30 +29,30 @@ export default async function Home() {
     ultimasNoticias,
     maisLidasRaw,
     trendingRaw,
-    politica,
-    cidade,
-    esporte,
-    brasil,
-    entretenimento,
-    policia,
-    youtube,
-    ceara,
+    categorias,
     fallbackNews
   ] = await Promise.all([
     apiService.getDestaques(),
     apiService.getUltimasNoticias(6),
     apiService.getMaisLidas(),
     apiService.getTrending(),
-    apiService.getNoticiasByCategoria("politica", 3),
-    apiService.getNoticiasByCategoria("cidade", 3),
-    apiService.getNoticiasByCategoria("esporte", 3),
-    apiService.getNoticiasByCategoria("brasil", 3),
-    apiService.getNoticiasByCategoria("entretenimento", 3),
-    apiService.getNoticiasByCategoria("policia", 3),
-    apiService.getNoticiasByCategoria("youtube", 3),
-    apiService.getNoticiasByCategoria("ceara", 3),
+    apiService.getCategorias(),
     apiService.getUltimasNoticias(10) // Fallback for sidebar
   ]);
+
+  // Buscar notícias de cada categoria de forma paralela
+  const noticiasPorCategoria = await Promise.all(
+    categorias.map(async (cat) => {
+      const noticias = await apiService.getNoticiasByCategoria(cat.slug, 3);
+      return {
+        categoria: cat,
+        noticias,
+      };
+    })
+  );
+
+  // Filtrar apenas categorias que possuem pelo menos 1 notícia
+  const categoriasAtivas = noticiasPorCategoria.filter(item => item.noticias.length > 0);
 
   // 1. Destaques (Top Banner)
   const destaque = destaques[0];
@@ -129,117 +130,83 @@ export default async function Home() {
             </Link>
           </div>
 
-          {cidade.length > 0 && (
-            <section className="premium-section bg-light-gray rounded-box">
-              <SectionHeader title="Cidade" link="/categoria/cidade" />
-              <div className="news-grid-mixed">
-                {cidade[0] && <PremiumCard noticia={cidade[0]} size="medium" />}
-                <div className="mixed-list">
-                  {cidade.slice(1, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {politica.length > 0 && (
-            <section className="premium-section bg-light-gray rounded-box">
-              <SectionHeader title="Política" link="/categoria/politica" />
-              <div className="news-grid-mixed">
-                {politica[0] && (
-                  <PremiumCard noticia={politica[0]} size="medium" />
-                )}
-                <div className="mixed-list">
-                  {politica.slice(1, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          <div className="parallel-sections">
-            {esporte.length > 0 && (
-              <div className="parallel-col">
-                <SectionHeader title="Esporte" link="/categoria/esporte" />
-                <div className="parallel-list">
-                  {esporte.slice(0, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            )}
-            {brasil.length > 0 && (
-              <div className="parallel-col">
-                <SectionHeader title="Brasil" link="/categoria/brasil" />
-                <div className="parallel-list">
-                  {brasil.slice(0, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="parallel-sections">
-            {entretenimento.length > 0 && (
-              <div className="parallel-col">
-                <SectionHeader
-                  title="Entretenimento"
-                  link="/categoria/entretenimento"
-                />
-                <div className="parallel-list">
-                  {entretenimento.slice(0, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            )}
-            {policia.length > 0 && (
-              <div className="parallel-col">
-                <SectionHeader title="Polícia" link="/categoria/policia" />
-                <div className="parallel-list">
-                  {policia.slice(0, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {youtube.length > 0 && (
-            <section className="premium-section bg-light-gray rounded-box">
-              <SectionHeader title="Youtube" link="/categoria/youtube" />
-              <div className="news-grid-mixed">
-                {youtube[0] && (
-                  <PremiumCard noticia={youtube[0]} size="medium" />
-                )}
-                <div className="mixed-list">
-                  {youtube.slice(1, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {ceara.length > 0 && (
-            <section
-              className="premium-section bg-light-gray rounded-box"
-              style={{ marginTop: "20px" }}
-            >
-              <SectionHeader title="Ceará" link="/categoria/ceara" />
-              <div className="news-grid-mixed">
-                {ceara[0] && <PremiumCard noticia={ceara[0]} size="medium" />}
-                <div className="mixed-list">
-                  {ceara.slice(1, 3).map((n) => (
-                    <PremiumCard key={n.slug} noticia={n} size="list" />
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
+          {(() => {
+            const elementosLayout: React.ReactNode[] = [];
+            let i = 0;
+            
+            while (i < categoriasAtivas.length) {
+              const resto = i % 3;
+              
+              if (resto === 0 || resto === 1) {
+                // Renderizar em formato Mixed (bloco inteiro)
+                const item = categoriasAtivas[i];
+                if (item) {
+                  elementosLayout.push(
+                    <section key={item.categoria.slug} className="premium-section bg-light-gray rounded-box" style={{ marginTop: "20px", marginBottom: "20px" }}>
+                      <SectionHeader title={item.categoria.nome} link={`/categoria/${item.categoria.slug}`} />
+                      <div className="news-grid-mixed">
+                        {item.noticias[0] && <PremiumCard noticia={item.noticias[0]} size="medium" />}
+                        <div className="mixed-list">
+                          {item.noticias.slice(1, 3).map((n) => (
+                            <PremiumCard key={n.slug} noticia={n} size="list" />
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+                  );
+                }
+                i++;
+              } else {
+                // Renderizar em formato Parallel (lado a lado) - pega i e i + 1
+                const item1 = categoriasAtivas[i];
+                const item2 = categoriasAtivas[i + 1];
+                
+                if (item1 && item2) {
+                  elementosLayout.push(
+                    <div key={`${item1.categoria.slug}-${item2.categoria.slug}`} className="parallel-sections" style={{ marginTop: "20px", marginBottom: "20px" }}>
+                      <div className="parallel-col">
+                        <SectionHeader title={item1.categoria.nome} link={`/categoria/${item1.categoria.slug}`} />
+                        <div className="parallel-list">
+                          {item1.noticias.slice(0, 3).map((n) => (
+                            <PremiumCard key={n.slug} noticia={n} size="list" />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="parallel-col">
+                        <SectionHeader title={item2.categoria.nome} link={`/categoria/${item2.categoria.slug}`} />
+                        <div className="parallel-list">
+                          {item2.noticias.slice(0, 3).map((n) => (
+                            <PremiumCard key={n.slug} noticia={n} size="list" />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                  i += 2;
+                } else if (item1) {
+                  // Se for a última e não tiver par para parallel, renderiza como Mixed!
+                  elementosLayout.push(
+                    <section key={item1.categoria.slug} className="premium-section bg-light-gray rounded-box" style={{ marginTop: "20px", marginBottom: "20px" }}>
+                      <SectionHeader title={item1.categoria.nome} link={`/categoria/${item1.categoria.slug}`} />
+                      <div className="news-grid-mixed">
+                        {item1.noticias[0] && <PremiumCard noticia={item1.noticias[0]} size="medium" />}
+                        <div className="mixed-list">
+                          {item1.noticias.slice(1, 3).map((n) => (
+                            <PremiumCard key={n.slug} noticia={n} size="list" />
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+                  );
+                  i++;
+                } else {
+                  i++;
+                }
+              }
+            }
+            
+            return elementosLayout;
+          })()}
         </div>
 
         <aside className="premium-sidebar">
@@ -262,19 +229,19 @@ export default async function Home() {
             >
               <Image
                 src={getImagePath("sistema/tv.jpg")}
-                alt="TV Russas no Instagram"
+                alt={TEXTS.brand.name + " no Instagram"}
                 fill
                 sizes="300px"
                 style={{ objectFit: "cover" }}
               />
-              <div className="ad-overlay">Siga no Instagram</div>
+              <div className="ad-overlay">{"Siga no Instagram"}</div>
             </a>
           </div>
 
-          <TrendingWidget items={trending} title="Em Alta" />
+          <TrendingWidget items={trending} title={TEXTS.widgets.trending} />
 
           <div className="sticky-widget">
-            <TrendingWidget items={maisLidas} title="Mais Lidas" />
+            <TrendingWidget items={maisLidas} title={TEXTS.widgets.mostRead} />
           </div>
         </aside>
       </div>

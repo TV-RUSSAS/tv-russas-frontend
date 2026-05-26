@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
+import { TEXTS } from '@/constants/texts';
 
 /* ── Tipos ───────────────────────────────────────────────── */
 interface Atividade {
@@ -89,10 +90,11 @@ function agruparAtividades(atividades: Atividade[]): Array<Atividade & { agrupad
   const result: Array<Atividade & { agrupadas?: Atividade[]; isAgrupado?: boolean }> = [];
   
   for (let i = 0; i < atividades.length; i++) {
-    const atual = atividades[i];
+    const atual = atividades.at(i);
+    if (!atual) continue;
     
     // Tentamos ver se podemos agrupar com o último item no result
-    const ultimoResult = result[result.length - 1];
+    const ultimoResult = result.at(-1);
     
     // Regras de agrupamento:
     // 1. Mesmo tipo ('AUDIT') e não é 'SUGESTAO'
@@ -336,7 +338,10 @@ function getAcaoEditorialInfo(acao: string): {
     },
   };
 
-  return map[acao] || {
+  const entries = Object.entries(map);
+  const found = entries.find(([key]) => key === acao);
+  const info = found ? found[1] : null;
+  return info || {
     label: acao.replace(/_/g, ' ').toLowerCase(),
     corBadge: 'rgba(255, 255, 255, 0.05)',
     corIcon: '#fff',
@@ -379,7 +384,7 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
     let sum = 0;
     let countMM = 0;
     for (let j = Math.max(0, i - 2); j <= i; j++) {
-      sum += data[j].total;
+      sum += (data.at(j)?.total ?? 0);
       countMM++;
     }
     return parseFloat((sum / countMM).toFixed(1));
@@ -398,7 +403,7 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
     let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
     for (let i = 0; i < count; i++) {
       const x = i;
-      const y = data[i].total;
+      const y = data.at(i)?.total ?? 0;
       sumX += x;
       sumY += y;
       sumXY += x * y;
@@ -442,7 +447,7 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
       // Calcular variação diária em relação ao dia anterior
       let variacaoDia = '0%';
       if (index > 0) {
-        const anterior = data[index - 1].total;
+        const anterior = data.at(index - 1)?.total ?? 0;
         const atual = item.total;
         if (anterior === 0) {
           variacaoDia = atual > 0 ? `+${atual * 100}%` : '0%';
@@ -459,7 +464,7 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
         visible: true,
         data: item.data,
         total: item.total,
-        mediaMovel: mediaMovelData[index],
+        mediaMovel: mediaMovelData.at(index) ?? 0,
         variacaoDia,
         categoriaLider: item.categoriaLider ?? null
       });
@@ -497,38 +502,13 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
 
   return (
     <div className="cms-chart-card" id="editorial-analytics-container" style={{ position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '350px' }}>
-      {/* Estilos inline para animações SVG de alta performance */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes growBar {
-          from { height: 0; y: 120px; }
-        }
-        .grow-bar-anim {
-          animation: growBar 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes fadeInLine {
-          from { stroke-dashoffset: 1000; }
-          to { stroke-dashoffset: 0; }
-        }
-        .fade-in-line-anim {
-          stroke-dasharray: 1000;
-          stroke-dashoffset: 1000;
-          animation: fadeInLine 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
-        }
-        @keyframes fadeInPoint {
-          from { opacity: 0; transform: scale(0); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .fade-in-point-anim {
-          opacity: 0;
-          animation: fadeInPoint 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-      `}} />
+
 
       {/* Cabeçalho */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span className="cms-chart-title" style={{ margin: 0 }}>Ritmo Editorial</span>
-          <span style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '2px' }}>Acompanhamento de fluxo de notícias</span>
+          <span className="cms-chart-title" style={{ margin: 0 }}>{TEXTS.admin.editorialRhythm}</span>
+          <span style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '2px' }}>{TEXTS.admin.newsFlowTrack}</span>
         </div>
         
         <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '6px', padding: '2px' }}>
@@ -549,7 +529,7 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
                 outline: 'none',
               }}
             >
-              {d} dias
+              {d} {"dias"}
             </button>
           ))}
         </div>
@@ -567,12 +547,12 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
               <polyline points="10 9 9 9 8 9" />
             </svg>
           </div>
-          <h4 style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--c-text)', marginBottom: '4px' }}>Sem publicações no período</h4>
+          <h4 style={{ fontSize: '13.5px', fontWeight: 500, color: 'var(--c-text)', marginBottom: '4px' }}>{TEXTS.admin.noPublicationsPeriod}</h4>
           <p style={{ fontSize: '11.5px', color: 'var(--c-muted)', maxWidth: '280px', lineHeight: '1.4', marginBottom: '16px' }}>
-            Nenhuma matéria foi publicada na plataforma nos últimos {range} dias.
+            {TEXTS.admin.noPubsShortText}{range} {"dias."}
           </p>
           <Link href="/admin/noticias/nova" className="cms-btn cms-btn-primary cms-btn-sm" style={{ paddingLeft: '16px', paddingRight: '16px' }}>
-            Escrever notícia
+            {TEXTS.admin.writeNews}
           </Link>
         </div>
       ) : (
@@ -743,26 +723,26 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
                 <line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
-              Aguardando mais dados para gerar tendências
+              {"Aguardando mais dados para gerar tendências"}
             </div>
           )}
 
           {/* KPIs de Rodapé */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Publicado</span>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{TEXTS.admin.totalPublished}</span>
               <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>
                 {analytics?.totalPeriodo ?? 0}
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Média Diária</span>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{"Média Diária"}</span>
               <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--c-text)' }}>
                 {analytics?.mediaDiaria ?? 0}
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dia Recorde</span>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{TEXTS.admin.recordDay}</span>
               <span style={{ fontSize: '12.5px', fontWeight: 550, color: 'var(--c-text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
                 {analytics?.quantidadeRecorde && analytics.quantidadeRecorde > 0
                   ? `${analytics.quantidadeRecorde} (${formatDateShort(analytics.diaRecorde)})`
@@ -771,7 +751,7 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
               </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tendência</span>
+              <span style={{ fontSize: '9px', color: 'var(--c-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{TEXTS.admin.trend}</span>
               <span style={{ fontSize: '13px', fontWeight: 600, color: tendenciaCor, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
                 <span style={{ fontSize: '15px', lineHeight: 1 }}>{tendenciaIcon}</span>
                 {tendencia}
@@ -810,21 +790,21 @@ function EditorialAnalytics({ stats, range, setRange }: EditorialAnalyticsProps)
             {formatDateTooltip(tooltip.data)}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Publicações:</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{TEXTS.admin.publications}</span>
             <span style={{ fontWeight: 600, color: '#fff' }}>{tooltip.total}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Média móvel:</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{"Média móvel:"}</span>
             <span style={{ fontWeight: 600, color: '#4A90E2' }}>{tooltip.mediaMovel}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Variação diária:</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{TEXTS.admin.dailyVariation}</span>
             <span style={{ fontWeight: 600, color: tooltip.variacaoDia.startsWith('+') && tooltip.variacaoDia !== '0%' ? '#10b981' : tooltip.variacaoDia.startsWith('-') ? '#ef4444' : 'rgba(255,255,255,0.4)' }}>
               {tooltip.variacaoDia}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px' }}>
-            <span style={{ color: 'rgba(255,255,255,0.5)' }}>Categoria líder:</span>
+            <span style={{ color: 'rgba(255,255,255,0.5)' }}>{TEXTS.admin.leadingCategory}</span>
             <span style={{ fontWeight: 600, color: 'var(--c-accent)' }}>{tooltip.categoriaLider ?? 'Nenhuma'}</span>
           </div>
         </div>
@@ -841,7 +821,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [range, setRange] = useState<7 | 14 | 30>(7);
   const [filtroAtividade, setFiltroAtividade] = useState<'tudo' | 'noticias' | 'usuarios' | 'sistema' | 'sugestoes'>('tudo');
-  const [gruposExpandidos, setGruposExpandidos] = useState<Record<string, boolean>>({});
+  const [gruposExpandidos, setGruposExpandidos] = useState<Set<string>>(new Set());
 
   // Inteligência Editorial (Mais Lidas e Em Alta)
   const [abaAnalytics, setAbaAnalytics] = useState<'mais-lidas' | 'em-alta'>('mais-lidas');
@@ -849,8 +829,17 @@ export default function AdminDashboard() {
   const [emAlta, setEmAlta] = useState<NoticiaEmAlta[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
+
   const toggleGrupo = (id: string) => {
-    setGruposExpandidos(prev => ({ ...prev, [id]: !prev[id] }));
+    setGruposExpandidos(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   function obterMensagemGrupo(acao: string, total: number, autor: string): string {
@@ -913,11 +902,19 @@ export default function AdminDashboard() {
     };
 
     load();
-    const interval = setInterval(load, 60000);
+    let interval: NodeJS.Timeout | null = null;
+    // ECONOMY_MODE: auto-refresh e polling desativados temporariamente para poupar requisições ao Render.
+    // TODO: Reativar quando backend estiver em plano com banda suficiente.
+    // Para reativar, defina ECONOMY_MODE=false no .env.
+    if (process.env.NEXT_PUBLIC_ECONOMY_MODE !== "true") {
+      interval = setInterval(load, 60000);
+    }
     
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      if (interval) {
+        clearInterval(interval);
+      }
     };
   }, [authFetch, user, range]); // Dependemos do authFetch, user e range agora
 
@@ -926,9 +923,7 @@ export default function AdminDashboard() {
       <div className="cms-loading" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', color: 'var(--c-muted)', gap: '16px' }}>
         <div className="cms-spinner" style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#ff5722', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         Carregando métricas do painel...
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        `}} />
+
       </div>
     );
   }
@@ -955,12 +950,36 @@ export default function AdminDashboard() {
     <>
       <div className="cms-page-header">
         <div>
-          <h2 className="cms-page-title">Redação</h2>
+          <h2 className="cms-page-title">{TEXTS.admin.editorialRedaction}</h2>
           <p className="cms-page-subtitle" style={{ textTransform: 'capitalize' }}>
             {today}
           </p>
         </div>
       </div>
+
+      {process.env.NEXT_PUBLIC_ECONOMY_MODE === "true" && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          color: '#f59e0b',
+          fontSize: '13px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>
+            Analytics pausado temporariamente para economia de recursos.
+          </span>
+        </div>
+      )}
 
       <div className="cms-stats-grid">
         <div className="cms-stat-card">
@@ -968,7 +987,7 @@ export default function AdminDashboard() {
             <span style={{ color: 'var(--c-accent)', opacity: 0.7 }}><IconArticle /></span>
           </div>
           <div className="cms-stat-value">{formatNumber(stats?.totalNoticias ?? 0)}</div>
-          <div className="cms-stat-label">Notícias publicadas</div>
+          <div className="cms-stat-label">{TEXTS.admin.publishedNews}</div>
         </div>
 
         <div className="cms-stat-card">
@@ -976,7 +995,7 @@ export default function AdminDashboard() {
             <span style={{ color: 'var(--c-secondary)', opacity: 0.7 }}><IconEye /></span>
           </div>
           <div className="cms-stat-value">{formatNumber(stats?.totalViews ?? 0)}</div>
-          <div className="cms-stat-label">Visualizações totais</div>
+          <div className="cms-stat-label">{TEXTS.admin.totalViews}</div>
         </div>
 
         <div className="cms-stat-card">
@@ -984,7 +1003,7 @@ export default function AdminDashboard() {
             <span style={{ color: 'var(--c-positive)', opacity: 0.7 }}><IconHeart /></span>
           </div>
           <div className="cms-stat-value">{formatNumber(stats?.totalLikes ?? 0)}</div>
-          <div className="cms-stat-label">Curtidas recebidas</div>
+          <div className="cms-stat-label">{TEXTS.admin.likesReceived}</div>
         </div>
 
         <div className="cms-stat-card">
@@ -997,7 +1016,7 @@ export default function AdminDashboard() {
           >
             {stats?.totalSugestoesNovas ?? 0}
           </div>
-          <div className="cms-stat-label">Sugestões pendentes</div>
+          <div className="cms-stat-label">{TEXTS.admin.pendingSuggestions}</div>
         </div>
       </div>
 
@@ -1005,56 +1024,6 @@ export default function AdminDashboard() {
         <EditorialAnalytics stats={stats} range={range} setRange={setRange} />
 
         <div className="cms-table-card" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '350px' }}>
-          {/* Estilos inline adicionais de micro-animações e hover */}
-          <style dangerouslySetInnerHTML={{ __html: `
-            .ranking-item {
-              display: flex;
-              align-items: center;
-              padding: 10px 14px;
-              border-radius: 6px;
-              transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-              position: relative;
-            }
-            .ranking-item:hover {
-              background: rgba(255, 255, 255, 0.02);
-            }
-            .ranking-actions {
-              opacity: 0;
-              transition: opacity 0.15s ease;
-              display: flex;
-              gap: 8px;
-              align-items: center;
-              margin-left: auto;
-            }
-            .ranking-item:hover .ranking-actions {
-              opacity: 1;
-            }
-            .ranking-num {
-              font-family: var(--font-mono, monospace);
-              font-size: 20px;
-              font-weight: 300;
-              color: rgba(255, 255, 255, 0.15);
-              margin-right: 14px;
-              width: 24px;
-              text-align: center;
-              flex-shrink: 0;
-            }
-            .ranking-item:hover .ranking-num {
-              color: #e04a2d;
-            }
-            .badge-em-alta {
-              font-size: 9px;
-              font-weight: 600;
-              text-transform: uppercase;
-              color: #ffc107;
-              background: rgba(255, 193, 7, 0.08);
-              border: 1px solid rgba(255, 193, 7, 0.12);
-              padding: 1px 4px;
-              border-radius: 3px;
-              letter-spacing: 0.02em;
-            }
-          `}} />
-
           {/* Abas ativas minimalistas */}
           <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '14px 16px 0 16px', gap: '16px' }}>
             <button
@@ -1072,7 +1041,7 @@ export default function AdminDashboard() {
                 outline: 'none',
               }}
             >
-              Mais Lidas
+              {TEXTS.admin.mostRead}
             </button>
             <button
               onClick={() => setAbaAnalytics('em-alta')}
@@ -1089,7 +1058,7 @@ export default function AdminDashboard() {
                 outline: 'none',
               }}
             >
-              Em Alta
+              {TEXTS.admin.trending}
             </button>
           </div>
 
@@ -1121,13 +1090,13 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', padding: '10px 8px', flexGrow: 1, gap: '4px' }}>
             {loadingAnalytics ? (
               <div style={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', fontSize: '11.5px', padding: '40px 0' }}>
-                Carregando inteligência editorial...
+                {TEXTS.admin.loadingEditorialIntel}
               </div>
             ) : abaAnalytics === 'mais-lidas' ? (
               /* ABA MAIS LIDAS */
               maisLidas.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-muted)', fontSize: '12px' }}>
-                  Nenhum dado de acesso acumulado ainda.
+                  {TEXTS.admin.noAccumulatedAccess}
                 </div>
               ) : (
                 maisLidas.slice(0, 5).map((n) => (
@@ -1187,7 +1156,7 @@ export default function AdminDashboard() {
               /* ABA EM ALTA */
               emAlta.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--c-muted)', fontSize: '12px' }}>
-                  Nenhum pico de tráfego detectado recentemente.
+                  {TEXTS.admin.noRecentTrafficPeak}
                 </div>
               ) : (
                 emAlta.slice(0, 5).map((n, i) => (
@@ -1199,7 +1168,7 @@ export default function AdminDashboard() {
                           {n.titulo}
                         </span>
                         {n.viewsRecentes > 2 && (
-                          <span className="badge-em-alta">Em Alta</span>
+                          <span className="badge-em-alta">{TEXTS.admin.trending}</span>
                         )}
                       </div>
                       <span style={{ fontSize: '10px', color: 'var(--c-muted)', marginTop: '2px' }}>
@@ -1229,7 +1198,7 @@ export default function AdminDashboard() {
                     {/* Métricas e Aceleração */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginLeft: '12px', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                       <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--c-text)' }} title="Views nas últimas 24h">
-                        {n.viewsRecentes} <span style={{ fontSize: '9px', fontWeight: 400, color: 'var(--c-muted)' }}>views</span>
+                        {n.viewsRecentes} <span style={{ fontSize: '9px', fontWeight: 400, color: 'var(--c-muted)' }}>{TEXTS.admin.views}</span>
                       </span>
                       <span style={{
                         fontSize: '9.5px',
@@ -1258,11 +1227,11 @@ export default function AdminDashboard() {
         {/* Cabeçalho */}
         <div className="cms-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="cms-table-title" style={{ margin: 0 }}>Timeline Editorial</span>
-            <span style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '2px' }}>Acompanhamento de ações na plataforma</span>
+            <span className="cms-table-title" style={{ margin: 0 }}>{TEXTS.admin.editorialTimeline}</span>
+            <span style={{ fontSize: '11px', color: 'var(--c-muted)', marginTop: '2px' }}>{TEXTS.admin.platformActionTrack}</span>
           </div>
           <Link href="/admin/auditoria" className="cms-btn cms-btn-secondary cms-btn-sm">
-            Ver auditoria completa
+            {TEXTS.admin.viewFullAudit}
           </Link>
         </div>
 
@@ -1282,7 +1251,7 @@ export default function AdminDashboard() {
                 key={tipo}
                 onClick={() => {
                   setFiltroAtividade(tipo);
-                  setGruposExpandidos({});
+                  setGruposExpandidos(new Set());
                 }}
                 style={{
                   background: isAtivo ? '#e04a2d' : 'rgba(255, 255, 255, 0.03)',
@@ -1303,7 +1272,15 @@ export default function AdminDashboard() {
                   if (!isAtivo) e.currentTarget.style.color = 'rgba(255, 255, 255, 0.55)';
                 }}
               >
-                {labels[tipo]}
+                {((t: string) => {
+                  switch(t) {
+                    case 'noticias': return labels.noticias;
+                    case 'usuarios': return labels.usuarios;
+                    case 'sistema': return labels.sistema;
+                    case 'sugestoes': return labels.sugestoes;
+                    default: return labels.tudo;
+                  }
+                })(tipo)}
               </button>
             );
           })}
@@ -1343,7 +1320,7 @@ export default function AdminDashboard() {
                 // Tratar se for agrupado
                 if (at.isAgrupado) {
                   const totalGrupo = at.agrupadas?.length || 0;
-                  const isExpandido = !!gruposExpandidos[at.id];
+                  const isExpandido = gruposExpandidos.has(at.id);
                   const msgGrupo = obterMensagemGrupo(at.acao, totalGrupo, autor);
 
                   return (
@@ -1429,15 +1406,9 @@ export default function AdminDashboard() {
                           marginBottom: '4px',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '8px',
                           animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
                         }}>
-                          <style dangerouslySetInnerHTML={{ __html: `
-                            @keyframes slideDown {
-                              from { opacity: 0; transform: translateY(-4px); }
-                              to { opacity: 1; transform: translateY(0); }
-                            }
-                          `}} />
+
                           {at.agrupadas.map(subItem => {
                             const subTempo = timeAgo(subItem.dataHora);
                             return (
@@ -1555,7 +1526,7 @@ export default function AdminDashboard() {
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={at.capaUrl}
-                              alt="Você Repórter"
+                              alt={TEXTS.navigation.reporter}
                               style={{
                                 width: '40px',
                                 height: '40px',
@@ -1569,7 +1540,7 @@ export default function AdminDashboard() {
                           )}
                           <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, minWidth: 0 }}>
                             <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                              <span>Leitor: {at.detalhes?.nome || 'Anônimo'}</span>
+                              <span>{TEXTS.admin.reader}{at.detalhes?.nome || 'Anônimo'}</span>
                               <span>·</span>
                               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{at.detalhes?.email || 'Sem e-mail'}</span>
                             </span>

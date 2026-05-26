@@ -167,7 +167,9 @@ export default function RootLayout({
         {/* Schema estruturado global de SEO Local e Negócio */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(baseSchemas) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(baseSchemas).replace(/</g, "\\u003c"),
+          }}
         />
       </head>
       <body className={`${inter.variable} ${lora.variable}`}>

@@ -1,6 +1,7 @@
 import { getImagePath } from "@/utils/imagePath";
 import Image from "next/image";
 import { API_URL } from "@/services/api";
+import { TEXTS } from "@/constants/texts";
 
 export interface Noticia {
   id: string;
@@ -44,14 +45,14 @@ export default async function SearchPage({
       <main className="site-container">
         <div className="search-advanced-container">
           <div className="search-header-premium">
-            <span className="search-subtitle">Busca Editorial</span>
+            <span className="search-subtitle">{TEXTS.search.editorialSearch}</span>
             <h1 className="search-main-title">
-              {query ? `Resultados para "${query}"` : "O que você está procurando?"}
+              {query ? `${TEXTS.search.resultsFor}"${query}"` : "O que você está procurando?"}
             </h1>
             
             {suggestion && (
               <div className="search-suggestion">
-                <span>Você quis dizer: </span>
+                <span>{TEXTS.search.didYouMean}</span>
                 <a href={`/search?q=${suggestion}`} className="suggestion-link">
                   {suggestion}
                 </a>
@@ -107,7 +108,7 @@ export default async function SearchPage({
                     </span>
                     <span>
                       <i className="far fa-eye"></i>
-                      {noticia.views || 0} visualizações
+                      {noticia.views || 0} {TEXTS.common.views}
                     </span>
                   </div>
                 </div>
@@ -117,8 +118,8 @@ export default async function SearchPage({
         ) : query ? (
           <div className="search-no-results">
             <i className="fas fa-search-minus"></i>
-            <h3>Nenhuma matéria encontrada</h3>
-            <p>Tente buscar por outros termos ou verifique a grafia.</p>
+            <h3>{TEXTS.search.noNewsFound}</h3>
+            <p>{TEXTS.search.tryOtherTerms}</p>
           </div>
         ) : null}
         </div>

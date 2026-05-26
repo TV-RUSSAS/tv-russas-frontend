@@ -4,12 +4,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getImagePath } from "@/utils/imagePath";
 import { ViewTracker } from "@/components/ViewTracker";
-import { ArticleInteractions, InlineShare } from "@/components/ArticleInteractions";
+import {
+  ArticleInteractions,
+  InlineShare,
+} from "@/components/ArticleInteractions";
 import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleFeedbackWrapper";
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
+import { TEXTS } from "@/constants/texts";
+import { sanitizeHtml } from "@/utils/sanitize";
 
 export async function generateMetadata({
   params,
@@ -29,7 +34,10 @@ export async function generateMetadata({
     const cleanContent = noticia.conteudo
       ? noticia.conteudo.replace(/<[^>]*>/g, "").substring(0, 160) + "..."
       : "";
-    const description = noticia.resumo || cleanContent || "Informação com credibilidade e agilidade em Russas e região.";
+    const description =
+      noticia.resumo ||
+      cleanContent ||
+      "Informação com credibilidade e agilidade em Russas e região.";
     const articleUrl = `${DOMAIN}/noticia/${slug}`;
     const absoluteCapaUrl = getImagePath(noticia.capaUrl);
 
@@ -48,7 +56,9 @@ export async function generateMetadata({
         type: "article",
         publishedTime: noticia.publicadoEm,
         modifiedTime: noticia.publicadoEm,
-        authors: noticia.colunista ? [noticia.colunista.nome] : ["Portal TV Russas"],
+        authors: noticia.colunista
+          ? [noticia.colunista.nome]
+          : ["Portal TV Russas"],
         images: [
           {
             url: absoluteCapaUrl,
@@ -89,12 +99,12 @@ function formatArticleContent(htmlContent: string): string {
   // Caso A: Parágrafo no final absoluto
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/gi,
-    ""
+    "",
   );
   // Caso B: Linha após br ou quebra de linha no final absoluto
   content = content.replace(
     /(?:<br\s*\/?>|\n)\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*$/gi,
-    ""
+    "",
   );
   // Caso C: Parágrafo genérico nos últimos 150 caracteres
   content = content.replace(
@@ -104,20 +114,20 @@ function formatArticleContent(htmlContent: string): string {
         return "";
       }
       return match;
-    }
+    },
   );
 
   // 1. Substituir "TV Russas" (ou variações) no final por "Publicado por: TV Russas" com classe de atribuição e negrito limpo (sem aninhamento)
   // Caso 1: Dentro de um parágrafo no final absoluto da string
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/i,
-    '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>'
+    '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>',
   );
 
   // Caso 2: Precedido por <br /> ou quebra de linha no final absoluto da string
   content = content.replace(
     /(?:<br\s*\/?>|\n)\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*$/i,
-    '<br /><strong class="article-author-attribution">Publicado por: TV Russas</strong>'
+    '<br /><strong class="article-author-attribution">Publicado por: TV Russas</strong>',
   );
 
   // Caso 3: Dentro de um parágrafo genérico localizado nos últimos 150 caracteres (caso haja espaços/tags vazias depois)
@@ -128,38 +138,39 @@ function formatArticleContent(htmlContent: string): string {
         return '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
       }
       return match;
-    }
+    },
   );
 
   // Caso 4: Transformar qualquer "Publicado por: [Nome]" genérico (inserido pelo editor)
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<\n]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    '<p class="article-author-attribution"><strong>Publicado por: $1</strong></p>'
+    '<p class="article-author-attribution"><strong>Publicado por: $1</strong></p>',
   );
 
   // 2. Colocar a linha inteira da "Fonte: [Nome]" em negrito com classe de atribuição e sem aninhamento
   // Caso 1: Fonte dentro de um <p> contendo ou não tags <strong>/<b>
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<\n]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    '<p class="article-source-attribution"><strong>Fonte: $1</strong></p>'
+    '<p class="article-source-attribution"><strong>Fonte: $1</strong></p>',
   );
 
   // Caso 2: Citação solta de Fonte no texto
   content = content.replace(
     /(?<!class="article-source-attribution">)Fonte\s*:\s*([^<\n\r]+)/gi,
-    '<strong class="article-source-attribution">Fonte: $1</strong>'
+    '<strong class="article-source-attribution">Fonte: $1</strong>',
   );
 
   // 3. Transformar parágrafos que contêm APENAS <strong> ou <b> em subtítulos h3 semânticos com a classe article-subheading
   // Isso impede conflitos com negritos inline (tags strong dentro de parágrafos com outros textos)
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)\s*([^<]+?)\s*(?:<\/strong>|<\/b>)\s*<\/p>/gi,
-    '<h3 class="article-subheading">$1</h3>'
+    '<h3 class="article-subheading">$1</h3>',
   );
 
   // 4. Garantir que todas as notícias possuam a assinatura de autoria (Publicado por: TV Russas) para padronização total
   if (!content.includes('class="article-author-attribution"')) {
-    content += '\n<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
+    content +=
+      '\n<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
   }
 
   return content;
@@ -219,51 +230,55 @@ export default async function NoticiaPage({
       {
         "@type": "BreadcrumbList",
         "@id": `${DOMAIN}/noticia/${slug}/#breadcrumb`,
-        "itemListElement": [
+        itemListElement: [
           {
             "@type": "ListItem",
-            "position": 1,
-            "name": "Início",
-            "item": `${DOMAIN}/`
+            position: 1,
+            name: "Início",
+            item: `${DOMAIN}/`,
           },
           {
             "@type": "ListItem",
-            "position": 2,
-            "name": noticia.categoria.nome,
-            "item": `${DOMAIN}/categoria/${noticia.categoria.slug}`
+            position: 2,
+            name: noticia.categoria.nome,
+            item: `${DOMAIN}/categoria/${noticia.categoria.slug}`,
           },
           {
             "@type": "ListItem",
-            "position": 3,
-            "name": noticia.titulo,
-            "item": `${DOMAIN}/noticia/${slug}`
-          }
-        ]
+            position: 3,
+            name: noticia.titulo,
+            item: `${DOMAIN}/noticia/${slug}`,
+          },
+        ],
       },
       {
         "@type": "NewsArticle",
         "@id": `${DOMAIN}/noticia/${slug}/#article`,
-        "isPartOf": {
-          "@id": `${DOMAIN}/#website`
+        isPartOf: {
+          "@id": `${DOMAIN}/#website`,
         },
-        "headline": noticia.titulo,
-        "description": noticia.resumo || (noticia.conteudo ? noticia.conteudo.replace(/<[^>]*>/g, "").substring(0, 160) + "..." : ""),
-        "image": [getImagePath(noticia.capaUrl)],
-        "datePublished": noticia.publicadoEm,
-        "dateModified": noticia.publicadoEm,
-        "author": {
+        headline: noticia.titulo,
+        description:
+          noticia.resumo ||
+          (noticia.conteudo
+            ? noticia.conteudo.replace(/<[^>]*>/g, "").substring(0, 160) + "..."
+            : ""),
+        image: [getImagePath(noticia.capaUrl)],
+        datePublished: noticia.publicadoEm,
+        dateModified: noticia.publicadoEm,
+        author: {
           "@type": "Person",
-          "name": noticia.colunista?.nome || "Portal TV Russas"
+          name: noticia.colunista?.nome || "Portal TV Russas",
         },
-        "publisher": {
-          "@id": `${DOMAIN}/#organization`
+        publisher: {
+          "@id": `${DOMAIN}/#organization`,
         },
-        "mainEntityOfPage": {
+        mainEntityOfPage: {
           "@type": "WebPage",
-          "@id": `${DOMAIN}/noticia/${slug}`
-        }
-      }
-    ]
+          "@id": `${DOMAIN}/noticia/${slug}`,
+        },
+      },
+    ],
   };
 
   return (
@@ -271,7 +286,9 @@ export default async function NoticiaPage({
       {/* Schema estruturado injetado via SSR */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(articleSchema).replace(/</g, "\\u003c"),
+        }}
       />
       {/* Barra de progresso + botões flutuantes */}
       <ArticleInteractions title={noticia.titulo} url={postUrl} />
@@ -319,7 +336,7 @@ export default async function NoticiaPage({
               </div>
               <div className="author-info">
                 <span className="author-name">
-                  Por{" "}
+                  {TEXTS.common.por}{" "}
                   <strong>
                     {(
                       noticia.colunista?.nome || "PORTAL TV RUSSAS"
@@ -357,7 +374,7 @@ export default async function NoticiaPage({
           />
           <figcaption className="editorial-image-caption">
             <span>{noticia.titulo}</span>
-            <span>FOTO: REPRODUÇÃO / ACERVO TV RUSSAS</span>
+            <span>{TEXTS.brand.acervo}</span>
           </figcaption>
         </figure>
 
@@ -369,14 +386,14 @@ export default async function NoticiaPage({
             <div
               className="article-body-content premium-editorial-flow"
               dangerouslySetInnerHTML={{
-                __html: formatArticleContent(noticia.conteudo),
+                __html: sanitizeHtml(formatArticleContent(noticia.conteudo)),
               }}
             />
 
             {/* Tags */}
             <div className="article-footer">
               <div className="tags-section">
-                <span className="tags-label">ASSUNTOS:</span>
+                <span className="tags-label">{TEXTS.widgets.subjects}</span>
                 <div className="tags-list">
                   <Link
                     href={`/categoria/${noticia.categoria.slug}`}
@@ -385,10 +402,10 @@ export default async function NoticiaPage({
                     {noticia.categoria.nome}
                   </Link>
                   <Link href="/search?q=Ceará" className="tag-link">
-                    Ceará
+                    {TEXTS.common.ceara}
                   </Link>
                   <Link href="/search?q=Russas" className="tag-link">
-                    Russas
+                    {TEXTS.common.russas}
                   </Link>
                 </div>
               </div>
@@ -404,7 +421,7 @@ export default async function NoticiaPage({
             {relacionadas.length > 0 && (
               <section className="editorial-related-bottom">
                 <h3 className="section-heading-elegant">
-                  <span>Leia Também</span>
+                  <span>{TEXTS.widgets.related}</span>
                 </h3>
                 <div className="related-cards-grid">
                   {relacionadas.map((item) => (

@@ -2,8 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 import "./colunistas.css";
 import { apiService } from "@/services/api";
-import { Colunista, Noticia } from "@/types";
+import { Colunista } from "@/types";
 import { getImagePath } from "@/utils/imagePath";
+import { TEXTS } from "@/constants/texts";
 
 export const metadata = {
   title: "Colunistas - TV Russas",
@@ -17,7 +18,7 @@ export default async function ColunistasPage() {
     <main className="colunistas-container">
       <div className="editorial-box">
         <div className="editorial-title-bar">
-          <h1>COLUNISTAS</h1>
+          <h1>{TEXTS.navigation.columnists.toUpperCase()}</h1>
         </div>
 
         <div className="colunistas-list">
@@ -40,13 +41,13 @@ export default async function ColunistasPage() {
                 </div>
                 
                 <div className="view-profile-btn">
-                  Ver perfil completo
+                  {"Ver perfil completo"}
                 </div>
               </Link>
             ))
           ) : (
             <div className="loading-state" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
-              Carregando colunistas...
+              {"Carregando colunistas..."}
             </div>
           )}
         </div>
