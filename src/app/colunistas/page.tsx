@@ -46,8 +46,27 @@ export default async function ColunistasPage() {
               </Link>
             ))
           ) : (
-            <div className="loading-state" style={{ padding: '40px', textAlign: 'center', color: '#999' }}>
-              {"Carregando colunistas..."}
+            <div className="colunistas-empty" style={{ 
+              padding: '60px 20px', 
+              textAlign: 'center', 
+              color: 'var(--c-secondary, #666)', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '12px',
+              border: '1px dashed rgba(255, 255, 255, 0.08)',
+              borderRadius: '8px',
+              background: 'rgba(255, 255, 255, 0.01)',
+              margin: '20px 0'
+            }}>
+              <span style={{ fontSize: '40px' }}>✍️</span>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: 'var(--c-text, #fff)', margin: 0 }}>
+                {TEXTS.common.noColumnists}
+              </h3>
+              <p style={{ fontSize: '14px', opacity: 0.8, maxWidth: '440px', margin: '0 auto', lineHeight: '1.5' }}>
+                {TEXTS.common.noColumnistsSub}
+              </p>
             </div>
           )}
         </div>

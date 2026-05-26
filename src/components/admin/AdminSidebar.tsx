@@ -58,6 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/admin/noticias', label: 'Notícias', icon: FileText, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR', 'COLUNISTA'] },
       { href: '/admin/categorias', label: 'Categorias', icon: FolderTree, roles: ['SUPER_ADMIN', 'ADMIN'] },
       { href: '/admin/colunistas', label: 'Colunistas', icon: PenTool, roles: ['SUPER_ADMIN', 'ADMIN'] },
+      { href: '/admin/banners', label: 'Banners', icon: ImageIcon, roles: ['SUPER_ADMIN', 'ADMIN'] },
     ],
   },
   {

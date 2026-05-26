@@ -175,6 +175,9 @@ interface EditorFormProps {
     featured?: boolean;
     breaking?: boolean;
     capaUrl?: string;
+    videoUrl?: string;
+    fonte?: string;
+    publicadoPor?: string;
   };
   mode: 'create' | 'edit';
 }
@@ -250,8 +253,9 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     return html.replace(/<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi, '');
   };
 
-  const [fonteText, setFonteText] = useState(initialData?.conteudo ? extractFonte(initialData.conteudo) : 'TV Russas');
-  const [publicadoPorText, setPublicadoPorText] = useState(initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : 'TV RUSSAS');
+  const [fonteText, setFonteText] = useState(initialData?.fonte !== undefined ? (initialData.fonte || '') : (initialData?.conteudo ? extractFonte(initialData.conteudo) : 'TV Russas'));
+  const [publicadoPorText, setPublicadoPorText] = useState(initialData?.publicadoPor !== undefined ? (initialData.publicadoPor || '') : (initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : 'TV RUSSAS'));
+  const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || '');
 
   // Editor Instantiation
   const editor = useEditor({
@@ -352,14 +356,8 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
 
     setLoading(true);
     try {
-      // Reconstrói a tag da Fonte no formato que o frontend espera
-      let finalContent = content;
-      if (fonteText && fonteText.trim() !== '') {
-        finalContent += '\n<p><strong>Fonte: ' + escapeHtml(fonteText.trim()) + '</strong></p>';
-      }
-      if (publicadoPorText && publicadoPorText.trim() !== '') {
-        finalContent += '\n<p class="article-author-attribution"><strong>Publicado por: ' + escapeHtml(publicadoPorText.trim()) + '</strong></p>';
-      }
+      // O conteúdo HTML agora vai limpo sem injeção de fonte/publicador
+      const finalContent = content;
 
       const formData = new FormData();
       formData.append('titulo', titulo);
@@ -373,6 +371,11 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
       formData.append('breaking', String(breaking));
       if (replaceFeaturedId) formData.append('replaceFeaturedId', replaceFeaturedId);
       if (capa) formData.append('capa', capa);
+      
+      // Enviar os novos campos no FormData
+      formData.append('videoUrl', videoUrl);
+      formData.append('fonte', fonteText);
+      formData.append('publicadoPor', publicadoPorText);
 
       const url = mode === 'edit' ? `/admin/noticias/${initialData?.id}` : '/admin/noticias';
       const method = mode === 'edit' ? 'PUT' : 'POST';
@@ -667,9 +670,13 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                   {colunistas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
-              <div className="cms-form-group" style={{ marginBottom: 0 }}>
+              <div className="cms-form-group">
                 <label className="cms-label">{TEXTS.admin.optionalTags}</label>
                 <input className="cms-input" value={tags} onChange={e => { setTags(e.target.value); setSaveStatus('saving'); }} placeholder="ex: russas, política" />
+              </div>
+              <div className="cms-form-group" style={{ marginBottom: 0 }}>
+                <label className="cms-label">{"URL do Vídeo (Opcional)"}</label>
+                <input className="cms-input" value={videoUrl} onChange={e => { setVideoUrl(e.target.value); setSaveStatus('saving'); }} placeholder="YouTube, Facebook, Instagram..." />
               </div>
             </div>
 

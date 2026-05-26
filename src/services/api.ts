@@ -1,4 +1,4 @@
-import { Noticia, Colunista, Categoria } from '@/types';
+import { Noticia, Colunista, Categoria, Banner } from '@/types';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : 'http://localhost:3001/api';
 // Forçar busca de dados sempre fresca do backend
@@ -122,6 +122,17 @@ export const apiService = {
       return res.json();
     } catch (error) {
       console.error(`Erro ao buscar categoria ${slug}:`, error);
+      return null;
+    }
+  },
+
+  async getBannerAtivo(posicao: string): Promise<Banner | null> {
+    try {
+      const res = await fetch(`${API_URL}/banners/ativo/${posicao}`, FETCH_OPTIONS);
+      if (!res.ok) return null;
+      return res.json();
+    } catch (error) {
+      console.error(`Erro ao buscar banner ativo para ${posicao}:`, error);
       return null;
     }
   }

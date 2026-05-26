@@ -25,4 +25,17 @@ export interface Noticia {
   categoria: Categoria;
   colunista?: Colunista | null;
   tags?: string | null;
+  videoUrl?: string | null;
+  fonte?: string | null;
+  publicadoPor?: string | null;
+}
+
+export interface Banner {
+  id: string;
+  titulo: string;
+  imageUrl: string;
+  linkUrl?: string | null;
+  posicao: string;
+  ativo: boolean;
+  criadoEm: string;
 }

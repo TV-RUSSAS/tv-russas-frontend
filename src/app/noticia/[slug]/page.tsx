@@ -95,85 +95,88 @@ export async function generateMetadata({
 function formatArticleContent(htmlContent: string): string {
   let content = htmlContent.trim();
 
-  // 0. Remover qualquer linha bruta e sem estilo de autor (ex: "TV Russas", "Portal TV Russas", "Publicado por: TV Russas") do final do texto para evitar duplicidade
-  // Caso A: Parágrafo no final absoluto
+  // Remove qualquer linha de autor/atribuição do final para que não apareça no rodapé
+  content = content.replace(
+    /<p class="article-author-attribution">[\s\S]*?<\/p>/gi,
+    ""
+  );
+  content = content.replace(
+    /<p class="article-source-attribution">[\s\S]*?<\/p>/gi,
+    ""
+  );
+  
+  // Remove menções manuais cruas ao final do texto para evitar resquícios históricos no rodapé
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/gi,
-    "",
+    ""
   );
-  // Caso B: Linha após br ou quebra de linha no final absoluto
   content = content.replace(
-    /(?:<br\s*\/?>|\n)\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*$/gi,
-    "",
-  );
-  // Caso C: Parágrafo genérico nos últimos 150 caracteres
-  content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    (match, offset, string) => {
-      if (offset > string.length - 150) {
-        return "";
-      }
-      return match;
-    },
+    /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/gi,
+    ""
   );
 
-  // 1. Substituir "TV Russas" (ou variações) no final por "Publicado por: TV Russas" com classe de atribuição e negrito limpo (sem aninhamento)
-  // Caso 1: Dentro de um parágrafo no final absoluto da string
-  content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/i,
-    '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>',
-  );
-
-  // Caso 2: Precedido por <br /> ou quebra de linha no final absoluto da string
-  content = content.replace(
-    /(?:<br\s*\/?>|\n)\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*$/i,
-    '<br /><strong class="article-author-attribution">Publicado por: TV Russas</strong>',
-  );
-
-  // Caso 3: Dentro de um parágrafo genérico localizado nos últimos 150 caracteres (caso haja espaços/tags vazias depois)
-  content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*)?(TV\s+Russas|Tv\s+Russas|tv\s+russas)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    (match, p1, offset, string) => {
-      if (offset > string.length - 150) {
-        return '<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
-      }
-      return match;
-    },
-  );
-
-  // Caso 4: Transformar qualquer "Publicado por: [Nome]" genérico (inserido pelo editor)
-  content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<\n]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    '<p class="article-author-attribution"><strong>Publicado por: $1</strong></p>',
-  );
-
-  // 2. Colocar a linha inteira da "Fonte: [Nome]" em negrito com classe de atribuição e sem aninhamento
-  // Caso 1: Fonte dentro de um <p> contendo ou não tags <strong>/<b>
-  content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<\n]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    '<p class="article-source-attribution"><strong>Fonte: $1</strong></p>',
-  );
-
-  // Caso 2: Citação solta de Fonte no texto
-  content = content.replace(
-    /(?<!class="article-source-attribution">)Fonte\s*:\s*([^<\n\r]+)/gi,
-    '<strong class="article-source-attribution">Fonte: $1</strong>',
-  );
-
-  // 3. Transformar parágrafos que contêm APENAS <strong> ou <b> em subtítulos h3 semânticos com a classe article-subheading
-  // Isso impede conflitos com negritos inline (tags strong dentro de parágrafos com outros textos)
+  // Transformar parágrafos que contêm APENAS <strong> ou <b> em subtítulos h3 semânticos
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)\s*([^<]+?)\s*(?:<\/strong>|<\/b>)\s*<\/p>/gi,
     '<h3 class="article-subheading">$1</h3>',
   );
 
-  // 4. Garantir que todas as notícias possuam a assinatura de autoria (Publicado por: TV Russas) para padronização total
-  if (!content.includes('class="article-author-attribution"')) {
-    content +=
-      '\n<p class="article-author-attribution"><strong>Publicado por: TV Russas</strong></p>';
+  return content;
+}
+
+// Helper para embutir players de vídeo de forma responsiva
+function renderVideoPlayer(videoUrl: string | null | undefined) {
+  if (!videoUrl) return null;
+
+  // YouTube
+  const ytMatch = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  if (ytMatch && ytMatch[1]) {
+    const videoId = ytMatch[1];
+    return (
+      <div className="editorial-video-wrapper" style={{ margin: '24px 0', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', position: 'relative', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="YouTube video player"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+        />
+      </div>
+    );
   }
 
-  return content;
+  // Instagram
+  const igMatch = videoUrl.match(/instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/i);
+  if (igMatch && igMatch[1]) {
+    const igId = igMatch[1];
+    return (
+      <div className="editorial-video-wrapper" style={{ margin: '24px 0', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', position: 'relative', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <iframe
+          src={`https://www.instagram.com/p/${igId}/embed/`}
+          title="Instagram post player"
+          allowFullScreen
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+        />
+      </div>
+    );
+  }
+
+  // Facebook
+  if (videoUrl.includes('facebook.com')) {
+    return (
+      <div className="editorial-video-wrapper" style={{ margin: '24px 0', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', position: 'relative', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <iframe
+          src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=0&width=560`}
+          title="Facebook video player"
+          allowFullScreen
+          allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+        />
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export default async function NoticiaPage({
@@ -185,10 +188,11 @@ export default async function NoticiaPage({
   const noticia = await apiService.getNoticia(slug);
   if (!noticia) notFound();
 
-  const [todasNoticias, trendingRaw, maisLidasRaw] = await Promise.all([
+  const [todasNoticias, trendingRaw, maisLidasRaw, bannerTopo] = await Promise.all([
     apiService.getNoticias(),
     apiService.getTrending(),
     apiService.getMaisLidas(),
+    apiService.getBannerAtivo('topo_interna'),
   ]);
 
   // Se o trending/maisLidas estiverem vazios (ex: site novo), usa as notícias recentes como fallback
@@ -294,6 +298,48 @@ export default async function NoticiaPage({
       <ArticleInteractions title={noticia.titulo} url={postUrl} />
       <ViewTracker slug={slug} />
 
+      {/* Banner de Publicidade no Topo */}
+      {bannerTopo && (
+        <div className="editorial-ad-banner-topo" style={{ 
+          margin: '0 auto 20px', 
+          maxWidth: '1200px', 
+          width: '100%', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: '6px'
+        }}>
+          <span style={{ 
+            fontSize: '9px', 
+            color: 'var(--c-muted, #999)', 
+            fontWeight: '600', 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.1em' 
+          }}>
+            {TEXTS.widgets.advertising}
+          </span>
+          <a 
+            href={bannerTopo.linkUrl || '#'} 
+            target={bannerTopo.linkUrl ? "_blank" : "_self"} 
+            rel="noopener noreferrer"
+            style={{ display: 'block', width: '100%', cursor: bannerTopo.linkUrl ? 'pointer' : 'default' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img 
+              src={bannerTopo.imageUrl.startsWith('http') ? bannerTopo.imageUrl : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${bannerTopo.imageUrl}`} 
+              alt={bannerTopo.titulo}
+              style={{ 
+                width: '100%', 
+                maxHeight: '120px', 
+                objectFit: 'contain', 
+                borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
+            />
+          </a>
+        </div>
+      )}
+
       <article className="editorial-article">
         {/* ===== BREADCRUMB ===== */}
         <nav className="editorial-breadcrumb" aria-label="breadcrumb">
@@ -339,7 +385,9 @@ export default async function NoticiaPage({
                   {TEXTS.common.por}{" "}
                   <strong>
                     {(
-                      noticia.colunista?.nome || "PORTAL TV RUSSAS"
+                      noticia.publicadoPor ||
+                      noticia.colunista?.nome ||
+                      "PORTAL TV RUSSAS"
                     ).toUpperCase()}
                   </strong>
                 </span>
@@ -351,11 +399,14 @@ export default async function NoticiaPage({
                   <span className="read-time">
                     <i className="far fa-clock" /> {readTime} min de leitura
                   </span>
-                  <span className="meta-separator">·</span>
-                  <span className="view-count">
-                    <i className="far fa-eye" /> {noticia.views || 0}{" "}
-                    visualizações
-                  </span>
+                  {noticia.fonte && (
+                    <>
+                      <span className="meta-separator">·</span>
+                      <span className="read-time">
+                        Fonte: <strong style={{ color: 'var(--c-accent)' }}>{noticia.fonte}</strong>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -377,6 +428,9 @@ export default async function NoticiaPage({
             <span>{TEXTS.brand.acervo}</span>
           </figcaption>
         </figure>
+
+        {/* Player de Vídeo Responsivo (YouTube, Facebook, Instagram) */}
+        {noticia.videoUrl && renderVideoPlayer(noticia.videoUrl)}
 
         {/* ===== GRID DE CONTEÚDO EDITORIAL ===== */}
         <div className="editorial-content-grid">
