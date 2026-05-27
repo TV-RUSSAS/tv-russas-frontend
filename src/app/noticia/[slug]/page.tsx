@@ -1,4 +1,5 @@
 import "./noticia-premium.css";
+import "@/app/social-embeds.css";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -9,12 +10,13 @@ import {
   InlineShare,
 } from "@/components/ArticleInteractions";
 import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleFeedbackWrapper";
-import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
 import { TEXTS } from "@/constants/texts";
 import { sanitizeHtml } from "@/utils/sanitize";
+import { ArticleVideoEmbed, type VideoPlatform } from "@/components/ArticleVideoEmbed";
+import { PremiumVideoPlayer } from "@/components/PremiumVideoPlayer";
 
 export async function generateMetadata({
   params,
@@ -98,20 +100,20 @@ function formatArticleContent(htmlContent: string): string {
   // Remove qualquer linha de autor/atribuição do final para que não apareça no rodapé
   content = content.replace(
     /<p class="article-author-attribution">[\s\S]*?<\/p>/gi,
-    ""
+    "",
   );
   content = content.replace(
     /<p class="article-source-attribution">[\s\S]*?<\/p>/gi,
+    "",
+  );
+
+  // Remove menções manuais cruas a "Publicado por:" e "Fonte:" em qualquer lugar do texto
+  content = content.replace(
+    /<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*[\s\S]*?(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
     ""
   );
-  
-  // Remove menções manuais cruas ao final do texto para evitar resquícios históricos no rodapé
   content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*(?:Publicado\s+por\s*:\s*|Portal\s+)?TV\s*Russas\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/gi,
-    ""
-  );
-  content = content.replace(
-    /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>\s*$/gi,
+    /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*[\s\S]*?(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
     ""
   );
 
@@ -124,53 +126,176 @@ function formatArticleContent(htmlContent: string): string {
   return content;
 }
 
+// Helper para converter placeholders em blocos de Vídeo e Embed React
+function parseContentWithEmbeds(htmlContent: string) {
+  const formattedHtml = formatArticleContent(htmlContent);
+  const regex = /<div\s+class="(article-video-placeholder|social-embed-placeholder)"\s+data-platform="([a-z]+)"\s+data-url="([^"]+)"(?:\s+data-caption="([^"]*)")?(?:\s+data-credit="([^"]*)")?\s*><\/div>/gi;
+  
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+  let keyIndex = 0;
+  
+  while ((match = regex.exec(formattedHtml)) !== null) {
+    const textBefore = formattedHtml.substring(lastIndex, match.index).trim();
+    if (textBefore) {
+      parts.push(
+        <div 
+          key={`text-${keyIndex++}`} 
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(textBefore) }} 
+          className="article-body-content premium-editorial-flow" 
+        />
+      );
+    }
+    
+    const platform = match[2];
+    const url = match[3];
+    const caption = match[4] || '';
+    const credit = match[5] || '';
+    
+    parts.push(
+      <ArticleVideoEmbed 
+        key={`embed-${keyIndex++}`} 
+        url={url} 
+        platform={platform as VideoPlatform} 
+        caption={caption} 
+        credit={credit}
+      />
+    );
+    
+    lastIndex = regex.lastIndex;
+  }
+  
+  const textAfter = formattedHtml.substring(lastIndex).trim();
+  if (textAfter) {
+    parts.push(
+      <div 
+        key={`text-${keyIndex++}`} 
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(textAfter) }} 
+        className="article-body-content premium-editorial-flow" 
+      />
+    );
+  }
+  
+  return parts;
+}
+
 // Helper para embutir players de vídeo de forma responsiva
 function renderVideoPlayer(videoUrl: string | null | undefined) {
   if (!videoUrl) return null;
 
+  const cleanUrlLower = videoUrl.trim().toLowerCase();
+  
+  // Detecção de Vídeo Direto (MP4, WebM, OGG, uploads Cloudinary/locais)
+  if (
+    cleanUrlLower.endsWith('.mp4') || 
+    cleanUrlLower.endsWith('.webm') || 
+    cleanUrlLower.endsWith('.ogg') ||
+    cleanUrlLower.includes('.mp4?') ||
+    cleanUrlLower.includes('/video-upload/') ||
+    cleanUrlLower.includes('/videos-admin/')
+  ) {
+    return <PremiumVideoPlayer src={videoUrl} />;
+  }
+
   // YouTube
-  const ytMatch = videoUrl.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+  const ytMatch = videoUrl.match(
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i,
+  );
   if (ytMatch && ytMatch[1]) {
     const videoId = ytMatch[1];
     return (
-      <div className="editorial-video-wrapper" style={{ margin: '24px 0', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', position: 'relative', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div
+        className="editorial-video-wrapper"
+        style={{
+          margin: "24px 0",
+          borderRadius: "8px",
+          overflow: "hidden",
+          aspectRatio: "16/9",
+          position: "relative",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
         <iframe
           src={`https://www.youtube.com/embed/${videoId}`}
           title="YouTube video player"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            border: "none",
+          }}
         />
       </div>
     );
   }
 
   // Instagram
-  const igMatch = videoUrl.match(/instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/i);
+  const igMatch = videoUrl.match(
+    /instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/i,
+  );
   if (igMatch && igMatch[1]) {
     const igId = igMatch[1];
     return (
-      <div className="editorial-video-wrapper" style={{ margin: '24px 0', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', position: 'relative', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div
+        className="editorial-video-wrapper"
+        style={{
+          margin: "24px 0",
+          borderRadius: "8px",
+          overflow: "hidden",
+          aspectRatio: "16/9",
+          position: "relative",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
         <iframe
           src={`https://www.instagram.com/p/${igId}/embed/`}
           title="Instagram post player"
           allowFullScreen
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            border: "none",
+          }}
         />
       </div>
     );
   }
 
   // Facebook
-  if (videoUrl.includes('facebook.com')) {
+  if (videoUrl.includes("facebook.com")) {
     return (
-      <div className="editorial-video-wrapper" style={{ margin: '24px 0', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', position: 'relative', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div
+        className="editorial-video-wrapper"
+        style={{
+          margin: "24px 0",
+          borderRadius: "8px",
+          overflow: "hidden",
+          aspectRatio: "16/9",
+          position: "relative",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
         <iframe
           src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(videoUrl)}&show_text=0&width=560`}
           title="Facebook video player"
           allowFullScreen
           allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            border: "none",
+          }}
         />
       </div>
     );
@@ -188,18 +313,15 @@ export default async function NoticiaPage({
   const noticia = await apiService.getNoticia(slug);
   if (!noticia) notFound();
 
-  const [todasNoticias, trendingRaw, maisLidasRaw, bannerTopo] = await Promise.all([
-    apiService.getNoticias(),
-    apiService.getTrending(),
-    apiService.getMaisLidas(),
-    apiService.getBannerAtivo('topo_interna'),
-  ]);
-
-  // Se o trending/maisLidas estiverem vazios (ex: site novo), usa as notícias recentes como fallback
-  const trending =
-    trendingRaw.length > 0 ? trendingRaw : todasNoticias.slice(0, 5);
-  const maisLidas =
-    maisLidasRaw.length > 0 ? maisLidasRaw : todasNoticias.slice(5, 10);
+  const [todasNoticias, bannerTopo, maisLidas] =
+    await Promise.all([
+      apiService.getNoticias(),
+      apiService.getBannerAtivo("topo_interna"),
+      apiService.getMaisLidas().catch((err) => {
+        console.error("Erro ao buscar mais lidas:", err);
+        return [];
+      }),
+    ]);
 
   // Relacionadas: prioriza mesma categoria, fallback para qualquer outra
   const mesmaCat = todasNoticias.filter(
@@ -300,40 +422,53 @@ export default async function NoticiaPage({
 
       {/* Banner de Publicidade no Topo */}
       {bannerTopo && (
-        <div className="editorial-ad-banner-topo" style={{ 
-          margin: '0 auto 20px', 
-          maxWidth: '1200px', 
-          width: '100%', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          gap: '6px'
-        }}>
-          <span style={{ 
-            fontSize: '9px', 
-            color: 'var(--c-muted, #999)', 
-            fontWeight: '600', 
-            textTransform: 'uppercase', 
-            letterSpacing: '0.1em' 
-          }}>
+        <div
+          className="editorial-ad-banner-topo"
+          style={{
+            margin: "0 auto 20px",
+            maxWidth: "1200px",
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          <span
+            style={{
+              fontSize: "9px",
+              color: "var(--c-muted, #999)",
+              fontWeight: "600",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
+          >
             {TEXTS.widgets.advertising}
           </span>
-          <a 
-            href={bannerTopo.linkUrl || '#'} 
-            target={bannerTopo.linkUrl ? "_blank" : "_self"} 
+          <a
+            href={bannerTopo.linkUrl || "#"}
+            target={bannerTopo.linkUrl ? "_blank" : "_self"}
             rel="noopener noreferrer"
-            style={{ display: 'block', width: '100%', cursor: bannerTopo.linkUrl ? 'pointer' : 'default' }}
+            style={{
+              display: "block",
+              width: "100%",
+              cursor: bannerTopo.linkUrl ? "pointer" : "default",
+            }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={bannerTopo.imageUrl.startsWith('http') ? bannerTopo.imageUrl : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${bannerTopo.imageUrl}`} 
+            <img
+              src={
+                bannerTopo.imageUrl.startsWith("http")
+                  ? bannerTopo.imageUrl
+                  : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${bannerTopo.imageUrl}`
+              }
               alt={bannerTopo.titulo}
-              style={{ 
-                width: '100%', 
-                maxHeight: '120px', 
-                objectFit: 'contain', 
-                borderRadius: '6px',
-                border: '1px solid rgba(255,255,255,0.06)'
+              style={{
+                width: "100%",
+                maxHeight: "120px",
+                objectFit: "contain",
+                borderRadius: "6px",
+                border: "1px solid rgba(255,255,255,0.06)",
               }}
             />
           </a>
@@ -385,7 +520,6 @@ export default async function NoticiaPage({
                   {TEXTS.common.por}{" "}
                   <strong>
                     {(
-                      noticia.publicadoPor ||
                       noticia.colunista?.nome ||
                       "PORTAL TV RUSSAS"
                     ).toUpperCase()}
@@ -399,14 +533,6 @@ export default async function NoticiaPage({
                   <span className="read-time">
                     <i className="far fa-clock" /> {readTime} min de leitura
                   </span>
-                  {noticia.fonte && (
-                    <>
-                      <span className="meta-separator">·</span>
-                      <span className="read-time">
-                        Fonte: <strong style={{ color: 'var(--c-accent)' }}>{noticia.fonte}</strong>
-                      </span>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
@@ -414,20 +540,20 @@ export default async function NoticiaPage({
         </header>
 
         {/* Imagem de capa Premium */}
-        <figure className="editorial-featured-image">
+        <div className="article-main-image-wrapper">
           <Image
-            src={getImagePath(noticia.capaUrl)}
+            src={getImagePath(noticia.capaUrl, 'main')}
             alt={noticia.titulo}
             width={1200}
             height={675}
             priority
             className="article-img"
           />
-          <figcaption className="editorial-image-caption">
-            <span>{noticia.titulo}</span>
-            <span>{TEXTS.brand.acervo}</span>
-          </figcaption>
-        </figure>
+        </div>
+        <figcaption className="editorial-image-caption">
+          <span>{noticia.titulo}</span>
+          <span>{TEXTS.brand.acervo}</span>
+        </figcaption>
 
         {/* Player de Vídeo Responsivo (YouTube, Facebook, Instagram) */}
         {noticia.videoUrl && renderVideoPlayer(noticia.videoUrl)}
@@ -436,13 +562,8 @@ export default async function NoticiaPage({
         <div className="editorial-content-grid">
           {/* ── COLUNA DE LEITURA ── */}
           <div className="editorial-main-content">
-            {/* O corpo do texto com classe de alta especificidade */}
-            <div
-              className="article-body-content premium-editorial-flow"
-              dangerouslySetInnerHTML={{
-                __html: sanitizeHtml(formatArticleContent(noticia.conteudo)),
-              }}
-            />
+            {/* O corpo do texto com classe de alta especificidade intercalando embeds estruturados */}
+            {parseContentWithEmbeds(noticia.conteudo)}
 
             {/* Tags */}
             <div className="article-footer">
@@ -486,7 +607,7 @@ export default async function NoticiaPage({
                     >
                       <div className="mini-card-img">
                         <Image
-                          src={getImagePath(item.capaUrl)}
+                          src={getImagePath(item.capaUrl, 'card')}
                           alt={item.titulo}
                           fill
                           sizes="(max-width: 768px) 100vw, 33vw"
@@ -503,16 +624,41 @@ export default async function NoticiaPage({
                 </div>
               </section>
             )}
+
+            {/* Mais Lidas (Estilo Caixa de Texto / O Povo) */}
+            {maisLidas.length > 0 && (
+              <section className="editorial-mais-lidas-bottom">
+                <div className="mais-lidas-header-container">
+                  <h3 className="mais-lidas-heading">
+                    MAIS LIDAS
+                  </h3>
+                  <div className="mais-lidas-heading-bar" />
+                </div>
+                <div className="mais-lidas-list">
+                  {maisLidas.slice(0, 5).map((item, index) => (
+                    <Link
+                      key={item.slug}
+                      href={`/noticia/${item.slug}`}
+                      className="mais-lidas-item"
+                    >
+                      <div className={`mais-lidas-number ${index === 0 ? 'first' : ''}`}>
+                        {index + 1}
+                      </div>
+                      <div className="mais-lidas-content">
+                        <span className="mais-lidas-category">
+                          {item.categoria?.nome?.toUpperCase() || "TV RUSSAS"}
+                        </span>
+                        <h4 className="mais-lidas-title">
+                          {item.titulo}
+                        </h4>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
 
-          {/* ── SIDEBAR ── */}
-          <aside className="editorial-sidebar">
-            <TrendingWidget items={trending} title="Em Alta" />
-
-            <div className="sticky-sidebar-widget">
-              <TrendingWidget items={maisLidas} title="Mais Lidas" />
-            </div>
-          </aside>
         </div>
       </article>
     </main>

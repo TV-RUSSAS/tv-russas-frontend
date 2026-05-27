@@ -1,9 +1,9 @@
-'use client';
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
-import { useAdminAuth } from '@/hooks/useAdminAuth';
-import { NoticiaEditorForm } from '@/components/admin/NoticiaEditorForm';
-import { getImagePath } from '@/utils/imagePath';
+"use client";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { NoticiaEditorForm } from "@/components/admin/NoticiaEditorForm";
+import { getImagePath } from "@/utils/imagePath";
 
 interface Noticia {
   id: string;
@@ -17,6 +17,9 @@ interface Noticia {
   featured: boolean;
   breaking: boolean;
   capaUrl: string;
+  videoUrl?: string | null;
+  fonte?: string | null;
+  publicadoPor?: string | null;
 }
 
 export default function EditarNoticiaPage() {
@@ -24,13 +27,13 @@ export default function EditarNoticiaPage() {
   const { authFetch } = useAdminAuth();
   const [noticia, setNoticia] = useState<Noticia | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!id) return;
     authFetch(`/admin/noticias/${id}`)
-      .then(r => r.json())
-      .then(data => {
+      .then((r) => r.json())
+      .then((data) => {
         if (data.error) throw new Error(data.error);
         setNoticia(data);
       })
@@ -56,14 +59,17 @@ export default function EditarNoticiaPage() {
         id: noticia.id,
         titulo: noticia.titulo,
         slug: noticia.slug,
-        resumo: noticia.resumo || '',
+        resumo: noticia.resumo || "",
         conteudo: noticia.conteudo,
         categoriaId: noticia.categoriaId,
-        colunistaId: noticia.colunistaId || '',
-        tags: noticia.tags || '',
+        colunistaId: noticia.colunistaId || "",
+        tags: noticia.tags || "",
         featured: noticia.featured,
         breaking: noticia.breaking,
         capaUrl: getImagePath(noticia.capaUrl),
+        videoUrl: noticia.videoUrl || "",
+        fonte: noticia.fonte || "",
+        publicadoPor: noticia.publicadoPor || "",
       }}
     />
   );

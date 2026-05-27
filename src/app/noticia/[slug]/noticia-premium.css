@@ -48,18 +48,21 @@
   padding: 0 24px;
 }
 
-/* Breadcrumb */
+/* Breadcrumb - Alinhado à grade de 860px */
 .editorial-breadcrumb {
   display: flex;
   gap: 8px;
   font-size: 11px;
   font-family: var(--edit-font-sans);
   color: #777;
-  margin-bottom: 5px; /* Reduzido drasticamente */
+  margin: 0 auto 8px !important; /* Centralizado com margem inferior sutil */
+  max-width: 860px; /* Alinhado exatamente com o cabeçalho e imagem */
+  width: 100%;
+  box-sizing: border-box;
   text-transform: uppercase;
   letter-spacing: 1px;
   font-weight: 700;
-  padding-top: 10px;
+  padding-top: 15px;
 }
 
 .editorial-breadcrumb a {
@@ -81,11 +84,14 @@
 }
 
 
-/* ==================== HEADER DO ARTIGO (IMPACTO) ==================== */
+/* ==================== HEADER DO ARTIGO (IMPACTO) - Alinhado a 860px ==================== */
 .editorial-header {
   padding: 10px 0 15px !important;
   border-bottom: 1px solid var(--edit-border) !important; /* Linha sutil em vez de preto sólido */
-  margin-bottom: 20px !important;
+  margin: 0 auto 24px !important; /* Centralizado com margem inferior */
+  max-width: 860px; /* Alinhado exatamente com a imagem principal e legenda */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .editorial-category {
@@ -189,53 +195,102 @@
   gap: 12px;
 }
 
-/* ==================== GRID CONTEÚDO + SIDEBAR ==================== */
+/* ==================== GRID CONTEÚDO + SIDEBAR (AGORA COLUNA ÚNICA) ==================== */
 .editorial-content-grid {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 50px;
-  align-items: start;
-}
-
-/* ==================== COLUNA PRINCIPAL ==================== */
-.editorial-main-content {
-  min-width: 0; /* Evita overflow no grid */
-}
-
-/* Imagem em Destaque */
-.editorial-featured-image {
+  display: block;
+  max-width: 860px; /* Alinhado exatamente com a imagem de capa e header a 860px */
+  margin: 0 auto;
   width: 100%;
-  margin-bottom: 20px;
-  border-radius: 0;
-  overflow: hidden;
 }
 
-.editorial-featured-image img,
+/* ==================== COLUNA PRINCIPAL CENTRALIZADA ==================== */
+.editorial-main-content {
+  min-width: 0;
+  max-width: 720px; /* Largura focada de leitura confortável de 720px, estilo G1, O Povo e Medium */
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Imagem Principal da Matéria */
+.article-main-image-wrapper {
+  width: 100%;
+  max-width: 860px; /* Alinhada perfeitamente com a grade do cabeçalho */
+  margin: 32px auto 0;
+  aspect-ratio: 16 / 9;
+  max-height: 485px; /* Ajustada proporcionalmente para a largura de 860px */
+  overflow: hidden;
+  border-radius: 8px;
+  background: transparent; /* Fundo transparente para visual integrado e limpo */
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.article-main-image-wrapper img,
 .article-img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain; /* ESSENCIAL: Mostra a imagem de capa inteira, sem nenhum corte! */
   display: block;
 }
 
-/* Legenda da imagem — igual às prints */
+/* Legenda da imagem — discreta e alinhada com a imagem principal a 860px */
 .editorial-image-caption {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 8px 0;
+  padding: 8px 16px;
   font-family: var(--edit-font-sans);
-  font-size: 12px;
-  color: #999;
+  font-size: 11px; /* Ligeiramente menor para ficar elegante e editorial */
+  color: #777; /* Um tom de cinza ligeiramente mais visível e elegante */
   border-bottom: 1px solid #eee;
-  margin-bottom: 10px;
-  gap: 16px;
+  margin: 8px auto 32px; /* Margem inferior de 32px separando a legenda do texto */
+  max-width: 860px; /* Alinhada exatamente com a largura da imagem */
+  width: 100%;
+  box-sizing: border-box;
+  gap: 20px;
+}
+
+/* Player de vídeo opcional de capa */
+.editorial-video-wrapper {
+  max-width: 860px; /* Ajustado para a largura da imagem */
+  margin: 32px auto !important;
 }
 
 .editorial-image-caption span {
-  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* O primeiro span é a legenda/título da imagem */
+.editorial-image-caption span:first-child {
+  font-weight: 600; /* Peso elegante semi-bold */
+  color: #666;
+  white-space: normal; /* Permite quebra de linha fluida */
+}
+
+/* O segundo span é o crédito da imagem */
+.editorial-image-caption span:last-child {
+  font-weight: 500; /* Mais leve para o crédito */
+  color: #999;
+  white-space: nowrap; /* Impede que o crédito quebre desnecessariamente no desktop */
+  flex-shrink: 0;
+}
+
+/* Imagens dentro do corpo do texto */
+.article-body-content img,
+.premium-editorial-flow img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 480px;
+  margin: 32px auto;
+  border-radius: 8px;
+  object-fit: contain; /* Exibe as imagens no meio da matéria inteiras, sem cortes */
 }
 
 /* Share inline no header */
@@ -268,12 +323,15 @@
 /* ==================== EXPERIÊNCIA EDITORIAL PREMIUM (CORPO) ==================== */
 .article-body-content {
   font-family: var(--edit-font-serif) !important;
-  font-size: 20px !important; /* Tamanho confortável da imagem */
-  line-height: 1.8 !important;
+  font-size: 20px !important;
+  line-height: 1.85 !important;
   color: #1a1a1a !important;
-  margin-bottom: 60px !important;
-  max-width: 820px !important;
+  margin-bottom: 32px !important; /* Espaçamento mais coeso */
+  max-width: 720px !important; /* Estreitado para 720px para leitura ideal e simetria lateral */
   text-align: left !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: 100%;
 }
 
 /* Espaçamento generoso entre parágrafos - Igual à imagem */
@@ -288,20 +346,21 @@
   color: #1a1a1a !important;
 }
 
-/* DROP CAP - SELETORES MÚLTIPLOS PARA GARANTIR FUNCIONAMENTO */
+/* DROP CAP - DETALHE LARANJA DE MARCA (CONTIDO NO FLUXO, SEM QUEBRAR ALINHAMENTO) */
 .article-body-content p:first-of-type::first-letter,
 .article-body-content > p:first-child::first-letter,
 .article-body-content > div:first-child::first-letter,
 .article-body-content::first-letter {
   font-family: var(--edit-font-display) !important;
-  font-size: 96px !important;
+  font-size: 72px !important; /* Destaque majestoso e editorial! */
   font-weight: 900 !important;
-  line-height: 0.65 !important;
-  float: left !important;
-  margin: 12px 16px 4px 0 !important;
-  color: var(--edit-primary) !important;
+  color: var(--edit-primary) !important; /* A cor laranja clássica da TV Russas */
   text-transform: uppercase !important;
-  display: block !important;
+  float: none !important; /* CRÍTICO: Remove o float lateral que causava desalinhamentos na margem */
+  margin: 0 4px 0 0 !important;
+  display: inline !important; /* Exibe em fluxo direto com o texto */
+  line-height: 0.8 !important; /* Compactação para acomodar a letra majestosa */
+  vertical-align: -10px !important; /* Assenta a base da letra grande perfeitamente no alinhamento de leitura */
 }
 
 /* Intertítulos (H2 e H3 dentro da matéria) */
@@ -426,7 +485,6 @@
     padding: 20px;
   }
   .article-body-content { font-size: 19px; }
-  .article-body-content p:first-of-type::first-letter { font-size: 72px; }
 }
 
 .article-pullquote::before {
@@ -702,26 +760,29 @@
 .trending-item:first-child { padding-top: 0; }
 
 .trending-number {
-  font-family: var(--edit-font-serif) !important;
-  font-size: 38px !important;
-  font-weight: 900 !important;
-  color: #e0e0e0 !important; 
+  font-family: var(--edit-font-sans) !important;
+  font-size: 44px !important;
+  font-weight: 200 !important; /* Ultra fino e elegante como UOL/G1 */
+  color: #e2e8f0 !important; 
   line-height: 1 !important;
-  min-width: 32px !important;
+  min-width: 38px !important;
   flex-shrink: 0 !important;
-  margin-top: -5px !important;
-  transition: color 0.3s ease;
+  margin-top: -8px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 /* O primeiro item tem o número em destaque */
 .trending-item:first-child .trending-number {
   color: var(--edit-primary) !important;
-  opacity: 0.8;
+  opacity: 0.8 !important;
+  font-weight: 300 !important;
 }
 
 .trending-item:hover .trending-number {
   color: var(--edit-primary) !important;
-  opacity: 1;
+  transform: scale(1.05) !important;
+  font-weight: 400 !important;
+  opacity: 1 !important;
 }
 
 .trending-content { flex: 1; min-width: 0; }
@@ -962,12 +1023,6 @@
 .share-inline-btn.s-fbk { background: #1877F2; }
 
 @media (max-width: 1280px) {
-  .editorial-content-grid {
-    grid-template-columns: 1fr;
-  }
-  .editorial-sidebar {
-    position: static;
-  }
   .related-cards-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1030,4 +1085,198 @@
 .share-toast i {
   color: #25D366; /* Ícone verde de sucesso */
   font-size: 16px;
+}
+
+/* ===== SEÇÃO MAIS LIDAS NO RODAPÉ (Estilo Caixa de Texto / O Povo) ===== */
+.editorial-mais-lidas-bottom {
+  margin: 56px auto 32px;
+  max-width: 720px; /* Alinhado exatamente com o corpo de texto de 720px */
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  border: 1px solid #e2e8f0; /* Borda cinza suave em torno do card */
+  border-radius: 12px; /* Cantos arredondados */
+  padding: 24px 28px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.mais-lidas-header-container {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.mais-lidas-heading {
+  font-family: var(--edit-font-sans);
+  font-size: 16px;
+  font-weight: 800; /* Negrito em caixa alta */
+  color: #1a1a1a;
+  letter-spacing: 1px;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+}
+
+.mais-lidas-heading-bar {
+  width: 80px;
+  height: 3px;
+  background-color: var(--edit-primary); /* Linha grossa laranja embaixo do título */
+  border-radius: 2px;
+}
+
+.mais-lidas-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.mais-lidas-item {
+  display: flex;
+  align-items: flex-start; /* Alinhado ao topo para casar o número com o texto */
+  margin: 0 -12px; /* Margem negativa para o hover se estender elegantemente */
+  padding: 20px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 8px; /* Cantos arredondados para o fundo de hover */
+  text-decoration: none;
+  gap: 20px;
+  transition: background-color 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.mais-lidas-item:last-child {
+  border-bottom: none;
+  padding-bottom: 12px;
+}
+
+.mais-lidas-item:first-child {
+  padding-top: 12px;
+}
+
+/* Efeito de hover no fundo do item */
+.mais-lidas-item:hover {
+  background-color: #f8fafc; /* Fundo cinza azulado extremamente sutil */
+}
+
+.mais-lidas-number {
+  font-family: var(--edit-font-sans);
+  font-size: 54px;
+  font-weight: 200; /* Fino elegante */
+  color: #cbd5e1; /* Cinza claro azulado para os números 2, 3, 4, 5 */
+  width: 40px;
+  flex-shrink: 0;
+  text-align: center;
+  line-height: 0.9;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), color 0.3s ease;
+}
+
+/* O número 1 é da cor laranja oficial */
+.mais-lidas-number.first {
+  color: var(--edit-primary) !important;
+}
+
+/* Animação do número no hover */
+.mais-lidas-item:hover .mais-lidas-number {
+  transform: scale(1.08); /* Cresce suavemente */
+  color: #64748b; /* Fica ligeiramente mais escuro para destaque */
+}
+
+.mais-lidas-item:hover .mais-lidas-number.first {
+  color: #e04a1b !important; /* Laranja ligeiramente mais saturado no hover */
+}
+
+.mais-lidas-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 4px;
+  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Animação de deslocamento do texto para a direita */
+.mais-lidas-item:hover .mais-lidas-content {
+  transform: translateX(8px); /* Desloca suavemente para a direita */
+}
+
+.mais-lidas-category {
+  font-family: var(--edit-font-sans);
+  font-size: 10.5px;
+  font-weight: 800; /* Caixa alta negrito laranja */
+  color: var(--edit-primary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.mais-lidas-title {
+  font-family: var(--edit-font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b; /* Preto/cinza-escuro em vez de vermelho */
+  line-height: 1.45;
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+.mais-lidas-item:hover .mais-lidas-title {
+  color: var(--edit-primary) !important; /* Transição de cor suave para laranja */
+}
+
+/* Responsividade para Imagens e Elementos Visuais */
+@media (max-width: 768px) {
+  .article-main-image-wrapper {
+    aspect-ratio: 16 / 10 !important;
+    max-height: 320px !important;
+    border-radius: 4px !important;
+    margin: 20px auto 8px !important;
+  }
+  .article-body-content img,
+  .premium-editorial-flow img {
+    max-height: 280px !important;
+    aspect-ratio: 16 / 10 !important;
+    border-radius: 4px !important;
+    margin: 20px auto !important;
+  }
+  .editorial-image-caption {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 8px 8px !important;
+    max-width: 100% !important;
+    border-bottom: 1px solid #eee !important;
+  }
+  .editorial-image-caption span:last-child {
+    white-space: normal !important;
+    color: #a5a5a5 !important;
+  }
+  .editorial-header,
+  .editorial-breadcrumb {
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .editorial-main-content {
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .article-body-content {
+    max-width: 100% !important;
+    font-size: 19px !important;
+  }
+  .editorial-mais-lidas-bottom {
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    margin-top: 40px !important;
+  }
+  .mais-lidas-item {
+    gap: 12px !important;
+    padding: 12px 0 !important;
+  }
+  .mais-lidas-number {
+    font-size: 40px !important;
+    width: 30px !important;
+  }
+  .mais-lidas-title {
+    font-size: 14px !important;
+  }
+  .mais-lidas-thumb {
+    width: 80px !important;
+    height: 50px !important;
+  }
 }

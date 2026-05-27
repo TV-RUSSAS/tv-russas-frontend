@@ -870,4 +870,40 @@
   background: rgba(255, 87, 34, 0.35); /* Laranja identidade da TV Russas translúcido */
 }
 
+/* ── RANKING WIDGET ──────────────────────────────────────────── */
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Adiciona gap explícito para separar o número e o texto */
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.ranking-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+.ranking-num {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  width: 24px;
+  min-width: 24px; /* Garante tamanho mínimo para o número */
+  flex-shrink: 0;
+  text-align: center;
+}
+.ranking-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+.ranking-item:hover .ranking-actions {
+  opacity: 1;
+}
+
+
 

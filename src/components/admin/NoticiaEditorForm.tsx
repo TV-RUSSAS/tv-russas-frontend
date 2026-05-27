@@ -21,6 +21,136 @@ import LinkExtension from '@tiptap/extension-link';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 
+// Custom Tiptap Social/Video Embed Node View
+import { Node, mergeAttributes } from '@tiptap/core';
+import { ReactNodeViewRenderer, NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
+import { detectVideoPlatform } from '@/components/ArticleVideoEmbed';
+
+// Componente React que renderiza o player de vídeo ou card de mídia no próprio editor (Admin)
+function SocialEmbedNodeView({ node, deleteNode }: NodeViewProps) {
+  const { platform, url, caption, credit } = node.attrs;
+  
+  const isVideo = platform === 'youtube' || platform === 'video';
+  let badgeColor = isVideo ? '#ff9800' : '#9ca3af';
+  let badgeBg = isVideo ? 'rgba(255, 152, 0, 0.1)' : 'rgba(156, 163, 175, 0.1)';
+  let platformLabel = 'Link Externo';
+
+  if (platform === 'youtube') {
+    platformLabel = 'Vídeo do YouTube';
+    badgeColor = '#ff0000';
+    badgeBg = 'rgba(255, 0, 0, 0.1)';
+  } else if (platform === 'video') {
+    platformLabel = 'Vídeo Direto (.mp4)';
+    badgeColor = '#10b981';
+    badgeBg = 'rgba(16, 185, 129, 0.1)';
+  } else if (platform === 'instagram') {
+    platformLabel = 'Link do Instagram';
+    badgeColor = '#e1306c';
+    badgeBg = 'rgba(225, 48, 108, 0.1)';
+  } else if (platform === 'facebook') {
+    platformLabel = 'Link do Facebook';
+    badgeColor = '#1877f2';
+    badgeBg = 'rgba(24, 119, 242, 0.1)';
+  }
+
+  return (
+    <NodeViewWrapper className="social-embed-editor-block" style={{ margin: '20px 0', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: '8px', padding: '16px', background: 'rgba(255,255,255,0.02)', position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <span style={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase', color: badgeColor, background: badgeBg, padding: '3px 8px', borderRadius: '4px', letterSpacing: '0.05em' }}>
+          {platformLabel}
+        </span>
+        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '380px' }}>
+          {url}
+        </span>
+        <button 
+          type="button" 
+          onClick={deleteNode}
+          style={{ marginLeft: 'auto', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#f87171', cursor: 'pointer', fontSize: '11px', padding: '3px 8px', borderRadius: '4px', transition: 'all 0.2s' }}
+          onMouseOver={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'; }}
+          onMouseOut={e => { e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+        >
+          {isVideo ? 'Remover Vídeo' : 'Remover Link'}
+        </button>
+      </div>
+      {caption && (
+        <div style={{ fontSize: '11px', fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', borderLeft: '2px solid rgba(255,255,255,0.15)', paddingLeft: '8px', marginBottom: '8px' }}>
+          &ldquo;{caption}&rdquo;
+        </div>
+      )}
+      {credit && (
+        <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.35)', paddingLeft: '8px', marginBottom: '12px' }}>
+          Crédito: {credit}
+        </div>
+      )}
+      <div style={{ padding: '8px', background: 'rgba(0,0,0,0.15)', borderRadius: '6px', fontSize: '11px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', border: '1px solid rgba(255,255,255,0.04)' }}>
+        <i className="fas fa-video" style={{ marginRight: '6px' }} />
+        Visualização de Bloco no Portal Público.
+      </div>
+    </NodeViewWrapper>
+  );
+}
+
+const SocialEmbedExtension = Node.create({
+  name: 'socialEmbed',
+  group: 'block',
+  atom: true,
+  
+  addAttributes() {
+    return {
+      platform: { default: null },
+      url: { default: null },
+      caption: { default: '' },
+      credit: { default: '' }
+    };
+  },
+  
+  parseHTML() {
+    return [
+      {
+        tag: 'div[class="article-video-placeholder"]',
+        getAttrs: (dom: HTMLElement | string) => {
+          if (typeof dom === 'string') return {};
+          return {
+            platform: dom.getAttribute('data-platform'),
+            url: dom.getAttribute('data-url'),
+            caption: dom.getAttribute('data-caption') || '',
+            credit: dom.getAttribute('data-credit') || ''
+          };
+        }
+      },
+      {
+        tag: 'div[class="social-embed-placeholder"]',
+        getAttrs: (dom: HTMLElement | string) => {
+          if (typeof dom === 'string') return {};
+          return {
+            platform: dom.getAttribute('data-platform'),
+            url: dom.getAttribute('data-url'),
+            caption: dom.getAttribute('data-caption') || '',
+            credit: dom.getAttribute('data-credit') || ''
+          };
+        }
+      }
+    ];
+  },
+  
+  renderHTML({ HTMLAttributes }) {
+    return [
+      'div',
+      mergeAttributes(HTMLAttributes, {
+        class: 'article-video-placeholder',
+        'data-platform': HTMLAttributes.platform,
+        'data-url': HTMLAttributes.url,
+        'data-caption': HTMLAttributes.caption,
+        'data-credit': HTMLAttributes.credit
+      })
+    ];
+  },
+  
+  addNodeView() {
+    return ReactNodeViewRenderer(SocialEmbedNodeView);
+  }
+});
+
 interface Categoria { id: string; nome: string; }
 interface Colunista  { id: string; nome: string; }
 
@@ -42,8 +172,42 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
   const [showFontMenu, setShowFontMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [showEmbedModal, setShowEmbedModal] = useState(false);
+  const [embedUrl, setEmbedUrl] = useState('');
+  const [embedCaption, setEmbedCaption] = useState('');
+  const [embedCredit, setEmbedCredit] = useState('');
 
   if (!editor) return null;
+
+  const handleInsertEmbed = () => {
+    if (!embedUrl.trim()) return;
+    
+    const platform = detectVideoPlatform(embedUrl);
+    if (platform === 'unknown') {
+      alert('Domínio não permitido por segurança. Use apenas links confiáveis do YouTube, Instagram ou Facebook.');
+      return;
+    }
+    
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: 'socialEmbed',
+        attrs: {
+          platform,
+          url: embedUrl.trim(),
+          caption: embedCaption.trim(),
+          credit: embedCredit.trim()
+        }
+      })
+      .run();
+      
+    setEmbedUrl('');
+    setEmbedCaption('');
+    setEmbedCredit('');
+    setShowEmbedModal(false);
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -156,6 +320,70 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       <button type="button" onClick={() => fileInputRef.current?.click()} title="Inserir Imagem" className="ed-btn">
         <i className="far fa-image" />
       </button>
+      
+      <button type="button" onClick={() => setShowEmbedModal(true)} title="Inserir Vídeo na Matéria" className="ed-btn" style={{ position: 'relative' }}>
+        <i className="fas fa-video" />
+      </button>
+
+      {showEmbedModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#12141D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', width: '100%', maxWidth: '440px', padding: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', fontFamily: 'var(--font-sans)', boxSizing: 'border-box' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: '600', color: '#fff', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', marginTop: 0 }}>
+              <i className="fas fa-video" style={{ color: '#ff9800' }} /> Inserir Vídeo na Matéria
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>Link / URL do YouTube ou Vídeo Direto</label>
+                <input 
+                  type="text" 
+                  value={embedUrl} 
+                  onChange={e => setEmbedUrl(e.target.value)} 
+                  placeholder="https://www.youtube.com/watch?v=..." 
+                  style={{ width: '100%', padding: '8px 12px', background: '#181A25', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', color: '#fff', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>Legenda do Vídeo (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={embedCaption} 
+                  onChange={e => setEmbedCaption(e.target.value)} 
+                  placeholder="ex: Assista ao vídeo relacionado à matéria." 
+                  style={{ width: '100%', padding: '8px 12px', background: '#181A25', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', color: '#fff', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '4px' }}>Crédito / Fonte do Vídeo (Opcional)</label>
+                <input 
+                  type="text" 
+                  value={embedCredit} 
+                  onChange={e => setEmbedCredit(e.target.value)} 
+                  placeholder="ex: Repórter Ceará / TV Russas" 
+                  style={{ width: '100%', padding: '8px 12px', background: '#181A25', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '4px', color: '#fff', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} 
+                />
+              </div>
+              
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setShowEmbedModal(false)} 
+                  style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px', color: '#9ca3af', fontSize: '12.5px', cursor: 'pointer', outline: 'none' }}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleInsertEmbed} 
+                  style={{ padding: '6px 12px', background: '#ff9800', border: 'none', borderRadius: '4px', color: '#fff', fontSize: '12.5px', cursor: 'pointer', fontWeight: '500', outline: 'none' }}
+                >
+                  Inserir Vídeo
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
@@ -208,6 +436,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
 
   const [capa, setCapa] = useState<File | null>(null);
   const [capaPreview, setCapaPreview] = useState<string | null>(getApiUrl(initialData?.capaUrl));
+  const [isVertical, setIsVertical] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [slugManual, setSlugManual] = useState(mode === 'edit');
@@ -253,8 +482,8 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     return html.replace(/<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi, '');
   };
 
-  const [fonteText, setFonteText] = useState(initialData?.fonte !== undefined ? (initialData.fonte || '') : (initialData?.conteudo ? extractFonte(initialData.conteudo) : 'TV Russas'));
-  const [publicadoPorText, setPublicadoPorText] = useState(initialData?.publicadoPor !== undefined ? (initialData.publicadoPor || '') : (initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : 'TV RUSSAS'));
+  const [fonteText, setFonteText] = useState('');
+  const [publicadoPorText, setPublicadoPorText] = useState('');
   const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || '');
 
   // Editor Instantiation
@@ -273,6 +502,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
       LinkExtension.configure({ openOnClick: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      SocialEmbedExtension,
     ],
     content: removePublicadoPor(removeFonte(initialData?.conteudo || '')),
     editorProps: {
@@ -342,10 +572,29 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCapa(file);
+
+    // Detectar dimensões da imagem para ver se é vertical
+    const imgElement = document.createElement('img');
+    imgElement.src = URL.createObjectURL(file);
+    imgElement.onload = () => {
+      setIsVertical(imgElement.naturalHeight > imgElement.naturalWidth);
+      URL.revokeObjectURL(imgElement.src);
+    };
+
     const reader = new FileReader();
     reader.onload = ev => setCapaPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
+
+  useEffect(() => {
+    if (initialData?.capaUrl) {
+      const imgElement = document.createElement('img');
+      imgElement.src = getApiUrl(initialData.capaUrl) || '';
+      imgElement.onload = () => {
+        setIsVertical(imgElement.naturalHeight > imgElement.naturalWidth);
+      };
+    }
+  }, [initialData]);
 
   // Submit Final (com lógica de limite de destaques)
   const executeSubmit = async () => {
@@ -490,51 +739,6 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
               
               <div className="cms-editor-content-area">
                 <EditorContent editor={editor} />
-                
-                {/* Container de Atribuição (Fonte e Publicado Por) */}
-                <div className="admin-article-preview" style={{ marginTop: '50px', paddingTop: '30px', borderTop: '1px solid #f4f4f5', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>{TEXTS.admin.sourceColon}</strong>
-                    <input 
-                      type="text" 
-                      value={fonteText} 
-                      onChange={e => { setFonteText(e.target.value); setSaveStatus('saving'); }} 
-                      placeholder="Ex: TV Russas"
-                      style={{ 
-                        fontFamily: 'Merriweather, Lora, serif', 
-                        fontSize: '20px', 
-                        fontWeight: 'bold', 
-                        color: '#000', 
-                        border: 'none', 
-                        outline: 'none', 
-                        background: 'transparent',
-                        flex: 1,
-                        padding: 0
-                      }} 
-                    />
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <strong style={{ fontFamily: 'Merriweather, Lora, serif', fontSize: '20px', color: '#000' }}>{TEXTS.admin.publishedBy}</strong>
-                    <input 
-                      type="text" 
-                      value={publicadoPorText} 
-                      onChange={e => { setPublicadoPorText(e.target.value); setSaveStatus('saving'); }} 
-                      placeholder="Ex: NOME DA BANCA PUBLICADORA"
-                      style={{ 
-                        fontFamily: 'Merriweather, Lora, serif', 
-                        fontSize: '20px', 
-                        fontWeight: 'bold', 
-                        color: '#000', 
-                        border: 'none', 
-                        outline: 'none', 
-                        background: 'transparent',
-                        flex: 1,
-                        padding: 0
-                      }} 
-                    />
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -644,6 +848,19 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                 </div>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
+              
+              {isVertical && (
+                <div style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#f87171', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <i className="fas fa-exclamation-triangle" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <strong>Imagem vertical detectada.</strong> Ela será cortada no portal para manter o padrão editorial.
+                  </div>
+                </div>
+              )}
+              <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--c-muted)', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <i className="fas fa-info-circle" style={{ flexShrink: 0 }} />
+                <span>Use imagens horizontais, preferencialmente <strong>1200x675</strong>.</span>
+              </div>
             </div>
 
             {/* Classificação */}

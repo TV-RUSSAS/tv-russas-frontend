@@ -1,12 +1,38 @@
 import { API_URL } from '@/services/api';
 
-export function getImagePath(path: string | undefined | null): string {
+export function getImagePath(
+  path: string | undefined | null,
+  type: 'main' | 'card' | 'none' = 'none'
+): string {
   if (!path) return '/uploads/placeholder.png';
   
   // Se for uma URL completa do Cloudinary (ou outra externa), retorna ela mesma
   if (path.startsWith('http')) {
-    // Aqui poderíamos aplicar transformações do Cloudinary de forma dinâmica na URL,
-    // Mas no momento vamos apenas retornar a URL segura salva no banco.
+    // Aplicar transformações dinâmicas automáticas no Cloudinary
+    if (path.includes('res.cloudinary.com') && path.includes('/upload/') && type !== 'none') {
+      const transformation = type === 'main'
+        ? 'f_auto,q_auto,c_fill,g_auto,w_1200,h_675'
+        : 'f_auto,q_auto,c_fill,g_auto,w_600,h_338';
+
+      const parts = path.split('/upload/');
+      if (parts.length === 2) {
+        const prefix = parts[0] + '/upload';
+        const suffix = parts[1];
+
+        const suffixSegments = suffix.split('/');
+        const firstSegment = suffixSegments[0];
+
+        // Verifica se o primeiro segmento é a versão (ex: v160000) ou se não há subdiretórios
+        const isVersionOrFilename = firstSegment.match(/^v\d+$/) || suffixSegments.length === 1;
+
+        if (!isVersionOrFilename) {
+          // Remove o primeiro segmento que é a transformação antiga
+          suffixSegments.shift();
+        }
+
+        return `${prefix}/${transformation}/${suffixSegments.join('/')}`;
+      }
+    }
     return path;
   }
 

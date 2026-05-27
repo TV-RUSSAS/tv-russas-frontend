@@ -371,6 +371,8 @@ export default function BannersAdmin() {
                     onChange={e => setPosicao(e.target.value)}
                   >
                     <option value="topo_interna">Topo da Matéria (Interna)</option>
+                    <option value="topo_home">Topo da Home Page</option>
+                    <option value="meio_home">Meio da Home Page</option>
                   </select>
                   <span className="cms-form-hint">Define o local exato onde o banner de propaganda será renderizado no portal público.</span>
                 </div>

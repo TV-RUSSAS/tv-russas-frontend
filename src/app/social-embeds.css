@@ -1,0 +1,134 @@
+/* ============================================================
+   TV Russas — Editorial Video Block CSS v4
+   Estilo Premium para Vídeos & Fallbacks do Portal
+   ============================================================ */
+
+/* Bloco Editorial de Vídeo */
+.article-video-block {
+  width: 100%;
+  max-width: 860px; /* Alinhado com a largura confortável da matéria */
+  margin: 40px auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  clear: both;
+}
+
+/* Rótulo "Vídeo" superior discreto */
+.video-label {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ea580c; /* Laranja TV Russas */
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Player Frame 16:9 */
+.article-video-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  background-color: #000;
+}
+
+.article-video-frame iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Legenda e Créditos */
+.article-video-info-meta {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 0 4px;
+}
+
+.article-video-caption {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 12px;
+  color: #4b5563; /* Cinza G1 */
+  line-height: 1.4;
+  flex: 1;
+}
+
+.article-video-credit {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 11px;
+  color: #9ca3af; /* Cinza claro discreto */
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Fallbacks Editoriais Compactos (Instagram/Facebook) */
+.article-video-fallback-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 32px auto;
+  width: 100%;
+  max-width: 540px;
+  box-sizing: border-box;
+}
+
+.editorial-link-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px 24px;
+  color: #374151;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.editorial-link-fallback:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border-color: #ea580c; /* Destaque laranja */
+  color: #ea580c;
+}
+
+/* Responsividade Mobile */
+@media (max-width: 640px) {
+  .article-video-block {
+    margin: 24px auto;
+    padding: 0 16px;
+    width: auto;
+  }
+  .article-video-info-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .article-video-credit {
+    white-space: normal;
+  }
+  .article-video-fallback-container {
+    padding: 0 16px;
+  }
+}

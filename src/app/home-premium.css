@@ -106,7 +106,7 @@
   width: 100%;
   max-width: 1280px;
   margin: 30px auto;
-  padding: 0 24px;
+  padding: 0; /* Removido padding que causava recuo lateral indesejado */
 }
 
 .premium-ad-container-v2 {
@@ -152,7 +152,7 @@
 @media (max-width: 768px) {
   .premium-ad-wrapper {
     margin: 20px auto;
-    padding: 0 16px;
+    padding: 0; /* Sem padding lateral duplicado no mobile */
   }
   .premium-ad-full-v2 {
     height: 50px !important; /* Altura padrão de banner mobile (320x50) */
@@ -211,22 +211,23 @@
 /* PREMIUM CARDS */
 .premium-card {
   position: relative;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   text-decoration: none;
   display: block;
   background: var(--branco, #fff);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
-  border: 1px solid #eaeaea;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.4s ease, border-color 0.4s ease;
+  border: 1px solid #f0f0f0;
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .premium-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+  border-color: rgba(255, 87, 34, 0.2);
 }
 
 .premium-card.large, .premium-card.medium {
@@ -248,7 +249,7 @@
 }
 
 .premium-card.large:hover img, .premium-card.medium:hover img {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 .premium-card-overlay {
@@ -272,12 +273,12 @@
   display: inline-block;
   background: var(--laranja, #ff5722);
   color: #fff;
-  font-size: 11px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 3px;
   margin-bottom: 12px;
 }
 
@@ -297,11 +298,11 @@
   left: 12px;
   background: var(--laranja, #ff5722);
   color: #fff;
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 3px;
   z-index: 2;
 }
 
@@ -451,7 +452,7 @@
 .premium-content-area {
   display: flex;
   flex-direction: column;
-  gap: 50px;
+  gap: 28px;
 }
 
 /* SECTIONS */
@@ -681,23 +682,24 @@
 }
 
 .trending-number {
-  font-family: var(--font-lora, serif);
-  font-size: 38px;
-  font-weight: 900;
-  color: #ddd;
+  font-family: var(--font-inter, sans-serif);
+  font-size: 44px;
+  font-weight: 200; /* Ultra fino e elegante como UOL/G1 */
+  color: #e2e8f0;
   line-height: 1;
-  width: 45px; /* Aumentado para dar folga */
+  width: 45px;
   min-width: 45px;
-  flex-shrink: 0; /* Não deixa o número esmagar */
+  flex-shrink: 0;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 1;
-  margin-top: -5px; /* Alinha melhor com a primeira linha do título */
+  margin-top: -8px;
 }
 
 .trending-item:hover .trending-number {
   color: var(--laranja, #ff5722);
-  transform: scale(1.1);
+  transform: scale(1.05);
+  font-weight: 400;
 }
 
 

@@ -30,14 +30,18 @@ export default async function Home() {
     maisLidasRaw,
     trendingRaw,
     categorias,
-    fallbackNews
+    fallbackNews,
+    bannerTopoHome,
+    bannerMeioHome,
   ] = await Promise.all([
     apiService.getDestaques(),
     apiService.getUltimasNoticias(6),
     apiService.getMaisLidas(),
     apiService.getTrending(),
     apiService.getCategorias(),
-    apiService.getUltimasNoticias(10) // Fallback for sidebar
+    apiService.getUltimasNoticias(10), // Fallback for sidebar
+    apiService.getBannerAtivo("topo_home").catch(() => null),
+    apiService.getBannerAtivo("meio_home").catch(() => null),
   ]);
 
   // Buscar notícias de cada categoria de forma paralela
@@ -48,11 +52,13 @@ export default async function Home() {
         categoria: cat,
         noticias,
       };
-    })
+    }),
   );
 
   // Filtrar apenas categorias que possuem pelo menos 1 notícia
-  const categoriasAtivas = noticiasPorCategoria.filter(item => item.noticias.length > 0);
+  const categoriasAtivas = noticiasPorCategoria.filter(
+    (item) => item.noticias.length > 0,
+  );
 
   // 1. Destaques (Top Banner)
   const destaque = destaques[0];
@@ -60,26 +66,32 @@ export default async function Home() {
   const heroSide2 = destaques[2];
 
   // 2. Mais Lidas e Trending (Sidebar)
-  const maisLidas = maisLidasRaw.length > 0 ? maisLidasRaw : fallbackNews.slice(0, 5);
-  const trending = trendingRaw.length > 0 ? trendingRaw : fallbackNews.slice(5, 10);
+  const maisLidas =
+    maisLidasRaw.length > 0 ? maisLidasRaw : fallbackNews.slice(0, 5);
+  const trending =
+    trendingRaw.length > 0 ? trendingRaw : fallbackNews.slice(5, 10);
 
   return (
     <main className="premium-home">
       {/* BANNER PRINCIPAL PREMIUM (TOP) */}
       <div
         className="premium-ad-wrapper"
-        style={{ marginTop: "0", marginBottom: "20px", maxWidth: "1100px" }}
+        style={{ marginTop: "0", marginBottom: "24px", maxWidth: "970px", marginLeft: "auto", marginRight: "auto" }}
       >
-        <Link href="#" className="premium-ad-container-v2">
-          <Image
-            src={getImagePath("anuncio/banner2.png")}
-            alt="Patrocínio Premium"
-            width={1280}
-            height={120}
-            className="premium-ad-full-v2"
-            priority
+        <a 
+          href={bannerTopoHome?.linkUrl || "#"} 
+          target={bannerTopoHome?.linkUrl ? "_blank" : "_self"}
+          rel="noopener noreferrer"
+          className="premium-ad-container-v2"
+          style={{ cursor: bannerTopoHome?.linkUrl ? "pointer" : "default" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={bannerTopoHome ? getImagePath(bannerTopoHome.imageUrl) : getImagePath("anuncio/banner2.png")}
+            alt={bannerTopoHome?.titulo || "Patrocínio Premium"}
+            style={{ width: "100%", height: "auto", maxHeight: "110px", objectFit: "contain", display: "block" }}
           />
-        </Link>
+        </a>
       </div>
 
       {/* HERO SECTION */}
@@ -110,62 +122,85 @@ export default async function Home() {
 
           <div
             className="premium-ad-wrapper"
-            style={{ margin: "25px 0", width: "100%" }}
+            style={{ margin: "20px 0" }}
           >
-            <Link
-              href="https://dinheironamao.trabalho.ce.gov.br"
+            <a
+              href={bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br"}
               target="_blank"
               rel="noopener noreferrer"
               className="premium-ad-container-v2"
+              style={{ cursor: (bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br") ? "pointer" : "default" }}
             >
-              <Image
-                src={getImagePath("anuncio/Anuncio1.png")}
-                alt="Publicidade Governo do Ceará"
-                width={1280}
-                height={140}
-                className="premium-ad-full-v2"
-                loading="lazy"
-                style={{ objectFit: "cover", borderRadius: "8px" }}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bannerMeioHome ? getImagePath(bannerMeioHome.imageUrl) : getImagePath("anuncio/Anuncio1.png")}
+                alt={bannerMeioHome?.titulo || "Publicidade Governo do Ceará"}
+                style={{ width: "100%", height: "auto", maxHeight: "140px", objectFit: "cover", borderRadius: "8px", display: "block" }}
               />
-            </Link>
+            </a>
           </div>
 
           {(() => {
             const elementosLayout: React.ReactNode[] = [];
+
+            // Separa YouTube para renderizar no final
+            const isYT = (item: (typeof categoriasAtivas)[0]) =>
+              item.categoria.slug === "youtube" ||
+              item.categoria.nome.toLowerCase() === "youtube";
+
+            const youtubeItem = categoriasAtivas.find(isYT);
+            const categoriasSemYT = categoriasAtivas.filter((c) => !isYT(c));
+
             let i = 0;
-            
-            while (i < categoriasAtivas.length) {
-              const resto = i % 3;
-              
-              if (resto === 0 || resto === 1) {
-                // Renderizar em formato Mixed (bloco inteiro)
-                const item = categoriasAtivas[i];
+            while (i < categoriasSemYT.length) {
+              // Os dois primeiros itens (ex: Esporte e Política) renderizam como Mixed (bloco grande)
+              // Os itens subsequentes (ex: Cidade & Entretenimento, Ceará & Polícia) renderizam em formato Parallel (lado a lado)
+              if (i < 2) {
+                // Formato Mixed: caixa branca com imagem grande à esquerda
+                const item = categoriasSemYT[i];
                 if (item) {
                   elementosLayout.push(
-                    <section key={item.categoria.slug} className="premium-section bg-light-gray rounded-box" style={{ marginTop: "20px", marginBottom: "20px" }}>
-                      <SectionHeader title={item.categoria.nome} link={`/categoria/${item.categoria.slug}`} />
+                    <section
+                      key={item.categoria.slug}
+                      className="premium-section bg-light-gray rounded-box"
+                    >
+                      <SectionHeader
+                        title={item.categoria.nome}
+                        link={`/categoria/${item.categoria.slug}`}
+                      />
                       <div className="news-grid-mixed">
-                        {item.noticias[0] && <PremiumCard noticia={item.noticias[0]} size="medium" />}
+                        {item.noticias[0] && (
+                          <PremiumCard
+                            noticia={item.noticias[0]}
+                            size="medium"
+                          />
+                        )}
                         <div className="mixed-list">
                           {item.noticias.slice(1, 3).map((n) => (
                             <PremiumCard key={n.slug} noticia={n} size="list" />
                           ))}
                         </div>
                       </div>
-                    </section>
+                    </section>,
                   );
                 }
                 i++;
               } else {
-                // Renderizar em formato Parallel (lado a lado) - pega i e i + 1
-                const item1 = categoriasAtivas[i];
-                const item2 = categoriasAtivas[i + 1];
-                
+                // Formato Parallel: duas colunas lado a lado, SEM caixa branca
+                const item1 = categoriasSemYT[i];
+                const item2 = categoriasSemYT[i + 1];
+
                 if (item1 && item2) {
                   elementosLayout.push(
-                    <div key={`${item1.categoria.slug}-${item2.categoria.slug}`} className="parallel-sections" style={{ marginTop: "20px", marginBottom: "20px" }}>
+                    <div
+                      key={`${item1.categoria.slug}-${item2.categoria.slug}`}
+                      className="parallel-sections"
+                    >
                       <div className="parallel-col">
-                        <SectionHeader title={item1.categoria.nome} link={`/categoria/${item1.categoria.slug}`} />
+                        <SectionHeader
+                          title={item1.categoria.nome}
+                          link={`/categoria/${item1.categoria.slug}`}
+                        />
                         <div className="parallel-list">
                           {item1.noticias.slice(0, 3).map((n) => (
                             <PremiumCard key={n.slug} noticia={n} size="list" />
@@ -173,30 +208,44 @@ export default async function Home() {
                         </div>
                       </div>
                       <div className="parallel-col">
-                        <SectionHeader title={item2.categoria.nome} link={`/categoria/${item2.categoria.slug}`} />
+                        <SectionHeader
+                          title={item2.categoria.nome}
+                          link={`/categoria/${item2.categoria.slug}`}
+                        />
                         <div className="parallel-list">
                           {item2.noticias.slice(0, 3).map((n) => (
                             <PremiumCard key={n.slug} noticia={n} size="list" />
                           ))}
                         </div>
                       </div>
-                    </div>
+                    </div>,
                   );
                   i += 2;
                 } else if (item1) {
-                  // Se for a última e não tiver par para parallel, renderiza como Mixed!
+                  // Último item sem par: renderiza como Mixed
                   elementosLayout.push(
-                    <section key={item1.categoria.slug} className="premium-section bg-light-gray rounded-box" style={{ marginTop: "20px", marginBottom: "20px" }}>
-                      <SectionHeader title={item1.categoria.nome} link={`/categoria/${item1.categoria.slug}`} />
+                    <section
+                      key={item1.categoria.slug}
+                      className="premium-section bg-light-gray rounded-box"
+                    >
+                      <SectionHeader
+                        title={item1.categoria.nome}
+                        link={`/categoria/${item1.categoria.slug}`}
+                      />
                       <div className="news-grid-mixed">
-                        {item1.noticias[0] && <PremiumCard noticia={item1.noticias[0]} size="medium" />}
+                        {item1.noticias[0] && (
+                          <PremiumCard
+                            noticia={item1.noticias[0]}
+                            size="medium"
+                          />
+                        )}
                         <div className="mixed-list">
                           {item1.noticias.slice(1, 3).map((n) => (
                             <PremiumCard key={n.slug} noticia={n} size="list" />
                           ))}
                         </div>
                       </div>
-                    </section>
+                    </section>,
                   );
                   i++;
                 } else {
@@ -204,7 +253,35 @@ export default async function Home() {
                 }
               }
             }
-            
+
+            // YouTube sempre no final
+            if (youtubeItem) {
+              elementosLayout.push(
+                <section
+                  key={youtubeItem.categoria.slug}
+                  className="premium-section bg-light-gray rounded-box"
+                >
+                  <SectionHeader
+                    title={youtubeItem.categoria.nome}
+                    link={`/categoria/${youtubeItem.categoria.slug}`}
+                  />
+                  <div className="news-grid-mixed">
+                    {youtubeItem.noticias[0] && (
+                      <PremiumCard
+                        noticia={youtubeItem.noticias[0]}
+                        size="medium"
+                      />
+                    )}
+                    <div className="mixed-list">
+                      {youtubeItem.noticias.slice(1, 3).map((n) => (
+                        <PremiumCard key={n.slug} noticia={n} size="list" />
+                      ))}
+                    </div>
+                  </div>
+                </section>,
+              );
+            }
+
             return elementosLayout;
           })()}
         </div>
