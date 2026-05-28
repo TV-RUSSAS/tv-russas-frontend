@@ -13,6 +13,7 @@ export default function PremiumCard({
 }) {
   const dataFormatada = new Date(noticia.publicadoEm).toLocaleDateString(
     "pt-BR",
+    { timeZone: "America/Sao_Paulo" }
   );
 
   // Função para limpar HTML

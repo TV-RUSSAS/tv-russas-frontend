@@ -279,7 +279,7 @@ export default async function ColunistaPerfil({
                     <span>{colunista.nome}</span>
                     <span style={{ color: '#cbd5e0', fontWeight: '400' }}>|</span>
                     <span style={{ color: '#718096', fontWeight: '400' }}>
-                      {new Date(n.publicadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      {new Date(n.publicadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
                     </span>
                   </div>
                 </div>

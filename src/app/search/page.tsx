@@ -104,7 +104,7 @@ export default async function SearchPage({
                   <div className="search-result-meta">
                     <span>
                       <i className="far fa-calendar-alt"></i>
-                      {new Date(noticia.publicadoEm).toLocaleDateString('pt-BR')}
+                      {new Date(noticia.publicadoEm).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                     </span>
                     <span>
                       <i className="far fa-eye"></i>

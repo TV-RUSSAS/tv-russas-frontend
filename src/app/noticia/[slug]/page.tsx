@@ -354,10 +354,12 @@ export default async function NoticiaPage({
     day: "2-digit",
     month: "long",
     year: "numeric",
+    timeZone: "America/Sao_Paulo",
   });
   const hora = new Date(noticia.publicadoEm).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
   });
 
   const readTime = Math.max(
