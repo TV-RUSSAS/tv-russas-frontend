@@ -347,10 +347,9 @@
 }
 
 /* DROP CAP - DETALHE LARANJA DE MARCA (CONTIDO NO FLUXO, SEM QUEBRAR ALINHAMENTO) */
-.article-body-content p:first-of-type::first-letter,
+.article-body-content > p:first-of-type::first-letter,
 .article-body-content > p:first-child::first-letter,
-.article-body-content > div:first-child::first-letter,
-.article-body-content::first-letter {
+.article-body-content > div:first-child::first-letter {
   font-family: var(--edit-font-display) !important;
   font-size: 72px !important; /* Destaque majestoso e editorial! */
   font-weight: 900 !important;
@@ -361,6 +360,44 @@
   display: inline !important; /* Exibe em fluxo direto com o texto */
   line-height: 0.8 !important; /* Compactação para acomodar a letra majestosa */
   vertical-align: -10px !important; /* Assenta a base da letra grande perfeitamente no alinhamento de leitura */
+}
+
+/* BLOCKQUOTE EDITORIAL (CITAÇÃO) - DESIGN PREMIUM E LIMPO */
+.article-body-content blockquote {
+  border-left: 4px solid var(--edit-primary) !important; /* Barra laranja clássica */
+  padding-left: 24px !important;
+  margin: 32px 0 32px 24px !important;
+  color: #4b5563 !important; /* Cor cinza escura elegante */
+  font-style: italic !important;
+  font-family: var(--edit-font-serif) !important;
+  font-size: 22px !important;
+  line-height: 1.65 !important;
+}
+
+.article-body-content blockquote p {
+  font-family: var(--edit-font-serif) !important;
+  font-style: italic !important;
+  font-size: 22px !important;
+  line-height: 1.65 !important;
+  color: #4b5563 !important;
+  margin: 0 !important; /* Evita margens extras dentro da citação */
+}
+
+/* Impedir absolutamente qualquer capitular (Drop Cap) dentro do blockquote */
+.article-body-content blockquote::first-letter,
+.article-body-content blockquote p::first-letter,
+.article-body-content blockquote p:first-of-type::first-letter,
+.article-body-content blockquote > p:first-child::first-letter {
+  font-family: var(--edit-font-serif) !important;
+  font-size: 22px !important;
+  font-weight: normal !important;
+  color: #4b5563 !important;
+  text-transform: none !important;
+  float: none !important;
+  margin: 0 !important;
+  display: inline !important;
+  line-height: 1.65 !important;
+  vertical-align: baseline !important;
 }
 
 /* Intertítulos (H2 e H3 dentro da matéria) */
