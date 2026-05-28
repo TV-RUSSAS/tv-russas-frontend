@@ -230,9 +230,9 @@ function renderVideoPlayer(
     );
   }
 
-  // Instagram
+  // Instagram (suporta p, reel e reels)
   const igMatch = videoUrl.match(
-    /instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/i,
+    /instagram\.com\/(?:p|reels?)\/([a-zA-Z0-9_-]+)/i,
   );
   if (igMatch && igMatch[1]) {
     const igId = igMatch[1];

@@ -27,7 +27,11 @@ export function getImagePath(
         // Verifica se o primeiro segmento é a versão (ex: v160000) ou se não há subdiretórios
         const isVersionOrFilename = firstSegment.match(/^v\d+$/) || suffixSegments.length === 1;
 
-        if (!isVersionOrFilename) {
+        // Apenas remove se o primeiro segmento for de fato uma transformação antiga do Cloudinary (ex: w_400,h_300,c_fill)
+        // Isso evita apagar pastas legítimas (como tv-russas) que não tenham o prefixo de versão
+        const isTransformation = /^(?:(?:c|w|h|q|f|g|dpr|e|fl|l|u|p|r|bo|co|cs|b|a|o|x|y|z)_[a-zA-Z0-9-._]+,?)+$/.test(firstSegment);
+
+        if (!isVersionOrFilename && isTransformation) {
           // Remove o primeiro segmento que é a transformação antiga
           suffixSegments.shift();
         }
