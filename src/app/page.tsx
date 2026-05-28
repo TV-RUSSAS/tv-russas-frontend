@@ -26,23 +26,25 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
 export default async function Home() {
   const [
     destaques,
-    ultimasNoticias,
+    ultimasNews,
     maisLidasRaw,
     trendingRaw,
     categorias,
-    fallbackNews,
     bannerTopoHome,
     bannerMeioHome,
   ] = await Promise.all([
     apiService.getDestaques(),
-    apiService.getUltimasNoticias(6),
+    apiService.getUltimasNoticias(10), // Busca 10 notícias uma única vez e compartilha o resultado
     apiService.getMaisLidas(),
     apiService.getTrending(),
     apiService.getCategorias(),
-    apiService.getUltimasNoticias(10), // Fallback for sidebar
     apiService.getBannerAtivo("topo_home").catch(() => null),
     apiService.getBannerAtivo("meio_home").catch(() => null),
   ]);
+
+  // Dividir o resultado no frontend para economizar 1 chamada de API inteira
+  const ultimasNoticias = ultimasNews.slice(0, 6);
+  const fallbackNews = ultimasNews;
 
   // Buscar notícias de cada categoria de forma paralela
   const noticiasPorCategoria = await Promise.all(

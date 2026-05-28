@@ -107,7 +107,7 @@ export const TEXTS = {
     category: "Categoria ",
     select: "Selecione...",
     matterAuthor: "Autor da Matéria",
-    defaultAuthor: "Redação TV Russas",
+    defaultAuthor: "Portal TV Russas (Padrão)",
     optionalTags: "Tags Opcionais",
     words: "Palavras",
     readTimeLabel: "Tempo Leitura",

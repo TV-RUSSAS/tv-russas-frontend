@@ -158,14 +158,6 @@ function generateSlug(title: string): string {
   return title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '-');
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
 
 // ── TOOLBAR DO EDITOR ─────────────────────────────────────────────
 function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEditor>, authFetch: (url: string, options?: RequestInit) => Promise<Response> }) {
@@ -243,6 +235,7 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       
       editor.chain().focus().setImage({ src: fullUrl }).run();
     } catch (err) {
+      console.error('Erro ao subir imagem:', err);
       alert('Erro ao fazer upload da imagem.');
     }
   };
@@ -509,8 +502,14 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     return html.replace(/<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*([^<]+?)\s*(?:<\/strong>|<\/b>)?\s*<\/p>/gi, '');
   };
 
-  const [fonteText, setFonteText] = useState('');
-  const [publicadoPorText, setPublicadoPorText] = useState('');
+  const [fonteText, setFonteText] = useState(
+    initialData?.fonte || 
+    (initialData?.conteudo ? extractFonte(initialData.conteudo) : '')
+  );
+  const [publicadoPorText, setPublicadoPorText] = useState(
+    initialData?.publicadoPor || 
+    (initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : '')
+  );
   const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl || '');
 
   // Editor Instantiation
@@ -1006,9 +1005,17 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                   {colunistas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
-              <div className="cms-form-group" style={{ marginBottom: 0 }}>
+              <div className="cms-form-group">
                 <label className="cms-label">{TEXTS.admin.optionalTags}</label>
                 <input className="cms-input" value={tags} onChange={e => { setTags(e.target.value); setSaveStatus('saving'); }} placeholder="ex: russas, política" />
+              </div>
+              <div className="cms-form-group">
+                <label className="cms-label">{"Fonte da Matéria"}</label>
+                <input className="cms-input" value={fonteText} onChange={e => { setFonteText(e.target.value); setSaveStatus('saving'); }} placeholder="ex: Assessoria, TV Russas" />
+              </div>
+              <div className="cms-form-group" style={{ marginBottom: 0 }}>
+                <label className="cms-label">{"Publicado por (Assinatura)"}</label>
+                <input className="cms-input" value={publicadoPorText} onChange={e => { setPublicadoPorText(e.target.value); setSaveStatus('saving'); }} placeholder="ex: Nome do Repórter / Redação" />
               </div>
             </div>
 

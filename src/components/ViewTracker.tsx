@@ -22,8 +22,8 @@ export function ViewTracker({ slug }: ViewTrackerProps) {
         const lastViewed = localStorage.getItem(localKey);
         const now = Date.now();
 
-        // Evita enviar visualização se o usuário acessou essa mesma matéria nos últimos 30 minutos
-        if (lastViewed && now - parseInt(lastViewed, 10) < 30 * 60 * 1000) {
+        // Evita enviar visualização se o usuário acessou essa mesma matéria nas últimas 24 horas
+        if (lastViewed && now - parseInt(lastViewed, 10) < 24 * 60 * 60 * 1000) {
           return;
         }
 

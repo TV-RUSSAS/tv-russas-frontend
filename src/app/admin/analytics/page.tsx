@@ -260,12 +260,48 @@ export default function AnalyticsDashboardPage() {
             Métricas integradas e consolidadas de acessos, engajamento e produção jornalística.
           </p>
         </div>
-        {isGlobalLoading && (
-          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-            <Loader2 className="w-5 h-5 animate-spin text-[#ff5722]" />
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => {
+              fetchOverview();
+              fetchHistorico();
+              fetchCategorias();
+              fetchAutores();
+            }}
+            disabled={isGlobalLoading}
+            className="cms-btn cms-btn-secondary cms-btn-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+          >
+            <Loader2 className={`w-3.5 h-3.5 ${isGlobalLoading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </button>
+        </div>
       </div>
+
+      {process.env.NEXT_PUBLIC_ECONOMY_MODE === "true" && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.2)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          color: '#f59e0b',
+          fontSize: '13px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <span>
+            <strong>Modo economia ativo:</strong> Dados em tempo real pausados temporariamente para reduzir o uso do servidor. Use o botão de atualização manual para recarregar as estatísticas.
+          </span>
+        </div>
+      )}
 
       {/* ── SELETOR DE PERÍODO ── */}
       <div className="an-period-row">

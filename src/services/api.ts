@@ -1,8 +1,14 @@
 import { Noticia, Colunista, Categoria, Banner } from '@/types';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : 'http://localhost:3001/api';
-// Forçar busca de dados sempre fresca do backend
-const FETCH_OPTIONS: RequestInit = { cache: 'no-store' };
+
+const isEconomy = process.env.NEXT_PUBLIC_ECONOMY_MODE === "true";
+
+// ECONOMY_MODE: Ativa cache estático de revalidação de 5 minutos (300 segundos) nas listagens públicas 
+// a nível de CDN/Next.js para economizar banda do backend Render.
+const FETCH_OPTIONS: RequestInit = isEconomy 
+  ? { next: { revalidate: 300 } } 
+  : { cache: 'no-store' };
 
 export const apiService = {
   async getNoticias(): Promise<Noticia[]> {

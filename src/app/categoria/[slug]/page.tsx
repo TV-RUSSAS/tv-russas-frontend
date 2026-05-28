@@ -96,17 +96,19 @@ const getCategoryBanner = (slug: string): string => {
 };
 
 const getCategoryDescription = (slug: string, nome: string): string => {
-  const descriptions: Record<string, string> = {
-    cidade: `Últimas notícias, reportagens e eventos sobre o cotidiano de Russas e região.`,
-    politica: `Bastidores do poder, eleições e cobertura política local, estadual e regional.`,
-    esporte: `Futebol local, competições regionais e tudo sobre o esporte em Russas e no Ceará.`,
-    entretenimento: `Cultura, shows, festas e a agenda de eventos no Vale do Jaguaribe.`,
-    policia: `Segurança pública, ocorrências e informações de utilidade na região.`,
-    brasil: `As principais notícias do cenário nacional que impactam o país.`,
-    ceara: `Acontecimentos do estado do Ceará, desenvolvimento regional e notícias do interior.`,
-    youtube: `Vídeos exclusivos, reportagens e coberturas produzidas pela TV Russas.`,
-  };
-  return descriptions[slug.toLowerCase()] || `Últimas notícias, matérias e reportagens de ${nome} no portal TV Russas.`;
+  // Usa Map em vez de object literal para evitar prototype pollution
+  // (slugs vêm da URL e não devem acessar propriedades herdadas como __proto__)
+  const descriptions = new Map<string, string>([
+    ["cidade", `Últimas notícias, reportagens e eventos sobre o cotidiano de Russas e região.`],
+    ["politica", `Bastidores do poder, eleições e cobertura política local, estadual e regional.`],
+    ["esporte", `Futebol local, competições regionais e tudo sobre o esporte em Russas e no Ceará.`],
+    ["entretenimento", `Cultura, shows, festas e a agenda de eventos no Vale do Jaguaribe.`],
+    ["policia", `Segurança pública, ocorrências e informações de utilidade na região.`],
+    ["brasil", `As principais notícias do cenário nacional que impactam o país.`],
+    ["ceara", `Acontecimentos do estado do Ceará, desenvolvimento regional e notícias do interior.`],
+    ["youtube", `Vídeos exclusivos, reportagens e coberturas produzidas pela TV Russas.`],
+  ]);
+  return descriptions.get(slug.toLowerCase()) ?? `Últimas notícias, matérias e reportagens de ${nome} no portal TV Russas.`;
 };
 
 function stripHtml(html: string): string {

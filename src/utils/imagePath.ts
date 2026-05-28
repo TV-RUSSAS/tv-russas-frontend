@@ -2,7 +2,7 @@ import { API_URL } from '@/services/api';
 
 export function getImagePath(
   path: string | undefined | null,
-  type: 'main' | 'card' | 'none' = 'none'
+  type: 'main' | 'card' | 'thumbnail' | 'none' = 'none'
 ): string {
   if (!path) return '/uploads/placeholder.png';
   
@@ -12,6 +12,8 @@ export function getImagePath(
     if (path.includes('res.cloudinary.com') && path.includes('/upload/') && type !== 'none') {
       const transformation = type === 'main'
         ? 'f_auto,q_auto,c_fill,g_auto,w_1200,h_675'
+        : type === 'thumbnail'
+        ? 'f_auto,q_auto,c_fill,g_auto,w_300,h_170'
         : 'f_auto,q_auto,c_fill,g_auto,w_600,h_338';
 
       const parts = path.split('/upload/');
