@@ -4,9 +4,10 @@ import React, { useRef, useState, useEffect } from 'react';
 interface PremiumVideoPlayerProps {
   src: string;
   caption?: string;
+  isCapa?: boolean;
 }
 
-export function PremiumVideoPlayer({ src, caption }: PremiumVideoPlayerProps) {
+export function PremiumVideoPlayer({ src, caption, isCapa }: PremiumVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoVertical, setIsVideoVertical] = useState(false);
@@ -43,7 +44,7 @@ export function PremiumVideoPlayer({ src, caption }: PremiumVideoPlayerProps) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        margin: '32px auto',
+        margin: isCapa ? '0 auto' : '32px auto',
         width: '100%',
         maxWidth: isVideoVertical ? '360px' : '860px',
         clear: 'both'

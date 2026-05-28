@@ -178,6 +178,24 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
   const [embedCaption, setEmbedCaption] = useState('');
   const [embedCredit, setEmbedCredit] = useState('');
 
+  const fontMenuRef = useRef<HTMLDivElement>(null);
+  const colorMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (fontMenuRef.current && !fontMenuRef.current.contains(event.target as HTMLElement)) {
+        setShowFontMenu(false);
+      }
+      if (colorMenuRef.current && !colorMenuRef.current.contains(event.target as HTMLElement)) {
+        setShowColorMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   if (!editor) return null;
 
   const handleInsertEmbed = () => {
@@ -229,11 +247,24 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
     }
   };
 
+  const handleTextAlign = (alignment: 'left' | 'center' | 'right') => {
+    if (editor.state.selection.empty) {
+      const { from, to } = editor.state.selection;
+      editor.chain().focus().selectAll().setTextAlign(alignment).run();
+      editor.chain().setTextSelection({ from, to }).run();
+    } else {
+      editor.chain().focus().setTextAlign(alignment).run();
+    }
+  };
+
   const btn = (action: () => void, iconClass: string, title: string, active?: boolean) => (
     <button type="button" onClick={action} title={title} className={`ed-btn ${active ? 'active' : ''}`}>
       <i className={iconClass} />
     </button>
   );
+
+  const isDestaqueFont = editor.isActive('textStyle', { fontFamily: 'Inter' });
+  const activeFontLabel = isDestaqueFont ? 'Título / Destaque' : 'Texto Padrão';
 
   return (
     <div className="ed-toolbar-sticky">
@@ -243,27 +274,19 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       <div className="ed-separator" />
 
       {/* Font Family Dropdown */}
-      <div className="ed-dropdown" onMouseLeave={() => setShowFontMenu(false)}>
-        <button type="button" className="ed-btn" style={{ width: 'auto', padding: '0 8px', fontSize: '12px', fontWeight: '600' }} onClick={() => setShowFontMenu(!showFontMenu)}>
-          {TEXTS.admin.source} <i className="fas fa-chevron-down" style={{ fontSize: '10px', marginLeft: '4px' }}/>
+      <div className="ed-dropdown" ref={fontMenuRef}>
+        <button type="button" className="ed-btn" style={{ width: 'auto', padding: '0 10px', fontSize: '12px', fontWeight: '600', gap: '6px' }} onClick={() => setShowFontMenu(!showFontMenu)}>
+          <span>Fonte: <strong>{activeFontLabel}</strong></span>
+          <i className="fas fa-chevron-down" style={{ fontSize: '10px' }}/>
         </button>
         {showFontMenu && (
           <div className="ed-dropdown-content" style={{ display: 'block' }}>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().unsetFontFamily().run(); setShowFontMenu(false); }} style={{ fontFamily: 'var(--font-sans)' }}>{"Padrão (Inter)"}</button>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Lora').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Lora, serif' }}>{"Lora (Serifada)"}</button>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Merriweather').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Merriweather, serif' }}>{"Merriweather"}</button>
-            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Georgia').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Georgia, serif' }}>{"Georgia"}</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().unsetFontFamily().run(); setShowFontMenu(false); }} style={{ fontFamily: 'var(--font-sans)' }}>{"Texto Padrão (Serifado)"}</button>
+            <button type="button" className="ed-dropdown-item" onClick={() => { editor.chain().focus().setFontFamily('Inter').run(); setShowFontMenu(false); }} style={{ fontFamily: 'Inter, sans-serif', fontWeight: 'bold' }}>{"Título / Destaque (Inter)"}</button>
           </div>
         )}
       </div>
 
-      <div className="ed-separator" />
-
-      {/* Headings */}
-      {btn(() => editor.chain().focus().setParagraph().run(), 'fas fa-paragraph', 'Parágrafo Normal', editor.isActive('paragraph'))}
-      {btn(() => editor.chain().focus().toggleHeading({ level: 2 }).run(), 'fas fa-heading', 'Título Principal (H2)', editor.isActive('heading', { level: 2 }))}
-      {btn(() => editor.chain().focus().toggleHeading({ level: 3 }).run(), 'fas fa-h3', 'Subtítulo (H3)', editor.isActive('heading', { level: 3 }))}
-      
       <div className="ed-separator" />
 
       {/* Marks */}
@@ -274,7 +297,7 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       {btn(() => editor.chain().focus().toggleHighlight().run(), 'fas fa-highlighter', 'Destacar Texto', editor.isActive('highlight'))}
       
       {/* Cor do Texto Dropdown */}
-      <div className="ed-dropdown" onMouseLeave={() => setShowColorMenu(false)}>
+      <div className="ed-dropdown" ref={colorMenuRef}>
         <button type="button" className="ed-btn" onClick={() => setShowColorMenu(!showColorMenu)} title="Cor do Texto">
           <i className="fas fa-palette" />
         </button>
@@ -292,36 +315,28 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       <div className="ed-separator" />
 
       {/* Alignment */}
-      {btn(() => editor.chain().focus().setTextAlign('left').run(), 'fas fa-align-left', 'Alinhar à Esquerda', editor.isActive({ textAlign: 'left' }))}
-      {btn(() => editor.chain().focus().setTextAlign('center').run(), 'fas fa-align-center', 'Centralizar', editor.isActive({ textAlign: 'center' }))}
-      {btn(() => editor.chain().focus().setTextAlign('right').run(), 'fas fa-align-right', 'Alinhar à Direita', editor.isActive({ textAlign: 'right' }))}
+      {btn(() => handleTextAlign('left'), 'fas fa-align-left', 'Alinhar à Esquerda', editor.isActive({ textAlign: 'left' }))}
+      {btn(() => handleTextAlign('center'), 'fas fa-align-center', 'Centralizar', editor.isActive({ textAlign: 'center' }))}
+      {btn(() => handleTextAlign('right'), 'fas fa-align-right', 'Alinhar à Direita', editor.isActive({ textAlign: 'right' }))}
 
       <div className="ed-separator" />
 
       {/* Lists & Blocks */}
-      {btn(() => editor.chain().focus().toggleBulletList().run(), 'fas fa-list-ul', 'Lista', editor.isActive('bulletList'))}
+      {btn(() => editor.chain().focus().toggleBulletList().run(), 'fas fa-list-ul', 'Lista com Marcadores', editor.isActive('bulletList'))}
       {btn(() => editor.chain().focus().toggleOrderedList().run(), 'fas fa-list-ol', 'Lista Numerada', editor.isActive('orderedList'))}
       {btn(() => editor.chain().focus().toggleTaskList().run(), 'fas fa-tasks', 'Checklist', editor.isActive('taskList'))}
       {btn(() => editor.chain().focus().toggleBlockquote().run(), 'fas fa-quote-right', 'Citação Editorial', editor.isActive('blockquote'))}
-      {btn(() => editor.chain().focus().toggleCodeBlock().run(), 'fas fa-code', 'Bloco de Código', editor.isActive('codeBlock'))}
       {btn(() => editor.chain().focus().setHorizontalRule().run(), 'fas fa-minus', 'Separador Horizontal')}
 
       <div className="ed-separator" />
 
-      {/* Media & Links */}
-      {btn(() => {
-        const url = window.prompt('URL do Link:');
-        if (url === null) return;
-        if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
-        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-      }, 'fas fa-link', 'Inserir Link', editor.isActive('link'))}
-
+      {/* Media */}
       <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleImageUpload} />
-      <button type="button" onClick={() => fileInputRef.current?.click()} title="Inserir Imagem" className="ed-btn">
+      <button type="button" onClick={() => fileInputRef.current?.click()} title="Inserir Imagem no Texto" className="ed-btn">
         <i className="far fa-image" />
       </button>
       
-      <button type="button" onClick={() => setShowEmbedModal(true)} title="Inserir Vídeo na Matéria" className="ed-btn" style={{ position: 'relative' }}>
+      <button type="button" onClick={() => setShowEmbedModal(true)} title="Inserir Vídeo do YouTube / Rede Social no Texto" className="ed-btn" style={{ position: 'relative' }}>
         <i className="fas fa-video" />
       </button>
 
@@ -410,6 +425,13 @@ interface EditorFormProps {
   mode: 'create' | 'edit';
 }
 
+function getYouTubeEmbedUrl(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
+}
+
 export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   const router = useRouter();
   const { authFetch } = useAdminAuth();
@@ -436,6 +458,10 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
 
   const [capa, setCapa] = useState<File | null>(null);
   const [capaPreview, setCapaPreview] = useState<string | null>(getApiUrl(initialData?.capaUrl));
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(
+    initialData?.videoUrl ? getApiUrl(initialData.videoUrl) : null
+  );
   const [isVertical, setIsVertical] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -446,6 +472,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   const [replaceFeaturedId, setReplaceFeaturedId] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLTextAreaElement>(null);
   const subtitleRef = useRef<HTMLTextAreaElement>(null);
 
@@ -522,13 +549,14 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     const timeout = setTimeout(() => {
       const draftData = {
         titulo, slug, resumo, categoriaId, colunistaId, tags, featured, breaking,
-        conteudo: editor.getHTML()
+        conteudo: editor.getHTML(),
+        videoUrl
       };
       localStorage.setItem(`draft-noticia-${mode}-${initialData?.id || 'new'}`, JSON.stringify(draftData));
       setSaveStatus('saved');
     }, 1500);
     return () => clearTimeout(timeout);
-  }, [saveStatus, editor, titulo, slug, resumo, categoriaId, colunistaId, tags, featured, breaking, mode, initialData?.id]);
+  }, [saveStatus, editor, titulo, slug, resumo, categoriaId, colunistaId, tags, featured, breaking, mode, initialData?.id, videoUrl]);
 
   // Carregar rascunho (apenas na criação)
   useEffect(() => {
@@ -543,6 +571,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
               if (draft.slug) setSlug(draft.slug);
               if (draft.resumo) setResumo(draft.resumo);
               if (draft.categoriaId) setCategoriaId(draft.categoriaId);
+              if (draft.videoUrl) setVideoUrl(draft.videoUrl);
               if (draft.conteudo && editor) editor.commands.setContent(draft.conteudo);
             }, 0);
           } else {
@@ -586,6 +615,22 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
     reader.readAsDataURL(file);
   };
 
+  const handleVideoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setVideoFile(file);
+    setVideoUrl('');
+    setVideoPreview(URL.createObjectURL(file));
+    setSaveStatus('saving');
+  };
+
+  const handleRemoveVideo = () => {
+    setVideoFile(null);
+    setVideoPreview(null);
+    setVideoUrl('');
+    setSaveStatus('saving');
+  };
+
   useEffect(() => {
     if (initialData?.capaUrl) {
       const imgElement = document.createElement('img');
@@ -620,6 +665,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
       formData.append('breaking', String(breaking));
       if (replaceFeaturedId) formData.append('replaceFeaturedId', replaceFeaturedId);
       if (capa) formData.append('capa', capa);
+      if (videoFile) formData.append('video', videoFile);
       
       // Enviar os novos campos no FormData
       formData.append('videoUrl', videoUrl);
@@ -733,9 +779,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                 />
               </div>
 
-              <div className="cms-editor-toolbar-wrap">
-                <EditorToolbar editor={editor} authFetch={authFetch} />
-              </div>
+              <EditorToolbar editor={editor} authFetch={authFetch} />
               
               <div className="cms-editor-content-area">
                 <EditorContent editor={editor} />
@@ -830,36 +874,111 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
               </button>
             </div>
 
-            {/* Imagem de Capa */}
+            {/* Capa da Matéria */}
             <div className="cms-table-card" style={{ padding: '24px' }}>
-              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px' }}>
-                {TEXTS.admin.matterCover} {mode === 'create' && <span style={{ color: 'var(--c-accent)' }}>*</span>}
+              <div style={{ fontWeight: '700', marginBottom: '16px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <i className="fas fa-photo-video" style={{ color: 'var(--c-accent)' }} /> Capa da Matéria
               </div>
-              {capaPreview ? (
-                <div style={{ marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', aspectRatio: '16/9', border: '1px solid var(--c-border)', position: 'relative' }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={capaPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button type="button" onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>{TEXTS.admin.change}</button>
-                </div>
-              ) : (
-                <div onClick={() => fileInputRef.current?.click()} style={{ marginBottom: '16px', borderRadius: '6px', height: '140px', border: '2px dashed var(--c-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
-                  <i className="far fa-image" style={{ fontSize: '24px', marginBottom: '8px' }} />
-                  <span style={{ fontSize: '12px', fontWeight: '500' }}>{TEXTS.admin.clickUploadCover}</span>
-                </div>
-              )}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
               
-              {isVertical && (
-                <div style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#f87171', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <i className="fas fa-exclamation-triangle" style={{ marginTop: '2px', flexShrink: 0 }} />
-                  <div>
-                    <strong>Imagem vertical detectada.</strong> Ela será cortada no portal para manter o padrão editorial.
+              {/* Imagem de Capa (Miniatura) */}
+              <div style={{ marginBottom: '16px' }}>
+                <label className="cms-label" style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>
+                  Imagem de Capa (Miniatura) {mode === 'create' && <span style={{ color: 'var(--c-accent)' }}>*</span>}
+                </label>
+                {capaPreview ? (
+                  <div style={{ marginBottom: '12px', borderRadius: '6px', overflow: 'hidden', aspectRatio: '16/9', border: '1px solid var(--c-border)', position: 'relative' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={capaPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: '500' }}>{TEXTS.admin.change}</button>
                   </div>
+                ) : (
+                  <div onClick={() => fileInputRef.current?.click()} style={{ marginBottom: '12px', borderRadius: '6px', height: '130px', border: '2px dashed var(--c-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                    <i className="far fa-image" style={{ fontSize: '24px', marginBottom: '8px' }} />
+                    <span style={{ fontSize: '12px', fontWeight: '500' }}>{TEXTS.admin.clickUploadCover}</span>
+                  </div>
+                )}
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
+                
+                {isVertical && (
+                  <div style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#f87171', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <i className="fas fa-exclamation-triangle" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <div>
+                      <strong>Imagem vertical detectada.</strong> Ela será cortada no portal para manter o padrão editorial.
+                    </div>
+                  </div>
+                )}
+                <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--c-muted)', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <i className="fas fa-info-circle" style={{ flexShrink: 0 }} />
+                  <span>Use imagens horizontais, preferencialmente <strong>1200x675</strong>.</span>
                 </div>
-              )}
-              <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--c-muted)', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <i className="fas fa-info-circle" style={{ flexShrink: 0 }} />
-                <span>Use imagens horizontais, preferencialmente <strong>1200x675</strong>.</span>
+              </div>
+
+              <div style={{ height: '1px', background: 'var(--c-border)', margin: '20px 0' }} />
+
+              {/* Vídeo de Capa (Upload) */}
+              <div style={{ marginBottom: '16px' }}>
+                <label className="cms-label" style={{ marginBottom: '8px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="fas fa-video" style={{ color: 'var(--c-accent)' }} /> Vídeo de Capa (Opcional)
+                </label>
+                
+                {videoPreview ? (
+                  <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--c-border)', background: '#000', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ aspectRatio: '16/9', width: '100%', background: '#000', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                      {getYouTubeEmbedUrl(videoUrl) ? (
+                        <iframe 
+                          src={getYouTubeEmbedUrl(videoUrl) || ''}
+                          style={{ width: '100%', height: '100%', border: 'none' }}
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={videoPreview} controls muted style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button type="button" onClick={() => videoFileInputRef.current?.click()} style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Alterar Vídeo</button>
+                      <button type="button" onClick={handleRemoveVideo} style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '5px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Remover</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div onClick={() => videoFileInputRef.current?.click()} style={{ borderRadius: '6px', height: '100px', border: '2px dashed var(--c-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--c-muted)', cursor: 'pointer', background: 'rgba(255,255,255,0.02)' }}>
+                    <i className="fas fa-file-video" style={{ fontSize: '22px', marginBottom: '6px' }} />
+                    <span style={{ fontSize: '12px', fontWeight: '500' }}>Clique para enviar arquivo de vídeo</span>
+                  </div>
+                )}
+                <input ref={videoFileInputRef} type="file" accept="video/*" onChange={handleVideoFileChange} style={{ display: 'none' }} />
+              </div>
+
+              {/* Vincular URL Externa */}
+              <div style={{ marginTop: '12px' }}>
+                <span 
+                  onClick={() => {
+                    const el = document.getElementById('youtube-link-input-group');
+                    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                  }}
+                  style={{ fontSize: '11px', color: 'var(--c-muted)', cursor: 'pointer', textDecoration: 'underline', display: 'inline-block' }}
+                >
+                  Ou vincular link do YouTube/Instagram
+                </span>
+                
+                <div id="youtube-link-input-group" style={{ display: videoUrl && !videoFile ? 'block' : 'none', marginTop: '8px' }}>
+                  <input 
+                    className="cms-input" 
+                    value={videoUrl} 
+                    onChange={e => { 
+                      setVideoUrl(e.target.value); 
+                      setVideoPreview(e.target.value ? e.target.value : null);
+                      setVideoFile(null); 
+                      setSaveStatus('saving'); 
+                    }} 
+                    placeholder="https://www.youtube.com/watch?v=..." 
+                    style={{ fontSize: '12px', padding: '6px 10px' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: '12px', fontSize: '11.5px', color: 'var(--c-muted)', display: 'flex', gap: '6px', alignItems: 'flex-start', lineHeight: '1.4' }}>
+                <i className="fas fa-info-circle" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <span>O vídeo aparecerá na capa dentro da matéria. Nos feeds do portal, será exibida a Imagem de Capa normal.</span>
               </div>
             </div>
 
@@ -887,13 +1006,9 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                   {colunistas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
-              <div className="cms-form-group">
+              <div className="cms-form-group" style={{ marginBottom: 0 }}>
                 <label className="cms-label">{TEXTS.admin.optionalTags}</label>
                 <input className="cms-input" value={tags} onChange={e => { setTags(e.target.value); setSaveStatus('saving'); }} placeholder="ex: russas, política" />
-              </div>
-              <div className="cms-form-group" style={{ marginBottom: 0 }}>
-                <label className="cms-label">{"URL do Vídeo (Opcional)"}</label>
-                <input className="cms-input" value={videoUrl} onChange={e => { setVideoUrl(e.target.value); setSaveStatus('saving'); }} placeholder="YouTube, Facebook, Instagram..." />
               </div>
             </div>
 

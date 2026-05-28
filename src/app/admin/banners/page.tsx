@@ -36,6 +36,10 @@ export default function BannersAdmin() {
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Categorias para filtrar anúncios internos
+  const [categorias, setCategorias] = useState<{ id: string; nome: string; slug: string }[]>([]);
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState('');
+
   // Modal
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -82,14 +86,47 @@ export default function BannersAdmin() {
     return () => { active = false; };
   }, [authFetch]);
 
+  // Carregar as categorias do portal para vincular aos anúncios
+  useEffect(() => {
+    let active = true;
+    const fetchCats = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/categorias`);
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setCategorias(data);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar categorias:', err);
+      }
+    };
+    fetchCats();
+    return () => { active = false; };
+  }, []);
+
   const openCreate = () => {
-    setModalMode('create'); setTitulo(''); setLinkUrl(''); setPosicao('topo_interna'); setAtivo(true); setImagem(null); setImagemPreview(null); setEditingId(null); setModalOpen(true);
+    setModalMode('create'); setTitulo(''); setLinkUrl(''); setPosicao('topo_interna'); setCategoriaSelecionada(''); setAtivo(true); setImagem(null); setImagemPreview(null); setEditingId(null); setModalOpen(true);
   };
 
   const openEdit = (banner: Banner) => {
-    setModalMode('edit'); setTitulo(banner.titulo); setLinkUrl(banner.linkUrl || ''); setPosicao(banner.posicao); setAtivo(banner.ativo);
-    setImagem(null); setImagemPreview(banner.imageUrl.startsWith('http') ? banner.imageUrl : `${API_BASE_URL}${banner.imageUrl}`);
-    setEditingId(banner.id); setModalOpen(true);
+    setModalMode('edit'); 
+    setTitulo(banner.titulo); 
+    setLinkUrl(banner.linkUrl || ''); 
+    setAtivo(banner.ativo);
+    setImagem(null); 
+    setImagemPreview(banner.imageUrl.startsWith('http') ? banner.imageUrl : `${API_BASE_URL}${banner.imageUrl}`);
+    setEditingId(banner.id); 
+
+    if (banner.posicao.includes(':')) {
+      const [posBase, catSlug] = banner.posicao.split(':');
+      setPosicao(posBase);
+      setCategoriaSelecionada(catSlug);
+    } else {
+      setPosicao(banner.posicao);
+      setCategoriaSelecionada('');
+    }
+
+    setModalOpen(true);
   };
 
   const handleImagemChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,10 +143,15 @@ export default function BannersAdmin() {
     setSaving(true);
     setError('');
     try {
+      let finalPosicao = posicao;
+      if (posicao === 'topo_interna' && categoriaSelecionada) {
+        finalPosicao = `topo_interna:${categoriaSelecionada}`;
+      }
+
       const fd = new FormData();
       fd.append('titulo', titulo);
       fd.append('linkUrl', linkUrl);
-      fd.append('posicao', posicao);
+      fd.append('posicao', finalPosicao);
       fd.append('ativo', String(ativo));
       if (imagem) fd.append('imagem', imagem);
 
@@ -270,7 +312,11 @@ export default function BannersAdmin() {
                           borderRadius: '4px',
                           color: 'var(--c-secondary)'
                         }}>
-                          {banner.posicao}
+                          {banner.posicao === 'topo_home' && 'Topo da Home'}
+                          {banner.posicao === 'meio_home' && 'Meio da Home'}
+                          {banner.posicao === 'topo_interna' && 'Topo da Matéria (Geral)'}
+                          {banner.posicao.startsWith('topo_interna:') && `Topo da Matéria (${banner.posicao.split(':')[1].toUpperCase()})`}
+                          {!['topo_home', 'meio_home', 'topo_interna'].includes(banner.posicao) && !banner.posicao.startsWith('topo_interna:') && banner.posicao}
                         </code>
                       </td>
                       <td style={{ verticalAlign: 'middle', fontSize: '13px', color: 'var(--c-secondary)', lineHeight: '1.4', wordBreak: 'break-all' }}>
@@ -377,6 +423,23 @@ export default function BannersAdmin() {
                   <span className="cms-form-hint">Define o local exato onde o banner de propaganda será renderizado no portal público.</span>
                 </div>
 
+                {posicao === 'topo_interna' && (
+                  <div className="cms-form-group" style={{ marginBottom: 0 }}>
+                    <label className="cms-label">Filtrar por Categoria (Opcional)</label>
+                    <select 
+                      className="cms-select" 
+                      value={categoriaSelecionada} 
+                      onChange={e => setCategoriaSelecionada(e.target.value)}
+                    >
+                      <option value="">Geral (Exibir em todas as categorias)</option>
+                      {categorias.map(cat => (
+                        <option key={cat.id} value={cat.slug}>{cat.nome}</option>
+                      ))}
+                    </select>
+                    <span className="cms-form-hint">Escolha uma categoria específica se quiser que este banner seja veiculado somente dentro das matérias daquela aba.</span>
+                  </div>
+                )}
+
                 <div className="cms-form-group" style={{ marginBottom: 0 }}>
                   <label className="cms-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                     <input 
@@ -437,6 +500,35 @@ export default function BannersAdmin() {
                         <ImageIcon size={14} />
                         <span>{imagemPreview ? 'Trocar Imagem' : 'Selecionar Imagem'}</span>
                       </button>
+                    </div>
+                  </div>
+                  <div style={{ 
+                    marginTop: '12px', 
+                    fontSize: '12.5px', 
+                    color: 'rgba(255, 255, 255, 0.5)', 
+                    background: 'rgba(255, 255, 255, 0.02)', 
+                    padding: '10px 14px', 
+                    borderRadius: '6px', 
+                    border: '1px solid rgba(255, 255, 255, 0.05)', 
+                    display: 'flex', 
+                    gap: '8px', 
+                    alignItems: 'flex-start',
+                    lineHeight: '1.4'
+                  }}>
+                    <span style={{ fontSize: '14px', marginTop: '1px' }}>💡</span>
+                    <div>
+                      <strong>Tamanho ideal recomendado:</strong>
+                      <div style={{ marginTop: '2px' }}>
+                        {posicao === 'topo_home' && (
+                          <>Para o <strong>Topo da Home</strong>, envie uma imagem de <strong>970 x 135px</strong> (ou 970x90px) para preencher a largura total sem cortes.</>
+                        )}
+                        {posicao === 'meio_home' && (
+                          <>Para o <strong>Meio da Home</strong>, envie uma imagem de <strong>860 x 140px</strong> (ou 728x90px) para se ajustar no feed central.</>
+                        )}
+                        {posicao === 'topo_interna' && (
+                          <>Para o <strong>Topo da Matéria (Interna)</strong>, envie uma imagem de <strong>1200 x 135px</strong> para cobrir a largura total do topo do artigo.</>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

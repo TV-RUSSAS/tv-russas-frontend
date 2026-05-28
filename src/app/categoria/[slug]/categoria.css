@@ -1,0 +1,578 @@
+/* ==========================================================================
+   DESIGN SYSTEM & LAYOUT - PÁGINAS DE CATEGORIA (TV RUSSAS - ESTILO G1)
+   ========================================================================== */
+
+:root {
+  --edit-font-serif: "Lora", "Georgia", "Times New Roman", serif;
+  --edit-font-sans: "Inter", "Outfit", "Segoe UI", sans-serif;
+  --edit-primary: #ff5722;
+  --edit-primary-hover: #e64a19;
+  --edit-dark: #1e293b;
+  --edit-text: #334155;
+  --edit-text-muted: #64748b;
+  --edit-light: #f8fafc;
+  --edit-white: #ffffff;
+  --edit-border: #e2e8f0;
+  --edit-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --edit-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --edit-shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.12);
+  --edit-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.site-container {
+  max-width: 1200px !important;
+  margin: 0 auto;
+  padding: 0 20px 48px;
+}
+
+/* Banner de anúncio superior */
+.banner-anuncio {
+  width: 100%;
+  margin-top: 24px;
+  margin-bottom: 32px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--edit-border);
+  box-shadow: var(--edit-shadow-sm);
+  background: var(--edit-light);
+}
+
+.banner-anuncio img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: opacity 0.2s;
+}
+
+.banner-anuncio a:hover img {
+  opacity: 0.95;
+}
+
+/* ===== 1. CABEÇALHO DA CATEGORIA ===== */
+.categoria-header {
+  margin: 28px 0 36px;
+  padding-bottom: 0;
+  border-bottom: none;  /* Removida a linha laranja larga que atravessava a página */
+}
+
+/* Breadcrumb */
+.categoria-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--edit-font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: #7a8494;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.categoria-breadcrumb a {
+  color: #7a8494;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.categoria-breadcrumb a:hover {
+  color: var(--edit-primary);
+}
+
+.categoria-breadcrumb span {
+  font-size: 9px;
+  color: #cbd5e1;
+}
+
+/* Título da Categoria — único acento laranja via ::after */
+.site-container .categoria-header h1 {
+  font-family: var(--edit-font-sans);
+  font-size: clamp(32px, 4vw, 46px);
+  font-weight: 900;
+  line-height: 1;
+  color: #111827;
+  margin: 0;
+  padding-bottom: 0;
+  letter-spacing: -0.5px;
+  display: inline-block;
+  position: relative;
+  border-bottom: none; /* Remove qualquer borda do globals.css */
+}
+
+/* Barra laranja curta de 56px — ÚNICO acento laranja do cabeçalho */
+.site-container .categoria-header h1::after {
+  content: "";
+  display: block;
+  width: 56px;
+  height: 4px;
+  background: #ff5722;
+  margin-top: 12px;
+  border-radius: 999px;
+}
+
+
+/* ===== 2. BLOCO DE DESTAQUES EDITORIAL (ESTILO G1) ===== */
+.categoria-highlights-section {
+  display: grid;
+  grid-template-columns: 1.62fr 1fr;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* Card G1 Style (Destaque Card) */
+.destaque-card-g1 {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  display: block;
+  text-decoration: none;
+  color: #ffffff;
+  cursor: pointer;
+  background-color: #0c0f1d;
+  box-shadow: var(--edit-shadow-sm);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.destaque-card-g1:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--edit-shadow-md);
+}
+
+/* Big Hero Card */
+.destaque-card-g1.hero-large {
+  height: 480px;
+}
+
+/* Small Stack Cards */
+.destaque-card-g1.secondary-small {
+  height: 232px; /* 480px total height, gap 16px -> (480-16)/2 = 232px */
+}
+
+.destaque-card-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.destaque-card-media img {
+  object-fit: cover;
+  transition: transform 0.6s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.destaque-card-g1:hover .destaque-card-media img {
+  transform: scale(1.03);
+}
+
+/* Gradient Overlay G1 Style */
+.destaque-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.45) 45%, transparent 100%);
+  z-index: 1;
+}
+
+.destaque-card-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.destaque-card-g1.secondary-small .destaque-card-content {
+  padding: 16px;
+  gap: 4px;
+}
+
+.destaque-card-tag {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: var(--edit-primary, #ff5722);
+  color: #ffffff;
+  font-family: var(--edit-font-sans);
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 3px;
+  padding: 4px 10px;
+  text-transform: uppercase;
+  z-index: 2;
+  letter-spacing: 1px;
+}
+
+.destaque-card-title {
+  font-family: var(--edit-font-sans);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.destaque-card-g1.secondary-small .destaque-card-title {
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.destaque-card-resumo {
+  font-family: var(--edit-font-sans);
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 4px 0 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.destaque-card-meta {
+  font-family: var(--edit-font-sans);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-top: 4px;
+}
+
+/* Coluna de Destaques Secundários (Pilha à direita) */
+.secondary-noticias-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+
+/* ===== 3. DIVISOR DE CONTEÚDO EDITORIAL ===== */
+.section-divider {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.section-divider h3 {
+  font-family: var(--edit-font-sans);
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--edit-dark);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0 16px 0 0;
+  white-space: nowrap;
+}
+
+.section-divider-line {
+  flex-grow: 1;
+  height: 2px;
+  background-color: var(--edit-border);
+}
+
+
+/* ===== 4. LAYOUT DE DUAS COLUNAS PRINCIPAL ===== */
+.categoria-layout-columns {
+  display: grid;
+  grid-template-columns: 2.45fr 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+/* Coluna Principal da Esquerda (Feed G1 - Horizontal) */
+.categoria-feed-principal {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card Horizontal Refinado */
+.card-noticia-horizontal {
+  display: flex;
+  gap: 24px;
+  text-decoration: none;
+  color: inherit;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--edit-border);
+  cursor: pointer;
+  align-items: flex-start;
+  transition: opacity 0.2s ease;
+}
+
+.card-noticia-horizontal:first-child {
+  padding-top: 0;
+}
+
+.card-noticia-horizontal:hover {
+  opacity: 0.95;
+}
+
+.card-horizontal-media {
+  position: relative;
+  width: 260px;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--edit-light);
+  box-shadow: var(--edit-shadow-sm);
+}
+
+.card-horizontal-media img {
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.card-noticia-horizontal:hover .card-horizontal-media img {
+  transform: scale(1.03);
+}
+
+.card-horizontal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-content: center;
+}
+
+.card-horizontal-categoria {
+  font-family: var(--edit-font-sans);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--edit-primary); /* Laranja estilo destaque */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.card-horizontal-titulo {
+  font-family: var(--edit-font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: #1e293b;
+  margin: 0;
+  transition: color 0.2s ease;
+}
+
+.card-noticia-horizontal:hover .card-horizontal-titulo {
+  color: var(--edit-primary);
+}
+
+.card-horizontal-resumo {
+  font-family: var(--edit-font-sans);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--edit-text-muted);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.card-horizontal-meta {
+  font-family: var(--edit-font-sans);
+  font-size: 11.5px;
+  color: var(--edit-text-muted);
+}
+
+
+/* ===== 5. BARRA LATERAL (SIDEBAR) ===== */
+.categoria-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: sticky;
+  top: 90px;
+}
+
+/* ===== Widget Mais Lidas (TrendingWidget) — espelha o home-premium.css ===== */
+.categoria-sidebar .sidebar-widget {
+  background: #fff;
+  border: 1px solid #e8edf4;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.categoria-sidebar .widget-title {
+  font-family: var(--font-lora, serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eee;
+  position: relative;
+}
+
+.categoria-sidebar .widget-title::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 30px;
+  height: 2px;
+  background: #ff5722;
+}
+
+.categoria-sidebar .trending-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.categoria-sidebar .trending-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  text-decoration: none;
+  padding: 14px 0;
+  border-bottom: 1px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.categoria-sidebar .trending-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.categoria-sidebar .trending-item:first-child {
+  padding-top: 0;
+}
+
+.categoria-sidebar .trending-item:hover {
+  transform: translateX(4px);
+}
+
+.categoria-sidebar .trending-number {
+  font-size: 40px;
+  font-weight: 200;
+  color: #e2e8f0;
+  line-height: 1;
+  width: 40px;
+  min-width: 40px;
+  flex-shrink: 0;
+  text-align: center;
+  transition: all 0.3s ease;
+  margin-top: -6px;
+}
+
+.categoria-sidebar .trending-item:hover .trending-number {
+  color: #ff5722;
+}
+
+.categoria-sidebar .trending-content {
+  flex: 1;
+}
+
+.categoria-sidebar .trending-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ff5722;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.categoria-sidebar .trending-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+
+.categoria-sidebar .trending-item:hover .trending-title {
+  color: #ff5722;
+}
+
+
+.no-news-box {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 48px 24px;
+  border: 1px dashed var(--edit-border);
+  border-radius: 12px;
+  background: var(--edit-light);
+  color: var(--edit-text-muted);
+  font-family: var(--edit-font-sans);
+}
+
+.no-news-box i {
+  font-size: 32px;
+  color: #cbd5e1;
+  margin-bottom: 12px;
+}
+
+
+/* ==========================================================================
+   RESPONSIVIDADE COMPLETA (MEDIA QUERIES)
+   ========================================================================== */
+
+/* Tablets Grandes (1024px e abaixo) */
+@media (max-width: 1024px) {
+  .categoria-layout-columns {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  
+  .categoria-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Tablets (768px e abaixo) */
+@media (max-width: 768px) {
+  .categoria-highlights-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+
+  .destaque-card-g1.hero-large {
+    height: 320px;
+  }
+
+  .destaque-card-g1.secondary-small {
+    height: 200px;
+  }
+
+  .destaque-card-title {
+    font-size: 20px;
+  }
+
+  .destaque-card-g1.secondary-small .destaque-card-title {
+    font-size: 15px;
+  }
+
+  /* O card horizontal vira vertical em celulares */
+  .card-noticia-horizontal {
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 0;
+  }
+
+  .card-horizontal-media {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+  }
+
+  .card-horizontal-titulo {
+    font-size: 17px;
+  }
+}
+
+/* Mobile (576px e abaixo) */
+@media (max-width: 576px) {
+  .site-container {
+    padding: 0 16px 36px;
+  }
+
+}

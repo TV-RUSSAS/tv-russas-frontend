@@ -15,8 +15,12 @@ import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
 import { TEXTS } from "@/constants/texts";
 import { sanitizeHtml } from "@/utils/sanitize";
-import { ArticleVideoEmbed, type VideoPlatform } from "@/components/ArticleVideoEmbed";
+import {
+  ArticleVideoEmbed,
+  type VideoPlatform,
+} from "@/components/ArticleVideoEmbed";
 import { PremiumVideoPlayer } from "@/components/PremiumVideoPlayer";
+import CategoryActiveSetter from "@/components/CategoryActiveSetter";
 
 export async function generateMetadata({
   params,
@@ -110,11 +114,11 @@ function formatArticleContent(htmlContent: string): string {
   // Remove menções manuais cruas a "Publicado por:" e "Fonte:" em qualquer lugar do texto
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*Publicado\s+por\s*:\s*[\s\S]*?(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    ""
+    "",
   );
   content = content.replace(
     /<p>\s*(?:<strong>|<b>)?\s*Fonte\s*:\s*[\s\S]*?(?:<\/strong>|<\/b>)?\s*<\/p>/gi,
-    ""
+    "",
   );
 
   // Transformar parágrafos que contêm APENAS <strong> ou <b> em subtítulos h3 semânticos
@@ -129,74 +133,66 @@ function formatArticleContent(htmlContent: string): string {
 // Helper para converter placeholders em blocos de Vídeo e Embed React
 function parseContentWithEmbeds(htmlContent: string) {
   const formattedHtml = formatArticleContent(htmlContent);
-  const regex = /<div\s+class="(article-video-placeholder|social-embed-placeholder)"\s+data-platform="([a-z]+)"\s+data-url="([^"]+)"(?:\s+data-caption="([^"]*)")?(?:\s+data-credit="([^"]*)")?\s*><\/div>/gi;
-  
+  const regex =
+    /<div\s+class="(article-video-placeholder|social-embed-placeholder)"\s+data-platform="([a-z]+)"\s+data-url="([^"]+)"(?:\s+data-caption="([^"]*)")?(?:\s+data-credit="([^"]*)")?\s*><\/div>/gi;
+
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
   let match;
   let keyIndex = 0;
-  
+
   while ((match = regex.exec(formattedHtml)) !== null) {
     const textBefore = formattedHtml.substring(lastIndex, match.index).trim();
     if (textBefore) {
       parts.push(
-        <div 
-          key={`text-${keyIndex++}`} 
-          dangerouslySetInnerHTML={{ __html: sanitizeHtml(textBefore) }} 
-          className="article-body-content premium-editorial-flow" 
-        />
+        <div
+          key={`text-${keyIndex++}`}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(textBefore) }}
+          className="article-body-content premium-editorial-flow"
+        />,
       );
     }
-    
+
     const platform = match[2];
     const url = match[3];
-    const caption = match[4] || '';
-    const credit = match[5] || '';
-    
+    const caption = match[4] || "";
+    const credit = match[5] || "";
+
     parts.push(
-      <ArticleVideoEmbed 
-        key={`embed-${keyIndex++}`} 
-        url={url} 
-        platform={platform as VideoPlatform} 
-        caption={caption} 
+      <ArticleVideoEmbed
+        key={`embed-${keyIndex++}`}
+        url={url}
+        platform={platform as VideoPlatform}
+        caption={caption}
         credit={credit}
-      />
+      />,
     );
-    
+
     lastIndex = regex.lastIndex;
   }
-  
+
   const textAfter = formattedHtml.substring(lastIndex).trim();
   if (textAfter) {
     parts.push(
-      <div 
-        key={`text-${keyIndex++}`} 
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(textAfter) }} 
-        className="article-body-content premium-editorial-flow" 
-      />
+      <div
+        key={`text-${keyIndex++}`}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(textAfter) }}
+        className="article-body-content premium-editorial-flow"
+      />,
     );
   }
-  
+
   return parts;
 }
 
 // Helper para embutir players de vídeo de forma responsiva
-function renderVideoPlayer(videoUrl: string | null | undefined) {
+function renderVideoPlayer(
+  videoUrl: string | null | undefined,
+  isCapa: boolean = false,
+) {
   if (!videoUrl) return null;
 
   const cleanUrlLower = videoUrl.trim().toLowerCase();
-  
-  // Detecção de Vídeo Direto (MP4, WebM, OGG, uploads Cloudinary/locais)
-  if (
-    cleanUrlLower.endsWith('.mp4') || 
-    cleanUrlLower.endsWith('.webm') || 
-    cleanUrlLower.endsWith('.ogg') ||
-    cleanUrlLower.includes('.mp4?') ||
-    cleanUrlLower.includes('/video-upload/') ||
-    cleanUrlLower.includes('/videos-admin/')
-  ) {
-    return <PremiumVideoPlayer src={videoUrl} />;
-  }
 
   // YouTube
   const ytMatch = videoUrl.match(
@@ -208,7 +204,7 @@ function renderVideoPlayer(videoUrl: string | null | undefined) {
       <div
         className="editorial-video-wrapper"
         style={{
-          margin: "24px 0",
+          margin: isCapa ? "0" : "24px 0",
           borderRadius: "8px",
           overflow: "hidden",
           aspectRatio: "16/9",
@@ -244,7 +240,7 @@ function renderVideoPlayer(videoUrl: string | null | undefined) {
       <div
         className="editorial-video-wrapper"
         style={{
-          margin: "24px 0",
+          margin: isCapa ? "0" : "24px 0",
           borderRadius: "8px",
           overflow: "hidden",
           aspectRatio: "16/9",
@@ -275,7 +271,7 @@ function renderVideoPlayer(videoUrl: string | null | undefined) {
       <div
         className="editorial-video-wrapper"
         style={{
-          margin: "24px 0",
+          margin: isCapa ? "0" : "24px 0",
           borderRadius: "8px",
           overflow: "hidden",
           aspectRatio: "16/9",
@@ -301,6 +297,25 @@ function renderVideoPlayer(videoUrl: string | null | undefined) {
     );
   }
 
+  // Se não bater com as redes conhecidas, mas começar com http ou /, consideramos que é um vídeo direto (MP4, etc.)
+  if (
+    cleanUrlLower.startsWith("http") ||
+    cleanUrlLower.startsWith("/") ||
+    cleanUrlLower.startsWith("blob:") ||
+    cleanUrlLower.endsWith(".mp4") ||
+    cleanUrlLower.includes(".mp4?") ||
+    cleanUrlLower.includes("/video-upload/")
+  ) {
+    let fullSrc = videoUrl;
+    if (videoUrl.startsWith("/") && !videoUrl.startsWith("//")) {
+      const baseUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const cleanBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+      fullSrc = `${cleanBase}${videoUrl}`;
+    }
+    return <PremiumVideoPlayer src={fullSrc} isCapa={isCapa} />;
+  }
+
   return null;
 }
 
@@ -313,15 +328,14 @@ export default async function NoticiaPage({
   const noticia = await apiService.getNoticia(slug);
   if (!noticia) notFound();
 
-  const [todasNoticias, bannerTopo, maisLidas] =
-    await Promise.all([
-      apiService.getNoticias(),
-      apiService.getBannerAtivo("topo_interna"),
-      apiService.getMaisLidas().catch((err) => {
-        console.error("Erro ao buscar mais lidas:", err);
-        return [];
-      }),
-    ]);
+  const [todasNoticias, bannerTopo, maisLidas] = await Promise.all([
+    apiService.getNoticias(),
+    apiService.getBannerAtivo(`topo_interna:${noticia.categoria.slug}`),
+    apiService.getMaisLidas().catch((err) => {
+      console.error("Erro ao buscar mais lidas:", err);
+      return [];
+    }),
+  ]);
 
   // Relacionadas: prioriza mesma categoria, fallback para qualquer outra
   const mesmaCat = todasNoticias.filter(
@@ -419,32 +433,18 @@ export default async function NoticiaPage({
       {/* Barra de progresso + botões flutuantes */}
       <ArticleInteractions title={noticia.titulo} url={postUrl} />
       <ViewTracker slug={slug} />
+      <CategoryActiveSetter categorySlug={noticia.categoria.slug} />
 
       {/* Banner de Publicidade no Topo */}
       {bannerTopo && (
         <div
           className="editorial-ad-banner-topo"
           style={{
-            margin: "0 auto 20px",
-            maxWidth: "1200px",
+            margin: "24px auto",
+            maxWidth: "860px",
             width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "6px",
           }}
         >
-          <span
-            style={{
-              fontSize: "9px",
-              color: "var(--c-muted, #999)",
-              fontWeight: "600",
-              textTransform: "uppercase",
-              letterSpacing: "0.1em",
-            }}
-          >
-            {TEXTS.widgets.advertising}
-          </span>
           <a
             href={bannerTopo.linkUrl || "#"}
             target={bannerTopo.linkUrl ? "_blank" : "_self"}
@@ -465,10 +465,12 @@ export default async function NoticiaPage({
               alt={bannerTopo.titulo}
               style={{
                 width: "100%",
-                maxHeight: "120px",
-                objectFit: "contain",
+                height: "auto",
+                maxHeight: "135px",
+                objectFit: "cover",
                 borderRadius: "6px",
                 border: "1px solid rgba(255,255,255,0.06)",
+                display: "block",
               }}
             />
           </a>
@@ -520,8 +522,7 @@ export default async function NoticiaPage({
                   {TEXTS.common.por}{" "}
                   <strong>
                     {(
-                      noticia.colunista?.nome ||
-                      "PORTAL TV RUSSAS"
+                      noticia.colunista?.nome || "PORTAL TV RUSSAS"
                     ).toUpperCase()}
                   </strong>
                 </span>
@@ -539,24 +540,25 @@ export default async function NoticiaPage({
           </div>
         </header>
 
-        {/* Imagem de capa Premium */}
+        {/* Imagem de capa Premium ou Vídeo de Capa (Estilo G1) */}
         <div className="article-main-image-wrapper">
-          <Image
-            src={getImagePath(noticia.capaUrl, 'main')}
-            alt={noticia.titulo}
-            width={1200}
-            height={675}
-            priority
-            className="article-img"
-          />
+          {noticia.videoUrl ? (
+            renderVideoPlayer(noticia.videoUrl, true)
+          ) : (
+            <Image
+              src={getImagePath(noticia.capaUrl, "main")}
+              alt={noticia.titulo}
+              width={1200}
+              height={675}
+              priority
+              className="article-img"
+            />
+          )}
         </div>
         <figcaption className="editorial-image-caption">
           <span>{noticia.titulo}</span>
           <span>{TEXTS.brand.acervo}</span>
         </figcaption>
-
-        {/* Player de Vídeo Responsivo (YouTube, Facebook, Instagram) */}
-        {noticia.videoUrl && renderVideoPlayer(noticia.videoUrl)}
 
         {/* ===== GRID DE CONTEÚDO EDITORIAL ===== */}
         <div className="editorial-content-grid">
@@ -607,7 +609,7 @@ export default async function NoticiaPage({
                     >
                       <div className="mini-card-img">
                         <Image
-                          src={getImagePath(item.capaUrl, 'card')}
+                          src={getImagePath(item.capaUrl, "card")}
                           alt={item.titulo}
                           fill
                           sizes="(max-width: 768px) 100vw, 33vw"
@@ -629,9 +631,7 @@ export default async function NoticiaPage({
             {maisLidas.length > 0 && (
               <section className="editorial-mais-lidas-bottom">
                 <div className="mais-lidas-header-container">
-                  <h3 className="mais-lidas-heading">
-                    MAIS LIDAS
-                  </h3>
+                  <h3 className="mais-lidas-heading">MAIS LIDAS</h3>
                   <div className="mais-lidas-heading-bar" />
                 </div>
                 <div className="mais-lidas-list">
@@ -641,16 +641,16 @@ export default async function NoticiaPage({
                       href={`/noticia/${item.slug}`}
                       className="mais-lidas-item"
                     >
-                      <div className={`mais-lidas-number ${index === 0 ? 'first' : ''}`}>
+                      <div
+                        className={`mais-lidas-number ${index === 0 ? "first" : ""}`}
+                      >
                         {index + 1}
                       </div>
                       <div className="mais-lidas-content">
                         <span className="mais-lidas-category">
                           {item.categoria?.nome?.toUpperCase() || "TV RUSSAS"}
                         </span>
-                        <h4 className="mais-lidas-title">
-                          {item.titulo}
-                        </h4>
+                        <h4 className="mais-lidas-title">{item.titulo}</h4>
                       </div>
                     </Link>
                   ))}
@@ -658,7 +658,6 @@ export default async function NoticiaPage({
               </section>
             )}
           </div>
-
         </div>
       </article>
     </main>

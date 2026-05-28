@@ -798,8 +798,7 @@ body {
   font-size: 22px;
   font-weight: 800;
   color: var(--preto);
-  padding-bottom: 8px;
-  border-bottom: 3px solid var(--laranja);
+  /* border-bottom removida: o acento laranja fica apenas no categoria.css via ::after */
   display: inline-block;
 }
 

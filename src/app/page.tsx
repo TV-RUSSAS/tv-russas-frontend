@@ -76,7 +76,7 @@ export default async function Home() {
       {/* BANNER PRINCIPAL PREMIUM (TOP) */}
       <div
         className="premium-ad-wrapper"
-        style={{ marginTop: "0", marginBottom: "24px", maxWidth: "970px", marginLeft: "auto", marginRight: "auto" }}
+        style={{ marginTop: "24px", marginBottom: "24px", maxWidth: "970px", marginLeft: "auto", marginRight: "auto" }}
       >
         <a 
           href={bannerTopoHome?.linkUrl || "#"} 
@@ -89,7 +89,7 @@ export default async function Home() {
           <img
             src={bannerTopoHome ? getImagePath(bannerTopoHome.imageUrl) : getImagePath("anuncio/banner2.png")}
             alt={bannerTopoHome?.titulo || "Patrocínio Premium"}
-            style={{ width: "100%", height: "auto", maxHeight: "110px", objectFit: "contain", display: "block" }}
+            style={{ width: "100%", height: "auto", maxHeight: "135px", objectFit: "cover", display: "block" }}
           />
         </a>
       </div>

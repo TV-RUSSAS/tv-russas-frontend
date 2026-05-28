@@ -26,6 +26,18 @@ export function Header() {
   const [showSearch, setShowSearch] = useState(false);
   const pathname = usePathname();
   const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FALLBACK);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleCategoryChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string | null>;
+      setActiveCategory(customEvent.detail);
+    };
+    window.addEventListener('active-category-change', handleCategoryChange);
+    return () => {
+      window.removeEventListener('active-category-change', handleCategoryChange);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -171,7 +183,7 @@ export function Header() {
                 <Link
                   href={`/categoria/${cat.slug}`}
                   className={
-                    pathname === `/categoria/${cat.slug}` ? "active" : ""
+                    pathname === `/categoria/${cat.slug}` || activeCategory === cat.slug ? "active" : ""
                   }
                 >
                   {cat.nome}
@@ -215,7 +227,13 @@ export function Header() {
             <span className="drawer-section-title">{TEXTS.navigation.categories}</span>
             <nav className="drawer-categories">
               {categorias.map((cat) => (
-                <Link key={cat.slug} href={`/categoria/${cat.slug}`}>
+                <Link 
+                  key={cat.slug} 
+                  href={`/categoria/${cat.slug}`}
+                  className={
+                    pathname === `/categoria/${cat.slug}` || activeCategory === cat.slug ? "active" : ""
+                  }
+                >
                   {cat.nome}
                 </Link>
               ))}

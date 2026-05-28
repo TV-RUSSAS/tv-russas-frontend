@@ -120,6 +120,7 @@
   display: block;
   text-decoration: none;
   animation: fadeIn 0.8s ease-out;
+  width: 100%;
 }
 
 @keyframes fadeIn {
