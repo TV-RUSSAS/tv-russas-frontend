@@ -204,6 +204,7 @@ function renderVideoPlayer(
       <div
         className="editorial-video-wrapper"
         style={{
+          width: "100%",
           margin: isCapa ? "0" : "24px 0",
           borderRadius: "8px",
           overflow: "hidden",
@@ -240,6 +241,7 @@ function renderVideoPlayer(
       <div
         className="editorial-video-wrapper"
         style={{
+          width: "100%",
           margin: isCapa ? "0" : "24px 0",
           borderRadius: "8px",
           overflow: "hidden",
@@ -271,6 +273,7 @@ function renderVideoPlayer(
       <div
         className="editorial-video-wrapper"
         style={{
+          width: "100%",
           margin: isCapa ? "0" : "24px 0",
           borderRadius: "8px",
           overflow: "hidden",
