@@ -155,7 +155,7 @@ export default function RootLayout({
 
   // Carrega chaves de ambiente ou usa códigos padrão configurados
   const gtmId = process.env.NEXT_PUBLIC_GTM_ID || "GTM-PW5B7N3Q";
-  const gaId = process.env.NEXT_PUBLIC_GA_ID || "G-E2T5E2W2T5";
+  const gaId = "G-PTJPVDHEWK";
 
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
