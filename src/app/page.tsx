@@ -80,8 +80,8 @@ export default async function Home() {
         className="premium-ad-wrapper"
         style={{ marginTop: "24px", marginBottom: "24px", maxWidth: "970px", marginLeft: "auto", marginRight: "auto" }}
       >
-        <a 
-          href={bannerTopoHome?.linkUrl || "#"} 
+        <a
+          href={bannerTopoHome?.linkUrl || "#"}
           target={bannerTopoHome?.linkUrl ? "_blank" : "_self"}
           rel="noopener noreferrer"
           className="premium-ad-container-v2"
@@ -307,7 +307,7 @@ export default async function Home() {
               className="sidebar-ad-box"
             >
               <Image
-                src={getImagePath("sistema/tv.jpg")}
+                src={getImagePath("sistema/insta3.jpeg")}
                 alt={TEXTS.brand.name + " no Instagram"}
                 fill
                 sizes="300px"
