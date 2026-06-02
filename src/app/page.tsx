@@ -307,7 +307,7 @@ export default async function Home() {
               className="sidebar-ad-box"
             >
               <Image
-                src={getImagePath("sistema/insta3.jpeg")}
+                src={getImagePath("sistema/insta2.png")}
                 alt={TEXTS.brand.name + " no Instagram"}
                 fill
                 sizes="300px"
