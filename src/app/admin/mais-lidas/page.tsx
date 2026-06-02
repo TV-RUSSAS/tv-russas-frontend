@@ -121,7 +121,10 @@ export default function MaisLidasPage() {
   );
 
   const totalViews = rankingData.reduce((acc, item) => acc + (item.views || 0), 0);
-  const avgViews = rankingData.length > 0 ? Math.round(totalViews / rankingData.length) : 0;
+  const avgViewsRaw = rankingData.length > 0 ? totalViews / rankingData.length : 0;
+  const avgViewsFormatted = avgViewsRaw >= 10 
+    ? Math.round(avgViewsRaw).toLocaleString('pt-BR') 
+    : avgViewsRaw.toFixed(1).replace('.', ',');
 
   const categoryViewsMap = new Map<string, number>();
   rankingData.forEach(item => {
@@ -176,7 +179,7 @@ export default function MaisLidasPage() {
           </div>
           <div className="ml-kpi-card">
             <p className="ml-kpi-label">Média por Matéria</p>
-            <p className="ml-kpi-value">{avgViews.toLocaleString('pt-BR')}</p>
+            <p className="ml-kpi-value">{avgViewsFormatted}</p>
             <p className="ml-kpi-sub">views</p>
           </div>
           <div className="ml-kpi-card">

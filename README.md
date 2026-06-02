@@ -5,6 +5,7 @@
 ---
 
 ## 📚 Documentação Técnica Oficial
+
 O projeto TV Russas possui uma suíte documental completa projetada para auxiliar Engenheiros de Software, Integradores e Editores no entendimento total da arquitetura de código.
 
 Os guias técnicos detalhados estão hospedados no repositório do backend. Clique nos links abaixo para acessar diretamente no GitHub:
@@ -33,17 +34,20 @@ Os guias técnicos detalhados estão hospedados no repositório do backend. Cliq
 ## 🛠️ Como Iniciar o Frontend Localmente
 
 1. **Instalar Dependências:**
+
    ```bash
    npm install
    ```
 
 2. **Configurar as Variáveis de Ambiente:**
    Crie um arquivo `.env` na pasta raiz do frontend com base no `.env.example` ou use suas variáveis de ambiente:
+
    ```env
    NEXT_PUBLIC_API_URL=http://localhost:5000
    ```
 
 3. **Rodar em Modo de Desenvolvimento:**
+
    ```bash
    npm run dev
    ```

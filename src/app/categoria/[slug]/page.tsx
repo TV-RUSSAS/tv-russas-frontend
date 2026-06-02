@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { apiService } from "@/services/api";
+import { getCategoriaPageData } from "@/services/api";
 import { getImagePath } from "@/utils/imagePath";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
@@ -10,33 +10,19 @@ import TrendingWidget from "@/components/TrendingWidget";
 import type { Noticia as NoticiaGlobal } from "@/types";
 import "./categoria.css";
 
-interface Noticia {
-  id: string;
-  titulo: string;
-  slug: string;
-  capaUrl: string;
-  publicadoEm: string;
-  categoria: { nome: string; slug: string };
-  conteudo?: string;
-  resumo?: string | null;
-}
+// Cache ISR de 5 minutos — a Vercel revalidará em background após esse período
+export const revalidate = 300;
 
+// ─── generateMetadata usa o mesmo getCategoriaPageData (React.cache)
+// Garantia: se a Page também chamar, apenas 1 request HTTP é feito ao Render ───
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  
-  let nome = "Categoria";
-  try {
-    const categoria = await apiService.getCategoriaBySlug(slug);
-    if (categoria) {
-      nome = categoria.nome;
-    }
-  } catch {
-    // Fallback silencioso
-  }
+  const data = await getCategoriaPageData(slug);
+  const nome = data?.categoria?.nome ?? "Categoria";
 
   const title = `Notícias de ${nome} - TV Russas`;
   const description = `Fique por dentro das últimas notícias sobre ${nome} em Russas, no Ceará e em toda a região do Vale do Jaguaribe.`;
@@ -57,7 +43,7 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
+          url: "/og-tv-russas.jpg",
           width: 1200,
           height: 630,
           alt: `Notícias sobre ${nome}`,
@@ -68,7 +54,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg"],
+      images: ["/og-tv-russas.jpg"],
     },
     keywords: [
       `Notícias sobre ${nome}`,
@@ -80,6 +66,8 @@ export async function generateMetadata({
     ],
   };
 }
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const getCategoryBanner = (slug: string): string => {
   switch (slug) {
@@ -95,46 +83,40 @@ const getCategoryBanner = (slug: string): string => {
   }
 };
 
-const getCategoryDescription = (slug: string, nome: string): string => {
-  // Usa Map em vez de object literal para evitar prototype pollution
-  // (slugs vêm da URL e não devem acessar propriedades herdadas como __proto__)
-  const descriptions = new Map<string, string>([
-    ["cidade", `Últimas notícias, reportagens e eventos sobre o cotidiano de Russas e região.`],
-    ["politica", `Bastidores do poder, eleições e cobertura política local, estadual e regional.`],
-    ["esporte", `Futebol local, competições regionais e tudo sobre o esporte em Russas e no Ceará.`],
-    ["entretenimento", `Cultura, shows, festas e a agenda de eventos no Vale do Jaguaribe.`],
-    ["policia", `Segurança pública, ocorrências e informações de utilidade na região.`],
-    ["brasil", `As principais notícias do cenário nacional que impactam o país.`],
-    ["ceara", `Acontecimentos do estado do Ceará, desenvolvimento regional e notícias do interior.`],
-    ["youtube", `Vídeos exclusivos, reportagens e coberturas produzidas pela TV Russas.`],
-  ]);
-  return descriptions.get(slug.toLowerCase()) ?? `Últimas notícias, matérias e reportagens de ${nome} no portal TV Russas.`;
-};
-
 function stripHtml(html: string): string {
   if (!html) return "";
   return html.replace(/<[^>]*>?/gm, "").trim();
 }
 
+// ─── Interface local (sem conteudo — os dados de listagem não trazem esse campo) ─
+interface NoticiaLista {
+  id: string;
+  titulo: string;
+  slug: string;
+  capaUrl: string;
+  publicadoEm: string;
+  categoria: { nome: string; slug: string };
+  resumo?: string | null;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function CategoriaPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  
-  // Buscar dados em paralelo para melhor performance
-  const [categoria, noticiasRaw, maisLidas] = await Promise.all([
-    apiService.getCategoriaBySlug(slug),
-    apiService.getNoticiasByCategoria(slug, 20),
-    apiService.getMaisLidas()
-  ]);
 
-  if (!categoria) notFound();
+  // Uma única chamada HTTP ao Render — consolidada no backend (/api/categorias/:slug/page)
+  // React.cache garante que generateMetadata e esta Page compartilham o mesmo resultado
+  const pageData = await getCategoriaPageData(slug);
+  if (!pageData) notFound();
 
+  const { categoria, noticias: noticiasRaw, maisLidas } = pageData;
   const nome = categoria.nome;
-  const noticias = noticiasRaw as unknown as Noticia[];
-  const data = (iso: string) =>
+  const noticias = noticiasRaw as unknown as NoticiaLista[];
+
+  const formatData = (iso: string) =>
     new Date(iso).toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -170,13 +152,10 @@ export default async function CategoriaPage({
     ],
   };
 
-  // Separação de Destaques (Hero + Secundárias) e Grid Principal
-  // Se tivermos 3 ou mais notícias, usamos a primeira como Destaque Principal (Hero),
-  // as posições 1 e 2 como Secundárias (conforme a imagem, que mostra 1 grande e 2 empilhadas ao lado).
-  // Caso contrário, a 1ª é o Hero e o restante vai direto para o Grid principal.
-  let heroNoticia: Noticia | null = null;
-  let secundariasNoticias: Noticia[] = [];
-  let noticiasRestantes: Noticia[] = [];
+  // Separação em destaque hero, secundárias e restante
+  let heroNoticia: NoticiaLista | null = null;
+  let secundariasNoticias: NoticiaLista[] = [];
+  let noticiasRestantes: NoticiaLista[] = [];
 
   if (noticias.length >= 3) {
     heroNoticia = noticias[0];
@@ -196,7 +175,7 @@ export default async function CategoriaPage({
           __html: JSON.stringify(categorySchema).replace(/</g, "\\u003c"),
         }}
       />
-      
+
       {/* BANNER TOPO: RODÍZIO POR CATEGORIA */}
       <div className="banner-anuncio">
         {isClickable ? (
@@ -225,9 +204,9 @@ export default async function CategoriaPage({
       {/* CABEÇALHO DA CATEGORIA */}
       <header className="categoria-header">
         <nav className="categoria-breadcrumb" aria-label="breadcrumb">
-          <Link href="/">INÍCIO</Link>
+          <Link href="/" prefetch={false}>INÍCIO</Link>
           <span>/</span>
-          <Link href={`/categoria/${slug}`}>CATEGORIAS</Link>
+          <Link href={`/categoria/${slug}`} prefetch={false}>CATEGORIAS</Link>
           <span>/</span>
           <span>{nome.toUpperCase()}</span>
         </nav>
@@ -239,7 +218,7 @@ export default async function CategoriaPage({
         <section className="categoria-highlights-section">
           {/* Destaque Principal (Hero à esquerda) */}
           {heroNoticia && (
-            <Link href={`/noticia/${heroNoticia.slug}`} className="destaque-card-g1 hero-large">
+            <Link href={`/noticia/${heroNoticia.slug}`} prefetch={false} className="destaque-card-g1 hero-large">
               <div className="destaque-card-media">
                 <Image
                   src={getImagePath(heroNoticia.capaUrl)}
@@ -254,7 +233,7 @@ export default async function CategoriaPage({
               <div className="destaque-card-content">
                 <h2 className="destaque-card-title">{heroNoticia.titulo}</h2>
                 {(() => {
-                  const cleanText = heroNoticia.resumo ? stripHtml(heroNoticia.resumo) : (heroNoticia.conteudo ? stripHtml(heroNoticia.conteudo) : "");
+                  const cleanText = heroNoticia.resumo ? stripHtml(heroNoticia.resumo) : "";
                   return (
                     <p className="destaque-card-resumo">
                       {cleanText.substring(0, 160)}{cleanText.length > 160 ? "..." : ""}
@@ -262,7 +241,7 @@ export default async function CategoriaPage({
                   );
                 })()}
                 <div className="destaque-card-meta">
-                  <time>{data(heroNoticia.publicadoEm)}</time>
+                  <time>{formatData(heroNoticia.publicadoEm)}</time>
                 </div>
               </div>
             </Link>
@@ -272,7 +251,7 @@ export default async function CategoriaPage({
           {secundariasNoticias.length > 0 && (
             <div className="secondary-noticias-column">
               {secundariasNoticias.map((n) => (
-                <Link key={n.slug} href={`/noticia/${n.slug}`} className="destaque-card-g1 secondary-small">
+                <Link key={n.slug} href={`/noticia/${n.slug}`} prefetch={false} className="destaque-card-g1 secondary-small">
                   <div className="destaque-card-media">
                     <Image
                       src={getImagePath(n.capaUrl)}
@@ -286,7 +265,7 @@ export default async function CategoriaPage({
                   <div className="destaque-card-content">
                     <h3 className="destaque-card-title">{n.titulo}</h3>
                     <div className="destaque-card-meta">
-                      <time>{data(n.publicadoEm)}</time>
+                      <time>{formatData(n.publicadoEm)}</time>
                     </div>
                   </div>
                 </Link>
@@ -310,7 +289,7 @@ export default async function CategoriaPage({
         <main className="categoria-feed-principal">
           {noticiasRestantes.length > 0 ? (
             noticiasRestantes.map((n) => (
-              <Link key={n.slug} href={`/noticia/${n.slug}`} className="card-noticia-horizontal">
+              <Link key={n.slug} href={`/noticia/${n.slug}`} prefetch={false} className="card-noticia-horizontal">
                 <div className="card-horizontal-media">
                   <Image
                     src={getImagePath(n.capaUrl)}
@@ -323,14 +302,14 @@ export default async function CategoriaPage({
                   <span className="card-horizontal-categoria">{n.categoria.nome}</span>
                   <h4 className="card-horizontal-titulo">{n.titulo}</h4>
                   {(() => {
-                    const cleanText = n.resumo ? stripHtml(n.resumo) : (n.conteudo ? stripHtml(n.conteudo) : "");
+                    const cleanText = n.resumo ? stripHtml(n.resumo) : "";
                     return (
                       <p className="card-horizontal-resumo">
                         {cleanText.substring(0, 140)}{cleanText.length > 140 ? "..." : ""}
                       </p>
                     );
                   })()}
-                  <time className="card-horizontal-meta">{data(n.publicadoEm)}</time>
+                  <time className="card-horizontal-meta">{formatData(n.publicadoEm)}</time>
                 </div>
               </Link>
             ))
@@ -346,7 +325,7 @@ export default async function CategoriaPage({
 
         {/* Coluna da direita: Sidebar */}
         <aside className="categoria-sidebar">
-          {/* Widget Mais Lidas — usa as mesmas classes trending-* do resto do site */}
+          {/* Widget Mais Lidas — dados já vêm no payload consolidado, sem request adicional */}
           <TrendingWidget items={maisLidas.slice(0, 5) as unknown as NoticiaGlobal[]} title="Mais Lidas" />
         </aside>
       </div>

@@ -32,6 +32,7 @@ export default function PremiumCard({
     return (
       <Link
         href={`/noticia/${noticia.slug}`}
+        prefetch={false}
         className="premium-card-list smooth-transition"
       >
         <div className="list-img-wrapper">
@@ -59,6 +60,7 @@ export default function PremiumCard({
     return (
       <Link
         href={`/noticia/${noticia.slug}`}
+        prefetch={false}
         className={`premium-card ${size} smooth-transition hover-card`}
       >
         <Image
@@ -105,6 +107,7 @@ export default function PremiumCard({
     <article className="clean-flex-card smooth-transition hover-card h-full">
       <Link
         href={`/noticia/${noticia.slug}`}
+        prefetch={false}
         style={{ display: "flex", flexDirection: "column", height: "100%" }}
       >
         <div className="small-img-wrapper">

@@ -65,21 +65,8 @@ export default function NoticiasAdmin() {
   // IDs das 6 notícias mais recentes do portal para badge preciso de "Última Notícia"
   const [ultimasNoticiasIds, setUltimasNoticiasIds] = useState<string[]>([]);
 
-  const loadUltimasIds = useCallback(async () => {
-    try {
-      const res = await authFetch('/admin/noticias?featured=false&page=1&limit=6');
-      if (res.ok) {
-        const data = await res.json();
-        const ids = (data.noticias || []).map((n: Noticia) => n.id);
-        setUltimasNoticiasIds(ids);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar as IDs das últimas notícias:', err);
-    }
-  }, [authFetch]);
-
   const canDelete = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
-
+ 
   const getCapaUrl = (url?: string | null) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) {
@@ -89,29 +76,7 @@ export default function NoticiasAdmin() {
     const cleanUrl = url.startsWith('/') ? url : `/${url}`;
     return `${apiBaseUrl}${cleanUrl}`;
   };
-
-  // Carrega estatísticas globais para os cards de KPIs (Reais via endpoints)
-  const loadStats = useCallback(async () => {
-    try {
-      // 1. Carrega estatísticas de dashboard (para total de views e matérias)
-      const statsRes = await authFetch('/admin/dashboard/stats?range=30');
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setTotalViewsPortal(statsData.totalViews ?? 0);
-        setTotalNoticiasPortal(statsData.totalNoticias ?? 0);
-      }
-
-      // 2. Carrega contagem exata de notícias marcadas como destaque (featured=true)
-      const destaquesRes = await authFetch('/admin/noticias?featured=true&limit=1');
-      if (destaquesRes.ok) {
-        const destaquesData = await destaquesRes.json();
-        setTotalDestaquesPortal(destaquesData.total ?? 0);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar estatísticas analíticas de notícias:', err);
-    }
-  }, [authFetch]);
-
+ 
   const loadNoticias = useCallback(async () => {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '15' });
@@ -119,18 +84,27 @@ export default function NoticiasAdmin() {
       if (filtroCategoria) params.set('categoria', filtroCategoria);
       if (filtroDestaque === 'featured') params.set('featured', 'true');
       else if (filtroDestaque === 'regular') params.set('featured', 'false');
-
+ 
       const res = await authFetch(`/admin/noticias?${params}`);
       const data = await res.json();
       setNoticias(data.noticias || []);
       setPaginacao({ total: data.total, totalPages: data.totalPages, page: data.page });
+      if (data.stats) {
+        setTotalViewsPortal(data.stats.totalViews ?? 0);
+        setTotalNoticiasPortal(data.stats.totalNoticias ?? 0);
+        setTotalDestaquesPortal(data.stats.totalDestaques ?? 0);
+      }
+      if (page === 1 && !busca && !filtroCategoria && filtroDestaque === 'all') {
+        const ids = (data.noticias || []).slice(0, 6).map((n: Noticia) => n.id);
+        setUltimasNoticiasIds(ids);
+      }
     } catch (err) {
       if (err instanceof Error) setError(err.message);
     } finally {
       setLoading(false);
     }
   }, [authFetch, page, busca, filtroCategoria, filtroDestaque]);
-
+ 
   // Inicialização e atualização de dados
   useEffect(() => {
     let active = true;
@@ -143,12 +117,21 @@ export default function NoticiasAdmin() {
         if (filtroCategoria) params.set('categoria', filtroCategoria);
         if (filtroDestaque === 'featured') params.set('featured', 'true');
         else if (filtroDestaque === 'regular') params.set('featured', 'false');
-
+ 
         const res = await authFetch(`/admin/noticias?${params}`);
         const data = await res.json();
         if (active) {
           setNoticias(data.noticias || []);
           setPaginacao({ total: data.total, totalPages: data.totalPages, page: data.page });
+          if (data.stats) {
+            setTotalViewsPortal(data.stats.totalViews ?? 0);
+            setTotalNoticiasPortal(data.stats.totalNoticias ?? 0);
+            setTotalDestaquesPortal(data.stats.totalDestaques ?? 0);
+          }
+          if (page === 1 && !busca && !filtroCategoria && filtroDestaque === 'all') {
+            const ids = (data.noticias || []).slice(0, 6).map((n: Noticia) => n.id);
+            setUltimasNoticiasIds(ids);
+          }
           setLoading(false);
         }
       } catch (err) {
@@ -156,18 +139,11 @@ export default function NoticiasAdmin() {
         if (active) setLoading(false);
       }
     };
-
-    const loadExtraData = async () => {
-      if (active) {
-        await Promise.all([loadStats(), loadUltimasIds()]);
-      }
-    };
-
+ 
     fetchInit();
-    loadExtraData();
     return () => { active = false; };
-  }, [authFetch, page, busca, filtroCategoria, filtroDestaque, loadStats, loadUltimasIds]);
-
+  }, [authFetch, page, busca, filtroCategoria, filtroDestaque]);
+ 
   // Carrega lista de categorias para o dropdown de filtros
   useEffect(() => {
     let active = true;
@@ -177,7 +153,7 @@ export default function NoticiasAdmin() {
       .catch(() => {});
     return () => { active = false; };
   }, [authFetch]);
-
+ 
   // Handler para exclusão
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -192,8 +168,7 @@ export default function NoticiasAdmin() {
       setConfirmDeleteId(null);
       setLoading(true);
       
-      // Atualiza listagem e KPIs analíticos
-      await Promise.all([loadNoticias(), loadStats(), loadUltimasIds()]);
+      await loadNoticias();
       
       setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
@@ -204,9 +179,12 @@ export default function NoticiasAdmin() {
   };
 
   // Média de visualizações por matéria editorial
-  const mediaViewsPorMateria = useMemo(() => {
-    if (totalNoticiasPortal === 0) return 0;
-    return Math.round(totalViewsPortal / totalNoticiasPortal);
+  const mediaViewsPorMateriaFormatted = useMemo(() => {
+    if (totalNoticiasPortal === 0) return '0';
+    const media = totalViewsPortal / totalNoticiasPortal;
+    return media >= 10 
+      ? Math.round(media).toLocaleString('pt-BR') 
+      : media.toFixed(1).replace('.', ',');
   }, [totalViewsPortal, totalNoticiasPortal]);
 
   const noticiaParaExcluir = noticias.find(n => n.id === confirmDeleteId);
@@ -279,7 +257,7 @@ export default function NoticiasAdmin() {
             <Eye size={16} />
           </div>
           <span className="cms-stat-value">
-            {mediaViewsPorMateria > 0 ? mediaViewsPorMateria.toLocaleString('pt-BR') : '—'}
+            {mediaViewsPorMateriaFormatted !== '0' ? mediaViewsPorMateriaFormatted : '0'}
           </span>
           <span className="cms-stat-label">{"Média por Matéria"}</span>
         </div>

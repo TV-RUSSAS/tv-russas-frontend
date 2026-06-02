@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { API_URL } from '@/services/api';
-import { getImagePath } from '@/utils/imagePath';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { 
   Mail, 
@@ -89,7 +88,7 @@ export default function AdminLogin() {
           
           <div className="login-form-logo">
             <Image
-              src={getImagePath("sistema/1.png")}
+              src="/logo-tv-russas.png"
               alt="TV Russas"
               width={160}
               height={45}

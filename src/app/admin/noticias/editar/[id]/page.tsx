@@ -22,23 +22,48 @@ interface Noticia {
   publicadoPor?: string | null;
 }
 
+interface Categoria {
+  id: string;
+  nome: string;
+}
+
+interface Colunista {
+  id: string;
+  nome: string;
+}
+
+interface EditorPageData {
+  noticia: Noticia;
+  categorias: Categoria[];
+  colunistas: Colunista[];
+}
+
 export default function EditarNoticiaPage() {
   const { id } = useParams<{ id: string }>();
   const { authFetch } = useAdminAuth();
-  const [noticia, setNoticia] = useState<Noticia | null>(null);
+  const [data, setData] = useState<EditorPageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     if (!id) return;
-    authFetch(`/admin/noticias/${id}`)
+    let active = true;
+    authFetch(`/admin/editor/${id}/page`)
       .then((r) => r.json())
-      .then((data) => {
-        if (data.error) throw new Error(data.error);
-        setNoticia(data);
+      .then((res) => {
+        if (!active) return;
+        if (res.error) throw new Error(res.error);
+        setData(res);
       })
-      .catch((err: Error) => setError(err.message))
-      .finally(() => setLoading(false));
+      .catch((err: Error) => {
+        if (active) setError(err.message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [id, authFetch]);
 
   if (loading) {
@@ -50,7 +75,9 @@ export default function EditarNoticiaPage() {
   }
 
   if (error) return <div className="cms-alert cms-alert-error">⚠️ {error}</div>;
-  if (!noticia) return null;
+  if (!data || !data.noticia) return null;
+
+  const { noticia, categorias, colunistas } = data;
 
   return (
     <NoticiaEditorForm
@@ -71,6 +98,8 @@ export default function EditarNoticiaPage() {
         fonte: noticia.fonte || "",
         publicadoPor: noticia.publicadoPor || "",
       }}
+      initialCategorias={categorias}
+      initialColunistas={colunistas}
     />
   );
 }

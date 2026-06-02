@@ -1,40 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { getImagePath } from "@/utils/imagePath";
 import { TEXTS } from "@/constants/texts";
-import { apiService } from "@/services/api";
-
-const CATEGORIAS_FALLBACK = [
+const CATEGORIAS_FIXAS = [
   { nome: "Cidade", slug: "cidade" },
   { nome: "Política", slug: "politica" },
   { nome: "Esporte", slug: "esporte" },
   { nome: "Entretenimento", slug: "entretenimento" },
   { nome: "Polícia", slug: "policia" },
-  { nome: "Youtube", slug: "youtube" },
-  { nome: "Brasil", slug: "brasil" },
   { nome: "Ceará", slug: "ceara" },
+  { nome: "Brasil", slug: "brasil" },
+  { nome: "Mundo", slug: "mundo" },
 ];
 
 export function Footer() {
   const pathname = usePathname();
-  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FALLBACK);
-
-  useEffect(() => {
-    let active = true;
-    const fetchCategorias = async () => {
-      const cats = await apiService.getCategorias();
-      if (cats && cats.length > 0 && active) {
-        setCategorias(cats);
-      }
-    };
-    fetchCategorias();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [categorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FIXAS);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -46,7 +29,7 @@ export function Footer() {
         <div className="footer-section">
           <div className="footer-logo-wrapper">
             <Image
-              src={getImagePath("sistema/5.png")}
+              src="/logo-footer.png"
               alt={TEXTS.brand.name}
               width={60}
               height={60}
@@ -90,7 +73,7 @@ export function Footer() {
           <ul>
             {categorias.map((cat) => (
               <li key={cat.slug}>
-                <Link href={`/categoria/${cat.slug}`}>{cat.nome}</Link>
+                <Link href={`/categoria/${cat.slug}`} prefetch={false}>{cat.nome}</Link>
               </li>
             ))}
           </ul>

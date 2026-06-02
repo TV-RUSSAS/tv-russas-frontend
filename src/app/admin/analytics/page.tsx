@@ -5,81 +5,51 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { 
   BarChart3, 
-  Eye, 
-  ThumbsUp, 
-  Clock, 
-  FileText, 
-  Tag, 
-  Activity,
-  UserCheck,
-  Loader2,
-  Calendar
+  ExternalLink, 
+  RefreshCw, 
+  CheckCircle2, 
+  TrendingUp, 
+  Database,
+  ThumbsUp,
+  MessageSquare,
+  FileText,
+  Clock,
+  Eye,
+  Activity
 } from 'lucide-react';
-import MetricCard from '@/components/admin/analytics/MetricCard';
-import AnalyticsChart from '@/components/admin/analytics/AnalyticsChart';
-import EmptyState from '@/components/admin/analytics/EmptyState';
-
-const PERIOD_OPTIONS = [
-  { value: 'hoje', label: 'Hoje' },
-  { value: '7d', label: '7 Dias' },
-  { value: '30d', label: '30 Dias' },
-  { value: 'mes', label: 'Este Mês' },
-  { value: 'geral', label: 'Geral' },
-];
 
 interface OverviewData {
-  totalNoticias: number;
-  totalViews: number;
-  viewsHoje: number;
-  views7d: number;
-  views30d: number;
-  curtidas: number;
-  feedbacks: number;
-  sugestoesTotal: number;
-  sugestoesPendentes: number;
-  crescimentoSemanal: number;
-  mediaLeituraMinutos: number;
-}
-
-interface HistoricoViewsItem {
-  data: string;
-  views: number;
-  publicacoes: number;
-}
-
-interface HistoricoData {
-  historico: HistoricoViewsItem[];
-  comparativo: {
-    atual: number;
-    anterior: number;
-    variacao: string;
+  ga4: {
+    measurementId: string;
+    connected: boolean;
   };
-}
-
-interface CategoriaData {
-  id: string;
-  nome: string;
-  slug: string;
-  noticiasCount: number;
-  views: number;
-  percentual: number;
-}
-
-interface AutorData {
-  id: string;
-  nome: string;
-  tipo: string;
-  avatar: string | null;
-  noticiasCount: number;
-  views: number;
-  curtidas: number;
-  mediaViews: number;
+  local: {
+    totalNoticias: number;
+    totalViews: number;
+    noticiaMaisLida: {
+      id: string;
+      titulo: string;
+      slug: string;
+      views: number;
+    } | null;
+    sugestoesPendentes: number;
+    totalLikes: number;
+    ultimaAtualizacao: string;
+  };
+  status: {
+    realtimeAnalytics: string;
+    adminPolling: string;
+    mostRead: string;
+    trending: string;
+    viewsInternas: string;
+  };
 }
 
 export default function AnalyticsDashboardPage() {
   const { authFetch } = useAdminAuth();
-
   const [mounted, setMounted] = useState(false);
+  const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -89,462 +59,308 @@ export default function AnalyticsDashboardPage() {
     return () => { active = false; };
   }, []);
 
-  // Estados dos Filtros Globais
-  const [periodo, setPeriodo] = useState('7d');
-  
-  // Filtro específico do gráfico histórico
-  const [graficoDias, setGraficoDias] = useState(7);
-
-  // Estados de Dados da API
-  const [overview, setOverview] = useState<OverviewData | null>(null);
-  const [historico, setHistorico] = useState<HistoricoData | null>(null);
-  const [categorias, setCategorias] = useState<CategoriaData[]>([]);
-  const [autores, setAutores] = useState<AutorData[]>([]);
-
-  // Estados de carregamento
-  const [loadingOverview, setLoadingOverview] = useState(true);
-  const [loadingGrafico, setLoadingGrafico] = useState(true);
-  const [loadingCategorias, setLoadingCategorias] = useState(true);
-  const [loadingAutores, setLoadingAutores] = useState(true);
-  // 1. Buscar Overview
   const fetchOverview = useCallback(async () => {
-    await Promise.resolve();
     try {
-      setLoadingOverview(true);
+      setLoading(true);
       const res = await authFetch('/admin/analytics/overview');
       if (res.ok) {
         const data = await res.json();
         setOverview(data);
       }
     } catch (err) {
-      console.error('Erro ao buscar visão geral das estatísticas:', err);
+      console.error('Erro ao buscar visão geral das estatísticas locais:', err);
     } finally {
-      setLoadingOverview(false);
+      setLoading(false);
     }
   }, [authFetch]);
 
-  // 2. Buscar Histórico Diário (Gráfico)
-  const fetchHistorico = useCallback(async () => {
-    await Promise.resolve();
-    try {
-      setLoadingGrafico(true);
-      const res = await authFetch(`/admin/analytics/views-por-dia?dias=${graficoDias}`);
-      if (res.ok) {
-        const data = await res.json();
-        setHistorico(data);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar histórico de visualizações:', err);
-    } finally {
-      setLoadingGrafico(false);
-    }
-  }, [authFetch, graficoDias]);
-
-  // 3. Buscar Categorias
-  const fetchCategorias = useCallback(async () => {
-    await Promise.resolve();
-    try {
-      setLoadingCategorias(true);
-      const res = await authFetch(`/admin/analytics/categorias?periodo=${periodo}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCategorias(data);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar tráfego por categoria:', err);
-    } finally {
-      setLoadingCategorias(false);
-    }
-  }, [authFetch, periodo]);
-
-  // 4. Buscar Autores
-  const fetchAutores = useCallback(async () => {
-    await Promise.resolve();
-    try {
-      setLoadingAutores(true);
-      const res = await authFetch(`/admin/analytics/autores?periodo=${periodo}`);
-      if (res.ok) {
-        const data = await res.json();
-        setAutores(data);
-      }
-    } catch (err) {
-      console.error('Erro ao buscar ranking de autores:', err);
-    } finally {
-      setLoadingAutores(false);
-    }
-  }, [authFetch, periodo]);
-
-  // Inicializar e atualizar com base nos filtros correspondentes
   useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchOverview();
-    });
-  }, [fetchOverview]);
-
-  useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchHistorico();
-    });
-  }, [fetchHistorico]);
-
-  useEffect(() => {
-    Promise.resolve().then(() => {
-      fetchCategorias();
-      fetchAutores();
-    });
-  }, [fetchCategorias, fetchAutores]);
-
-  // Formatar data em string amigável (Dia/Mês) para o gráfico SVG
-  const formatarDataGrafico = (strData: string) => {
-    const d = new Date(strData + 'T12:00:00'); // evita problemas de timezone local
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
-  };
-
-  const chartData = historico?.historico.map(item => ({
-    label: formatarDataGrafico(item.data),
-    value: item.views
-  })) || [];
-
-  // Mapeia avatar ou iniciais dos autores
-  const renderAvatarAutor = (aut: AutorData) => {
-    if (aut.avatar) {
-      const isExternal = aut.avatar.startsWith('http://') || aut.avatar.startsWith('https://');
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const cleanUrl = aut.avatar.startsWith('/') ? aut.avatar : `/${aut.avatar}`;
-      const src = isExternal ? aut.avatar : `${apiBaseUrl}${cleanUrl}`;
-
-      return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt={aut.nome}
-          className="an-author-avatar"
-        />
-      );
+    if (mounted) {
+      Promise.resolve().then(() => {
+        fetchOverview();
+      });
     }
-
-    const iniciais = aut.nome
-      .split(' ')
-      .slice(0, 2)
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
-
-    return (
-      <div className="an-author-avatar-placeholder">
-        {iniciais}
-      </div>
-    );
-  };
-
-  const isGlobalLoading = loadingOverview && loadingGrafico && loadingCategorias && loadingAutores;
+  }, [mounted, fetchOverview]);
 
   if (!mounted) {
     return (
       <div className="an-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
-        <Loader2 className="w-8 h-8 animate-spin text-[#ff5722]" />
+        <RefreshCw className="w-8 h-8 animate-spin text-[#ff5722]" />
       </div>
     );
   }
 
+  const gaId = overview?.ga4?.measurementId || process.env.NEXT_PUBLIC_GA_ID || "G-PTJPVDHEWK";
+
   return (
-    <div className="an-page">
-      {/* Cabeçalho */}
-      <div className="an-header">
+    <div className="an-page" style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1200px', margin: '0 auto' }}>
+      
+      {/* ── SEÇÃO TOPO: CABEÇALHO ── */}
+      <div className="an-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 className="an-title">
-            <BarChart3 size={26} />
-            Analytics Editorial
+          <h1 className="an-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '28px', fontWeight: 800, color: '#f3f4f6', letterSpacing: '-0.02em', margin: 0 }}>
+            <BarChart3 size={30} className="text-[#ff5722]" />
+            Analytics
           </h1>
-          <p className="an-subtitle">
-            Métricas integradas e consolidadas de acessos, engajamento e produção jornalística.
+          <p className="an-subtitle" style={{ fontSize: '14.5px', color: '#9ca3af', marginTop: '4px', margin: '4px 0 0 0' }}>
+            Monitoramento de audiência via Google Analytics 4 e indicadores locais do CMS.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button
-            type="button"
-            onClick={() => {
-              fetchOverview();
-              fetchHistorico();
-              fetchCategorias();
-              fetchAutores();
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <a
+            href="https://analytics.google.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cms-btn cms-btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              height: '42px',
+              padding: '0 20px',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              borderRadius: '8px',
+              background: '#ff5722',
+              color: '#fff',
+              boxShadow: '0 4px 14px rgba(255, 87, 34, 0.2)'
             }}
-            disabled={isGlobalLoading}
-            className="cms-btn cms-btn-secondary cms-btn-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
           >
-            <Loader2 className={`w-3.5 h-3.5 ${isGlobalLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </button>
+            <ExternalLink size={15} />
+            Abrir Google Analytics
+          </a>
         </div>
       </div>
 
-      {process.env.NEXT_PUBLIC_ECONOMY_MODE === "true" && (
+      {/* ── PRIMEIRA SEÇÃO: INTEGRAÇÃO GA4 ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+        
+        {/* Card 1 — Google Analytics */}
         <div style={{
-          background: 'rgba(245, 158, 11, 0.08)',
-          border: '1px solid rgba(245, 158, 11, 0.2)',
-          borderRadius: '8px',
-          padding: '12px 16px',
-          color: '#f59e0b',
-          fontSize: '13px',
-          marginBottom: '20px',
+          background: '#12141D',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '16px',
+          padding: '24px',
           display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          minHeight: '260px'
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-          <span>
-            <strong>Modo economia ativo:</strong> Dados em tempo real pausados temporariamente para reduzir o uso do servidor. Use o botão de atualização manual para recarregar as estatísticas.
-          </span>
-        </div>
-      )}
-
-      {/* ── SELETOR DE PERÍODO ── */}
-      <div className="an-period-row">
-        <div className="an-period-bar">
-          <span className="an-period-icon"><Calendar size={15} /></span>
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setPeriodo(opt.value)}
-              className={`an-period-btn${periodo === opt.value ? ' active' : ''}`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Grid de KPIs no Topo (Mapeia o overview consolidado) */}
-      <div className="an-kpi-grid">
-        <MetricCard
-          title="Visualizações do Período"
-          value={
-            overview 
-              ? periodo === 'hoje' ? overview.viewsHoje.toLocaleString('pt-BR') 
-              : periodo === '7d' ? overview.views7d.toLocaleString('pt-BR') 
-              : periodo === '30d' || periodo === 'mes' ? overview.views30d.toLocaleString('pt-BR')
-              : overview.totalViews.toLocaleString('pt-BR')
-              : '0'
-          }
-          subtext={`Acumulado de tráfego (${periodo === 'mes' ? 'Este Mês' : periodo === 'geral' ? 'Total Histórico' : 'Últimos ' + periodo})`}
-          icon={Eye}
-          tendencia={overview && overview.crescimentoSemanal >= 0 ? 'subindo' : 'caiu'}
-          variacao={overview ? `${Math.abs(overview.crescimentoSemanal)}% vs. anterior` : undefined}
-          loading={loadingOverview}
-        />
-        <MetricCard
-          title="Tempo Médio de Leitura"
-          value={overview ? `${overview.mediaLeituraMinutos} min` : '2.5 min'}
-          subtext="Média ponderada por palavras"
-          icon={Clock}
-          loading={loadingOverview}
-        />
-        <MetricCard
-          title="Feedbacks & Likes"
-          value={overview ? overview.curtidas.toLocaleString('pt-BR') : '0'}
-          subtext={overview ? `${overview.feedbacks.toLocaleString('pt-BR')} interações totais` : '0 interações'}
-          icon={ThumbsUp}
-          loading={loadingOverview}
-        />
-        <MetricCard
-          title="Matérias Publicadas"
-          value={overview ? overview.totalNoticias.toLocaleString('pt-BR') : '0'}
-          subtext="Acervo editorial ativo"
-          icon={FileText}
-          loading={loadingOverview}
-        />
-      </div>
-
-      {/* GRÁFICO HISTÓRICO CENTRAL Evolution */}
-      <div className="an-chart-panel">
-        <div className="an-chart-head">
           <div>
-            <h2 className="an-chart-title">
-              <Activity size={16} />
-              Evolução Diária de Visualizações
-            </h2>
-            <p className="an-chart-subtitle">
-              Histórico diário de pageviews nas notícias do portal
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <span style={{
+                background: 'rgba(16, 185, 129, 0.08)',
+                color: '#10b981',
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <CheckCircle2 size={13} /> Conectado
+              </span>
+              <span style={{ fontSize: '12px', color: '#4b5563', fontFamily: 'monospace', fontWeight: 600 }}>{gaId}</span>
+            </div>
+            <h3 style={{ fontSize: '19px', fontWeight: 700, color: '#ffffff', marginBottom: '10px', margin: '0 0 10px 0' }}>Google Analytics 4</h3>
+            <p style={{ fontSize: '13px', color: '#9ca3af', lineHeight: '1.6', margin: 0 }}>
+              Relatórios completos de audiência, origem de tráfego, dispositivos e tempo real são acompanhados no painel oficial do GA4.
             </p>
           </div>
-
-          {/* Filtro rápido de dias do gráfico */}
-          <div className="an-chart-days-bar">
-            {[7, 14, 30].map((dias) => (
-              <button
-                key={dias}
-                type="button"
-                onClick={() => setGraficoDias(dias)}
-                className={`an-chart-days-btn${graficoDias === dias ? ' active' : ''}`}
-              >
-                {dias} Dias
-              </button>
-            ))}
+          <div style={{ marginTop: '20px' }}>
+            <a
+              href="https://analytics.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cms-btn cms-btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#f3f4f6',
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}
+            >
+              Abrir painel
+              <ExternalLink size={13} />
+            </a>
           </div>
         </div>
 
-        {/* Gráfico SVG */}
-        <AnalyticsChart 
-          data={chartData} 
-          type="line"
-          color="#ff5722"
-          loading={loadingGrafico}
-        />
+        {/* Card 2 — Dados monitorados no GA4 */}
+        <div style={{
+          background: '#12141D',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '16px',
+          padding: '24px',
+          minHeight: '260px'
+        }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 16px 0' }}>
+            <TrendingUp size={16} style={{ color: '#10b981' }} />
+            Dados monitorados no GA4
+          </h3>
+          <ul style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: 0, margin: 0, listStyle: 'none' }}>
+            {[
+              'Usuários ativos',
+              'Páginas mais acessadas',
+              'Origem do tráfego',
+              'Localização',
+              'Dispositivos',
+              'Tempo de engajamento',
+              'Eventos',
+              'Retenção de público'
+            ].map((item) => (
+              <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#d1d5db' }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#10b981' }}></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-        {/* Comparativo do Gráfico */}
-        {historico && !loadingGrafico && (
-          <div className="an-comparative-grid">
-            <div className="an-comparative-card">
-              <span className="an-comparative-label">Visualizações no Intervalo</span>
-              <p className="an-comparative-value">{historico.comparativo.atual.toLocaleString('pt-BR')}</p>
+        {/* Card 3 — Dados mantidos localmente */}
+        <div style={{
+          background: '#12141D',
+          border: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '16px',
+          padding: '24px',
+          minHeight: '260px'
+        }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#6b7280', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 16px 0' }}>
+            <Database size={16} style={{ color: '#ff5722' }} />
+            Dados mantidos localmente
+          </h3>
+          <ul style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: 0, margin: 0, listStyle: 'none' }}>
+            {[
+              'Views simples por notícia',
+              'Mais Lidas do portal',
+              'Sugestões do Você Repórter',
+              'Auditoria administrativa',
+              'Produção editorial',
+              'Cadastro de banners',
+              'Colunistas e categorias',
+              'Estrutura do acervo'
+            ].map((item) => (
+              <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#d1d5db' }}>
+                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ff5722' }}></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+      </div>
+
+      {/* ── SEGUNDA SEÇÃO: RESUMO LOCAL DO CMS ── */}
+      <div style={{ background: '#12141D', border: '1px solid rgba(255,255,255,0.06)', padding: '28px', borderRadius: '18px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 20px 0' }}>
+          <Activity size={20} style={{ color: '#ff5722' }} />
+          Resumo Local do CMS
+        </h2>
+
+        {loading && !overview ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: '#9ca3af', gap: '10px' }}>
+            <RefreshCw className="w-5 h-5 animate-spin text-[#ff5722]" /> Carregando estatísticas locais...
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+            
+            {/* Notícias publicadas */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <FileText size={12} /> Notícias publicadas
+              </span>
+              <p style={{ fontSize: '28px', fontWeight: 800, color: '#f3f4f6', margin: '4px 0 2px 0', fontFamily: 'monospace' }}>{overview?.local?.totalNoticias || 0}</p>
+              <span style={{ fontSize: '11.5px', color: '#4b5563' }}>matérias no acervo local</span>
             </div>
-            <div className="an-comparative-card">
-              <span className="an-comparative-label">Intervalo Anterior</span>
-              <p className="an-comparative-value muted">{historico.comparativo.anterior.toLocaleString('pt-BR')}</p>
+
+            {/* Views acumuladas */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Eye size={12} /> Views acumuladas
+              </span>
+              <p style={{ fontSize: '28px', fontWeight: 800, color: '#f3f4f6', margin: '4px 0 2px 0', fontFamily: 'monospace' }}>{overview?.local?.totalViews?.toLocaleString('pt-BR') || 0}</p>
+              <span style={{ fontSize: '11.5px', color: '#4b5563' }}>views locais acumuladas</span>
             </div>
-            <div className="an-comparative-card">
-              <span className="an-comparative-label">Variação Percentual</span>
-              <p className={`an-comparative-value ${historico.comparativo.variacao.startsWith('+') ? 'green' : 'red'}`}>
-                {historico.comparativo.variacao}
+
+            {/* Sugestões pendentes */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MessageSquare size={12} /> Sugestões pendentes
+              </span>
+              <p style={{ fontSize: '28px', fontWeight: 800, color: '#f3f4f6', margin: '4px 0 2px 0', fontFamily: 'monospace' }}>{overview?.local?.sugestoesPendentes || 0}</p>
+              <span style={{ fontSize: '11.5px', color: '#4b5563' }}>sugestões Você Repórter</span>
+            </div>
+
+            {/* Curtidas recebidas */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <ThumbsUp size={12} /> Curtidas recebidas
+              </span>
+              <p style={{ fontSize: '28px', fontWeight: 800, color: '#f3f4f6', margin: '4px 0 2px 0', fontFamily: 'monospace' }}>{overview?.local?.totalLikes?.toLocaleString('pt-BR') || 0}</p>
+              <span style={{ fontSize: '11.5px', color: '#4b5563' }}>likes registrados no CMS</span>
+            </div>
+
+            {/* Matéria mais lida */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.04)',
+              padding: '20px',
+              borderRadius: '12px',
+              gridColumn: 'span 2',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '100px'
+            }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: '6px' }}>Matéria mais lida (Acumulado)</span>
+              {overview?.local?.noticiaMaisLida ? (
+                <div>
+                  <h4 style={{ fontSize: '14.5px', fontWeight: 700, color: '#ff5722', margin: '0 0 4px 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={overview.local.noticiaMaisLida.titulo}>
+                    {overview.local.noticiaMaisLida.titulo}
+                  </h4>
+                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                    Acumula <strong>{overview.local.noticiaMaisLida.views.toLocaleString('pt-BR')}</strong> visualizações locais
+                  </span>
+                </div>
+              ) : (
+                <p style={{ fontSize: '13px', color: '#4b5563', margin: 0 }}>Nenhuma notícia cadastrada no momento.</p>
+              )}
+            </div>
+
+            {/* Última atualização */}
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.04)',
+              padding: '20px',
+              borderRadius: '12px',
+              gridColumn: 'span 2',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              minHeight: '100px'
+            }}>
+              <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={12} /> Última atualização local
+              </span>
+              <p style={{ fontSize: '12.5px', color: '#9ca3af', margin: 0, lineHeight: '1.5' }}>
+                Dados sincronizados às: <strong>{overview?.local?.ultimaAtualizacao ? new Date(overview.local.ultimaAtualizacao).toLocaleTimeString('pt-BR') : '—'}</strong>. 
+                As views locais simples são incrementadas a cada novo acesso público e servem exclusivamente para renderizar o bloco &ldquo;Mais Lidas&rdquo; no portal público de forma instantânea.
               </p>
             </div>
+
           </div>
         )}
       </div>
 
-      {/* DUAS COLUNAS LADO A LADO: Categorias e Autores */}
-      <div className="an-split-grid">
-        {/* Coluna 1: Desempenho de Categorias */}
-        <div className="an-split-card">
-          <div>
-            <div className="an-split-head">
-              <h2 className="an-split-title">
-                <Tag size={15} style={{ color: '#6b7280' }} />
-                Desempenho por Categorias
-              </h2>
-              <span className="an-split-badge">
-                Filtro: {periodo.toUpperCase()}
-              </span>
-            </div>
-
-            {loadingCategorias ? (
-              <div className="an-cat-list">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="an-cat-item" style={{ opacity: 0.5, animation: 'an-pulse 1.5s ease-in-out infinite' }}>
-                    <div className="an-cat-info">
-                      <div style={{ width: 100, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
-                      <div style={{ width: 60, height: 14, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
-                    </div>
-                    <div className="an-cat-progress">
-                      <div className="an-cat-bar" style={{ width: '0%' }} />
-                    </div>
-                    <div className="an-cat-meta" style={{ width: 140, height: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 3, marginTop: 4 }} />
-                  </div>
-                ))}
-              </div>
-            ) : categorias.length === 0 ? (
-              <div style={{ padding: '32px 0' }}>
-                <EmptyState title="Sem dados de categorias" />
-              </div>
-            ) : (
-              <div className="an-cat-list">
-                {categorias.map((cat) => (
-                  <div key={cat.id} className="an-cat-item">
-                    <div className="an-cat-info">
-                      <span className="an-cat-name">{cat.nome}</span>
-                      <span className="an-cat-stat">
-                        <strong>{cat.views.toLocaleString('pt-BR')}</strong> views ({cat.percentual}%)
-                      </span>
-                    </div>
-                    <div className="an-cat-progress">
-                      <div 
-                        className="an-cat-bar"
-                        style={{ width: `${cat.percentual}%` }}
-                      />
-                    </div>
-                    <div className="an-cat-meta">
-                      {cat.noticiasCount} matérias publicadas
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Coluna 2: Ranking de Autores / Jornalistas */}
-        <div className="an-split-card">
-          <div>
-            <div className="an-split-head">
-              <h2 className="an-split-title">
-                <UserCheck size={15} style={{ color: '#6b7280' }} />
-                Desempenho de Autores & Colunistas
-              </h2>
-              <span className="an-split-badge">
-                Produção Ativa
-              </span>
-            </div>
-
-            {loadingAutores ? (
-              <div className="an-author-list">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="an-author-item" style={{ opacity: 0.5, animation: 'an-pulse 1.5s ease-in-out infinite' }}>
-                    <div className="an-author-left">
-                      <span className="an-author-rank">#{i + 1}</span>
-                      <div className="an-author-avatar-placeholder" />
-                      <div className="an-author-info">
-                        <div style={{ width: 90, height: 13, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
-                        <div style={{ width: 40, height: 9, background: 'rgba(255,255,255,0.03)', borderRadius: 3, marginTop: 4 }} />
-                      </div>
-                    </div>
-                    <div className="an-author-right">
-                      <div style={{ width: 70, height: 13, background: 'rgba(255,255,255,0.05)', borderRadius: 4 }} />
-                      <div style={{ width: 110, height: 10, background: 'rgba(255,255,255,0.03)', borderRadius: 3, marginTop: 4 }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : autores.length === 0 ? (
-              <div style={{ padding: '32px 0' }}>
-                <EmptyState title="Sem dados de autores" />
-              </div>
-            ) : (
-              <div className="an-author-list">
-                {autores.map((aut, idx) => (
-                  <div key={aut.id} className="an-author-item">
-                    <div className="an-author-left">
-                      <span className="an-author-rank">
-                        #{idx + 1}
-                      </span>
-                      <div className="an-author-avatar-wrap">
-                        {renderAvatarAutor(aut)}
-                      </div>
-                      <div className="an-author-info">
-                        <h4 className="an-author-name">{aut.nome}</h4>
-                        <span className="an-author-role">{aut.tipo}</span>
-                      </div>
-                    </div>
-
-                    <div className="an-author-right">
-                      <span className="an-author-views">
-                        {aut.views.toLocaleString('pt-BR')} views
-                      </span>
-                      <span className="an-author-meta">
-                        {aut.noticiasCount} matérias • {aut.mediaViews.toLocaleString('pt-BR')}/mat.
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

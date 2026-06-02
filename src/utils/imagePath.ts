@@ -4,7 +4,8 @@ export function getImagePath(
   path: string | undefined | null,
   type: 'main' | 'card' | 'thumbnail' | 'none' = 'none'
 ): string {
-  if (!path) return '/uploads/placeholder.png';
+  // FASE 1 — Placeholder migrado de /uploads (Render) para /public (Vercel)
+  if (!path) return '/placeholder.jpg';
   
   // Se for uma URL completa do Cloudinary (ou outra externa), retorna ela mesma
   if (path.startsWith('http')) {

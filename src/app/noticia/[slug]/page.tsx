@@ -1,3 +1,4 @@
+export const revalidate = 300; // Cache ISR de 5 minutos para páginas de notícia
 import "./noticia-premium.css";
 import "@/app/social-embeds.css";
 import Image from "next/image";
@@ -10,7 +11,7 @@ import {
   InlineShare,
 } from "@/components/ArticleInteractions";
 import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleFeedbackWrapper";
-import { apiService } from "@/services/api";
+import { getNoticiaPageData } from "@/services/api";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
 import { TEXTS } from "@/constants/texts";
@@ -22,6 +23,8 @@ import {
 import { PremiumVideoPlayer } from "@/components/PremiumVideoPlayer";
 import CategoryActiveSetter from "@/components/CategoryActiveSetter";
 
+// ─── generateMetadata: usa getNoticiaPageData (React.cache)
+// Garante 0 requests duplicados com o componente de página no mesmo ciclo SSR ───
 export async function generateMetadata({
   params,
 }: {
@@ -29,12 +32,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const noticia = await apiService.getNoticia(slug);
-    if (!noticia) {
-      return {
-        title: "Matéria Não Encontrada | TV Russas",
-      };
+    const pageData = await getNoticiaPageData(slug);
+    if (!pageData) {
+      return { title: "Matéria Não Encontrada | TV Russas" };
     }
+    const { noticia } = pageData;
 
     const title = noticia.titulo;
     const cleanContent = noticia.conteudo
@@ -50,9 +52,7 @@ export async function generateMetadata({
     return {
       title,
       description,
-      alternates: {
-        canonical: articleUrl,
-      },
+      alternates: { canonical: articleUrl },
       openGraph: {
         title,
         description,
@@ -62,17 +62,8 @@ export async function generateMetadata({
         type: "article",
         publishedTime: noticia.publicadoEm,
         modifiedTime: noticia.publicadoEm,
-        authors: noticia.colunista
-          ? [noticia.colunista.nome]
-          : ["Portal TV Russas"],
-        images: [
-          {
-            url: absoluteCapaUrl,
-            width: 1200,
-            height: 675,
-            alt: noticia.titulo,
-          },
-        ],
+        authors: noticia.colunista ? [noticia.colunista.nome] : ["Portal TV Russas"],
+        images: [{ url: absoluteCapaUrl, width: 1200, height: 675, alt: noticia.titulo }],
       },
       twitter: {
         card: "summary_large_image",
@@ -92,9 +83,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     console.error("Erro ao gerar metadados dinâmicos:", error);
-    return {
-      title: "Notícia | TV Russas",
-    };
+    return { title: "Notícia | TV Russas" };
   }
 }
 
@@ -328,27 +317,13 @@ export default async function NoticiaPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const noticia = await apiService.getNoticia(slug);
-  if (!noticia) notFound();
 
-  const [todasNoticias, bannerTopo, maisLidas] = await Promise.all([
-    apiService.getNoticias(),
-    apiService.getBannerAtivo(`topo_interna:${noticia.categoria.slug}`),
-    apiService.getMaisLidas().catch((err) => {
-      console.error("Erro ao buscar mais lidas:", err);
-      return [];
-    }),
-  ]);
+  // Uma única chamada HTTP ao Render — consolidada no backend (/api/noticias/:slug/page)
+  // React.cache garante que generateMetadata e esta Page compartilham o mesmo resultado
+  const pageData = await getNoticiaPageData(slug);
+  if (!pageData) notFound();
 
-  // Relacionadas: prioriza mesma categoria, fallback para qualquer outra
-  const mesmaCat = todasNoticias.filter(
-    (n) => n.slug !== slug && n.categoria.slug === noticia.categoria.slug,
-  );
-  const relacionadas = (
-    mesmaCat.length >= 3
-      ? mesmaCat
-      : todasNoticias.filter((n) => n.slug !== slug)
-  ).slice(0, 3);
+  const { noticia, relacionadas, maisLidas, bannerTopo } = pageData;
 
   const data = new Date(noticia.publicadoEm).toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -465,7 +440,7 @@ export default async function NoticiaPage({
               src={
                 bannerTopo.imageUrl.startsWith("http")
                   ? bannerTopo.imageUrl
-                  : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${bannerTopo.imageUrl}`
+                  : getImagePath(bannerTopo.imageUrl)
               }
               alt={bannerTopo.titulo}
               style={{
@@ -487,7 +462,7 @@ export default async function NoticiaPage({
         <nav className="editorial-breadcrumb" aria-label="breadcrumb">
           <Link href="/">INÍCIO</Link>
           <span>/</span>
-          <Link href={`/categoria/${noticia.categoria.slug}`}>
+          <Link href={`/categoria/${noticia.categoria.slug}`} prefetch={false}>
             {noticia.categoria.nome.toUpperCase()}
           </Link>
         </nav>
@@ -496,6 +471,7 @@ export default async function NoticiaPage({
         <header className="editorial-header">
           <Link
             href={`/categoria/${noticia.categoria.slug}`}
+            prefetch={false}
             className="editorial-category"
           >
             {noticia.categoria.nome}
@@ -514,7 +490,7 @@ export default async function NoticiaPage({
                   src={
                     noticia.colunista
                       ? getImagePath(noticia.colunista.fotoUrl)
-                      : "/uploads/Logo%20Tv%20Russas_Sem%20fundo.png"
+                      : "/logo-tv-russas.png"
                   }
                   alt={noticia.colunista?.nome || "Portal TV Russas"}
                   width={48}
@@ -579,6 +555,7 @@ export default async function NoticiaPage({
                 <div className="tags-list">
                   <Link
                     href={`/categoria/${noticia.categoria.slug}`}
+                    prefetch={false}
                     className="tag-link"
                   >
                     {noticia.categoria.nome}
@@ -610,6 +587,7 @@ export default async function NoticiaPage({
                     <Link
                       key={item.slug}
                       href={`/noticia/${item.slug}`}
+                      prefetch={false}
                       className="related-mini-card"
                     >
                       <div className="mini-card-img">
@@ -644,6 +622,7 @@ export default async function NoticiaPage({
                     <Link
                       key={item.slug}
                       href={`/noticia/${item.slug}`}
+                      prefetch={false}
                       className="mais-lidas-item"
                     >
                       <div

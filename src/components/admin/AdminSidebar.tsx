@@ -97,8 +97,7 @@ interface Props {
 
 export function AdminSidebar({ user, sugestoesCount }: Props) {
   const pathname = usePathname();
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-  const logoUrl = `${apiBaseUrl}/uploads/sistema/1.png`;
+  const logoUrl = '/logo-tv-russas.png';
 
   const canSee = (item: NavItem) => {
     if (!item.roles) return true;

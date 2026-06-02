@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // Cache de 5 minutos para a Home
 
 import Link from "next/link";
 import Image from "next/image";
@@ -15,7 +15,7 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
     <div className="section-header-premium">
       <h2 className="section-title-premium">{title}</h2>
       {link && (
-        <Link href={link} className="section-view-all">
+        <Link href={link} className="section-view-all" prefetch={false}>
           {TEXTS.navigation.verTodas} <i className="fas fa-chevron-right"></i>
         </Link>
       )}
@@ -24,42 +24,25 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
 }
 
 export default async function Home() {
-  const [
+  const homeData = await apiService.getHomeData();
+
+  const {
     destaques,
-    ultimasNews,
-    maisLidasRaw,
-    trendingRaw,
-    categorias,
-    bannerTopoHome,
-    bannerMeioHome,
-  ] = await Promise.all([
-    apiService.getDestaques(),
-    apiService.getUltimasNoticias(10), // Busca 10 notícias uma única vez e compartilha o resultado
-    apiService.getMaisLidas(),
-    apiService.getTrending(),
-    apiService.getCategorias(),
-    apiService.getBannerAtivo("topo_home").catch(() => null),
-    apiService.getBannerAtivo("meio_home").catch(() => null),
-  ]);
+    ultimas: ultimasNews,
+    maisLidas: maisLidasRaw,
+    trending: trendingRaw,
+    noticiasPorCategoria,
+    bannerTopo: bannerTopoHome,
+    bannerMeio: bannerMeioHome,
+  } = homeData;
 
   // Dividir o resultado no frontend para economizar 1 chamada de API inteira
   const ultimasNoticias = ultimasNews.slice(0, 6);
   const fallbackNews = ultimasNews;
 
-  // Buscar notícias de cada categoria de forma paralela
-  const noticiasPorCategoria = await Promise.all(
-    categorias.map(async (cat) => {
-      const noticias = await apiService.getNoticiasByCategoria(cat.slug, 3);
-      return {
-        categoria: cat,
-        noticias,
-      };
-    }),
-  );
-
   // Filtrar apenas categorias que possuem pelo menos 1 notícia
   const categoriasAtivas = noticiasPorCategoria.filter(
-    (item) => item.noticias.length > 0,
+    (item) => item.noticias && item.noticias.length > 0,
   );
 
   // 1. Destaques (Top Banner)
@@ -307,7 +290,7 @@ export default async function Home() {
               className="sidebar-ad-box"
             >
               <Image
-                src={getImagePath("sistema/tv.jpg")}
+                src="/og-tv-russas.jpg"
                 alt={TEXTS.brand.name + " no Instagram"}
                 fill
                 sizes="300px"

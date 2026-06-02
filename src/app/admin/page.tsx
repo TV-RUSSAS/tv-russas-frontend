@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { TEXTS } from '@/constants/texts';
@@ -28,6 +28,7 @@ interface Atividade {
 interface DashboardStats {
   totalNoticias: number;
   totalUsuarios: number;
+  totalCategorias: number;
   totalViews: number;
   totalLikes: number;
   totalSugestoesNovas: number;
@@ -851,72 +852,52 @@ export default function AdminDashboard() {
     return `${total} ações de "${getAcaoEditorialInfo(acao).label.toLowerCase()}" executadas por ${autor}`;
   }
 
+  const loadStats = useCallback(async (isMounted: boolean = true) => {
+    try {
+      setLoadingAnalytics(true);
+      const res = await authFetch(`/admin/dashboard/overview?range=${range}`);
+      if (!res.ok) throw new Error('Falha ao carregar dados do painel.');
+      const data = await res.json();
+      
+      if (isMounted) {
+        setStats(data.stats);
+        setMaisLidas(data.maisLidas || []);
+        setEmAlta(data.emAlta || []);
+        setError('');
+      }
+    } catch (err) {
+      if (err instanceof Error) {
+        if (err.message.includes('Sessão') || err.message.includes('autorizado')) {
+          return;
+        }
+        if (isMounted) setError(err.message);
+      }
+    } finally {
+      if (isMounted) {
+        setLoading(false);
+        setLoadingAnalytics(false);
+      }
+    }
+  }, [authFetch, range]);
+
   useEffect(() => {
-    // Só tenta carregar os dados SE o utilizador existir e estiver autenticado
     if (!user) return;
 
     let isMounted = true;
-
-    const load = async () => {
-      try {
-        setLoadingAnalytics(true);
-        const [statsRes, maisLidasRes, emAltaRes] = await Promise.all([
-          authFetch(`/admin/dashboard/stats?range=${range}`),
-          authFetch('/admin/analytics/mais-lidas'),
-          authFetch('/admin/analytics/em-alta')
-        ]);
-
-        if (!statsRes.ok) throw new Error('Falha ao carregar métricas.');
-        const statsData = await statsRes.json();
-
-        let maisLidasData = [];
-        if (maisLidasRes.ok) {
-          maisLidasData = await maisLidasRes.json();
-        }
-
-        let emAltaData = [];
-        if (emAltaRes.ok) {
-          const emAltaJson = await emAltaRes.json();
-          emAltaData = emAltaJson.noticias || [];
-        }
-        
-        if (isMounted) {
-          setStats(statsData);
-          setMaisLidas(maisLidasData);
-          setEmAlta(emAltaData);
-          setError('');
-        }
-      } catch (err) {
-        if (err instanceof Error) {
-          if (err.message.includes('Sessão') || err.message.includes('autorizado')) {
-            return;
-          }
-          if (isMounted) setError(err.message);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-          setLoadingAnalytics(false);
-        }
-      }
-    };
-
-    load();
-    let interval: NodeJS.Timeout | null = null;
-    // ECONOMY_MODE: auto-refresh e polling desativados temporariamente para poupar requisições ao Render.
-    // TODO: Reativar quando backend estiver em plano com banda suficiente.
-    // Para reativar, defina ECONOMY_MODE=false no .env.
-    if (process.env.NEXT_PUBLIC_ECONOMY_MODE !== "true") {
-      interval = setInterval(load, 60000);
-    }
     
+    // Adia a chamada para a fila de microtasks para evitar chamadas de setState síncronas em cascata no useEffect
+    Promise.resolve().then(() => {
+      if (isMounted) {
+        loadStats(isMounted);
+      }
+    });
+
+    // Polling automático removido pós-GA4 para economia de banco e rede.
+    // Atualização sob demanda disponível via botão "Atualizar dados" ou no load da página.
     return () => {
       isMounted = false;
-      if (interval) {
-        clearInterval(interval);
-      }
     };
-  }, [authFetch, user, range]); // Dependemos do authFetch, user e range agora
+  }, [user, loadStats]); // Dependemos do authFetch, user e range agora
 
   if (loading) {
     return (
@@ -948,13 +929,33 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <div className="cms-page-header">
+      <div className="cms-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
         <div>
           <h2 className="cms-page-title">{TEXTS.admin.editorialRedaction}</h2>
           <p className="cms-page-subtitle" style={{ textTransform: 'capitalize' }}>
             {today}
           </p>
         </div>
+        <button
+          onClick={() => loadStats(true)}
+          disabled={loadingAnalytics}
+          className="cms-btn cms-btn-secondary"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', height: '36px', padding: '0 14px', fontSize: '13px' }}
+        >
+          <svg
+            className={loadingAnalytics ? 'animate-spin' : ''}
+            style={{ width: '14px', height: '14px', color: loadingAnalytics ? '#ff5722' : 'inherit' }}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          <span>Atualizar dados</span>
+        </button>
       </div>
 
       {process.env.NEXT_PUBLIC_ECONOMY_MODE === "true" && (
@@ -992,18 +993,18 @@ export default function AdminDashboard() {
 
         <div className="cms-stat-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <span style={{ color: 'var(--c-secondary)', opacity: 0.7 }}><IconEye /></span>
+            <span style={{ color: 'var(--c-secondary)', opacity: 0.7 }}><IconTag /></span>
           </div>
-          <div className="cms-stat-value">{formatNumber(stats?.totalViews ?? 0)}</div>
-          <div className="cms-stat-label">{TEXTS.admin.totalViews}</div>
+          <div className="cms-stat-value">{stats?.totalCategorias ?? 0}</div>
+          <div className="cms-stat-label">Categorias</div>
         </div>
 
         <div className="cms-stat-card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <span style={{ color: 'var(--c-positive)', opacity: 0.7 }}><IconHeart /></span>
+            <span style={{ color: 'var(--c-positive)', opacity: 0.7 }}><IconUser /></span>
           </div>
-          <div className="cms-stat-value">{formatNumber(stats?.totalLikes ?? 0)}</div>
-          <div className="cms-stat-label">{TEXTS.admin.likesReceived}</div>
+          <div className="cms-stat-value">{stats?.totalUsuarios ?? 0}</div>
+          <div className="cms-stat-label">Usuários Cadastrados</div>
         </div>
 
         <div className="cms-stat-card">

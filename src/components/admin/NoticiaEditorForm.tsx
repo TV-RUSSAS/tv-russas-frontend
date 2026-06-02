@@ -416,6 +416,8 @@ interface EditorFormProps {
     publicadoPor?: string;
   };
   mode: 'create' | 'edit';
+  initialCategorias?: Categoria[];
+  initialColunistas?: Colunista[];
 }
 
 function getYouTubeEmbedUrl(url: string): string | null {
@@ -425,12 +427,12 @@ function getYouTubeEmbedUrl(url: string): string | null {
   return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null;
 }
 
-export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
+export function NoticiaEditorForm({ initialData, mode, initialCategorias, initialColunistas }: EditorFormProps) {
   const router = useRouter();
   const { authFetch } = useAdminAuth();
 
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [colunistas, setColunistas] = useState<Colunista[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>(initialCategorias || []);
+  const [colunistas, setColunistas] = useState<Colunista[]>(initialColunistas || []);
 
   const [titulo, setTitulo] = useState(initialData?.titulo || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
@@ -589,12 +591,24 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
   };
 
   useEffect(() => {
-    authFetch('/admin/categorias').then(r => r.json()).then(d => {
-      setCategorias(d);
-      if (d.length > 0 && !categoriaId) setCategoriaId(d[0].id);
-    }).catch(() => {});
-    authFetch('/admin/colunistas').then(r => r.json()).then(setColunistas).catch(() => {});
-  }, [authFetch, categoriaId]);
+    if (initialCategorias && initialColunistas) {
+      return;
+    }
+    let active = true;
+    authFetch('/admin/editor/options')
+      .then(r => r.json())
+      .then(data => {
+        if (!active) return;
+        const cats = data.categorias || [];
+        setCategorias(cats);
+        setCategoriaId(prev => prev || (cats[0]?.id || ''));
+        setColunistas(data.colunistas || []);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [authFetch, initialCategorias, initialColunistas]);
 
   const handleCapaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1044,7 +1058,7 @@ export function NoticiaEditorForm({ initialData, mode }: EditorFormProps) {
                 {/* Favicon e URL Breadcrumb */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px' }}>
                   <div style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <img src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/uploads/sistema/1.png`} alt={TEXTS.brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                    <img src="/logo-tv-russas.png" alt={TEXTS.brand.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '14px', color: '#202124', lineHeight: '20px' }}>{TEXTS.brand.name}</span>

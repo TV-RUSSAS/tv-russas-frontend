@@ -42,9 +42,10 @@ export const metadata: Metadata = {
     "UFC Russas",
   ],
   icons: {
-    icon: "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
-    shortcut: "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
-    apple: "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
+    // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
   verification: {
     google: "googlea234f6b2160d5bba", // O código do Search Console
@@ -58,7 +59,8 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
+        // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+        url: "/og-tv-russas.jpg",
         width: 1200,
         height: 630,
         alt: "TV Russas Logo",
@@ -69,7 +71,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "TV Russas - O portal de notícias de Russas e região",
     description: "Fique por dentro das últimas notícias de Russas, Ceará e região.",
-    images: ["https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg"],
+    // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+    images: ["/og-tv-russas.jpg"],
   },
   robots: {
     index: true,
@@ -119,7 +122,8 @@ export default function RootLayout({
         "url": `${DOMAIN}/`,
         "logo": {
           "@type": "ImageObject",
-          "url": "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
+          // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+          "url": "/logo-tv-russas.png",
           "caption": "TV Russas"
         },
         "sameAs": [
@@ -131,7 +135,8 @@ export default function RootLayout({
         "@type": "LocalBusiness",
         "@id": `${DOMAIN}/#localbusiness`,
         "name": "TV Russas",
-        "image": "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
+        // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+        "image": "/og-tv-russas.jpg",
         "url": `${DOMAIN}/`,
         "telephone": "",
         "address": {
