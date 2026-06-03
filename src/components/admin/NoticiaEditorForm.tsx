@@ -913,10 +913,10 @@ export function NoticiaEditorForm({ initialData, mode, initialCategorias, initia
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleCapaChange} style={{ display: 'none' }} />
                 
                 {isVertical && (
-                  <div style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', borderRadius: '6px', color: '#f87171', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                    <i className="fas fa-exclamation-triangle" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', borderRadius: '6px', color: '#fbbf24', fontSize: '11px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <i className="fas fa-info-circle" style={{ marginTop: '2px', flexShrink: 0 }} />
                     <div>
-                      <strong>Imagem vertical detectada.</strong> Ela será cortada no portal para manter o padrão editorial.
+                      <strong>Imagem vertical detectada.</strong> Ela será exibida inteira dentro da matéria, mas poderá sofrer cortes nas miniaturas da página inicial.
                     </div>
                   </div>
                 )}
