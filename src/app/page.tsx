@@ -288,15 +288,16 @@ export default async function Home() {
               target="_blank"
               rel="noopener noreferrer"
               className="sidebar-ad-box"
+              style={{ aspectRatio: "unset", height: "auto", position: "relative" }}
             >
               <Image
-                src={getImagePath("sistema/insta2.png")}
+                src={getImagePath("sistema/insta2.jpeg")}
                 alt={TEXTS.brand.name + " no Instagram"}
-                fill
+                width={320}
+                height={400}
                 sizes="300px"
-                style={{ objectFit: "cover" }}
+                style={{ width: "100%", height: "auto", display: "block", borderRadius: "8px" }}
               />
-              <div className="ad-overlay">{"Siga no Instagram"}</div>
             </a>
           </div>
 

@@ -101,6 +101,13 @@
   gap: 40px;
 }
 
+@media (max-width: 640px) {
+  .premium-home {
+    padding: 16px 14px 60px;
+    gap: 28px;
+  }
+}
+
 /* SISTEMA DE ANÚNCIOS PREMIUM */
 .premium-ad-wrapper {
   width: 100%;
@@ -751,4 +758,116 @@
   .news-grid-modern {
     grid-template-columns: 1fr;
   }
+
+  /* Mixed list vira coluna de cards verticais no mobile */
+  .mixed-list .premium-card-list {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    border-bottom: none;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .mixed-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .mixed-list .list-img-wrapper {
+    width: 100%;
+    height: 130px;
+    border-radius: 0;
+    border: none;
+  }
+
+  .mixed-list .list-content {
+    padding: 10px 12px 12px;
+  }
+
+  .mixed-list .list-title {
+    font-size: 13px;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+
+  .mixed-list .list-date {
+    font-size: 11px;
+    margin-top: 4px;
+    display: block;
+  }
+
+  .mixed-list .premium-tag-small {
+    font-size: 9px;
+    margin-bottom: 4px;
+  }
+
+  /* rounded-box sem padding excessivo no mobile */
+  .rounded-box {
+    padding: 18px 16px;
+  }
+
+  /* section header mais compacto */
+  .section-header-premium {
+    margin-bottom: 16px;
+  }
+
+  .section-title-premium {
+    font-size: 19px;
+  }
+
+  /* parallel-list também vira cards verticais no mobile */
+  .parallel-list .premium-card-list {
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    border-bottom: none;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .parallel-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .parallel-list .list-img-wrapper {
+    width: 100%;
+    height: 110px;
+    border-radius: 0;
+    border: none;
+  }
+
+  .parallel-list .list-content {
+    padding: 8px 10px 10px;
+  }
+
+  .parallel-list .list-title {
+    font-size: 12px;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
 }
+
+/* Telas muito estreitas: 1 coluna para não espremer */
+@media (max-width: 380px) {
+  .mixed-list,
+  .parallel-list {
+    grid-template-columns: 1fr;
+  }
+
+  .mixed-list .list-img-wrapper,
+  .parallel-list .list-img-wrapper {
+    height: 160px;
+  }
+}
+
