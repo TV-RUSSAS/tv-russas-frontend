@@ -230,7 +230,7 @@ function EditorToolbar({ editor, authFetch }: { editor: ReturnType<typeof useEdi
       if (!res.ok) throw new Error('Falha ao subir imagem');
       const data = await res.json();
       
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
       const fullUrl = data.url.startsWith('http') ? data.url : `${baseUrl}${data.url}`;
       
       editor.chain().focus().setImage({ src: fullUrl }).run();
@@ -446,7 +446,7 @@ export function NoticiaEditorForm({ initialData, mode, initialCategorias, initia
   const getApiUrl = (url?: string) => {
     if (!url) return null;
     if (url.startsWith('http')) return url;
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
     const cleanUrl = url.startsWith('/') ? url : `/${url}`;
     return `${baseUrl}${cleanUrl}`;
   };
@@ -689,7 +689,7 @@ export function NoticiaEditorForm({ initialData, mode, initialCategorias, initia
       const method = mode === 'edit' ? 'PUT' : 'POST';
 
       const token = sessionStorage.getItem('accessToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api${url}`, { method, headers: { Authorization: `Bearer ${token}` }, body: formData });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001'}/api${url}`, { method, headers: { Authorization: `Bearer ${token}` }, body: formData });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Erro ao salvar notícia.');

@@ -301,7 +301,7 @@ function renderVideoPlayer(
     let fullSrc = videoUrl;
     if (videoUrl.startsWith("/") && !videoUrl.startsWith("//")) {
       const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
       const cleanBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
       fullSrc = `${cleanBase}${videoUrl}`;
     }
@@ -417,14 +417,7 @@ export default async function NoticiaPage({
 
       {/* Banner de Publicidade no Topo */}
       {bannerTopo && (
-        <div
-          className="editorial-ad-banner-topo"
-          style={{
-            margin: "24px auto",
-            maxWidth: "860px",
-            width: "100%",
-          }}
-        >
+        <div className="editorial-ad-banner-topo">
           <a
             href={bannerTopo.linkUrl || "#"}
             target={bannerTopo.linkUrl ? "_blank" : "_self"}
@@ -443,15 +436,6 @@ export default async function NoticiaPage({
                   : getImagePath(bannerTopo.imageUrl)
               }
               alt={bannerTopo.titulo}
-              style={{
-                width: "100%",
-                height: "auto",
-                maxHeight: "135px",
-                objectFit: "cover",
-                borderRadius: "6px",
-                border: "1px solid rgba(255,255,255,0.06)",
-                display: "block",
-              }}
             />
           </a>
         </div>

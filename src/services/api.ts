@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { Noticia, Colunista, Categoria, Banner } from '@/types';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : 'http://localhost:3001/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : 'http://127.0.0.1:3001/api';
 
 // O Modo Híbrido ativa cache estático de revalidação de 5 minutos (300 segundos) nas listagens públicas 
 // a nível de CDN/Next.js para economizar banda e processamento do backend no Render.

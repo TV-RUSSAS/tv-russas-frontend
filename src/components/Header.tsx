@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SearchInput } from "./SearchInput";
 import { TEXTS } from "@/constants/texts";
+import { apiService } from "@/services/api";
 
 const CATEGORIAS_FIXAS = [
   { nome: "Cidade", slug: "cidade" },
@@ -22,8 +23,24 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const pathname = usePathname();
-  const [categorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FIXAS);
+  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FIXAS);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchCategorias = async () => {
+      try {
+        const dynamicCats = await apiService.getCategorias();
+        if (active && Array.isArray(dynamicCats) && dynamicCats.length > 0) {
+          setCategorias(dynamicCats.map(c => ({ nome: c.nome, slug: c.slug })));
+        }
+      } catch (err) {
+        console.error("Erro ao buscar categorias dinâmicas no Header:", err);
+      }
+    };
+    fetchCategorias();
+    return () => { active = false; };
+  }, [pathname]);
 
   useEffect(() => {
     const handleCategoryChange = (e: Event) => {

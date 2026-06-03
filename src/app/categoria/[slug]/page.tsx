@@ -210,7 +210,7 @@ export default async function CategoriaPage({
           <span>/</span>
           <span>{nome.toUpperCase()}</span>
         </nav>
-        <h1>{nome}</h1>
+        <h1>{nome.charAt(0).toUpperCase() + nome.slice(1)}</h1>
       </header>
 
       {/* BLOCO DE DESTAQUES EDITORIAL (ESTILO G1) */}

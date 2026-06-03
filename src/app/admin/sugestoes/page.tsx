@@ -30,7 +30,7 @@ interface Sugestao {
 
 // Os mapeamentos de status antigos foram removidos para evitar o uso de notação de colchetes vulnerável a prototype pollution. Mapeamentos seguros agora são feitos via switch-case nas funções auxiliares abaixo.
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
 export default function SugestoesAdmin() {
   const { authFetch } = useAdminAuth();

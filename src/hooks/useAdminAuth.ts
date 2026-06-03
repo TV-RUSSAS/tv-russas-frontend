@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/api`
-  : 'http://localhost:3001/api';
+  : 'http://127.0.0.1:3001/api';
 
 export interface AdminUser {
   id: string;

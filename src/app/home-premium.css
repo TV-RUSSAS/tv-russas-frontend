@@ -871,3 +871,139 @@
   }
 }
 
+/* ==========================================================================
+   OTIMIZAÇÕES RESPONSIVAS ADICIONAIS (CRITÉRIOS OBRIGATÓRIOS MOBILE)
+   ========================================================================== */
+
+/* Breakpoint geral para mobiles (telas de até 768px) */
+@media (max-width: 768px) {
+  /* Margens laterais globais da Home padronizadas para 16px */
+  .premium-home {
+    padding: 16px 16px 60px !important;
+    gap: 28px !important;
+  }
+
+  /* Padding interno seguro nos cards com texto por cima */
+  .premium-card-content {
+    padding: 16px 20px !important; /* Espaço confortável para os lados */
+  }
+
+  /* Reforço de contraste do gradiente sob o texto em celulares */
+  .premium-card-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.25) 100%) !important;
+  }
+
+  /* 1. Badges de categoria com área segura no mobile */
+  .premium-tag-floating {
+    position: absolute !important;
+    top: 16px !important;
+    left: 16px !important;
+    max-width: calc(100% - 32px) !important;
+    font-size: 10px !important;
+    padding: 4px 10px !important;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .premium-tag {
+    font-size: 10px !important;
+    padding: 4px 10px !important;
+    margin-bottom: 8px !important;
+    max-width: 100% !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 2. Títulos dos cards com clamp e line-height controlado */
+  .premium-title-large {
+    font-size: clamp(22px, 4.5vw, 32px) !important;
+    line-height: 1.25 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .premium-title-medium-hero,
+  .premium-title-medium,
+  .small-title {
+    font-size: clamp(18px, 3.5vw, 24px) !important;
+    line-height: 1.3 !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Resumo e metadados nos cards de destaque */
+  .premium-card-excerpt {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 10px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .premium-meta-white {
+    font-size: 11px !important;
+    gap: 12px !important;
+  }
+
+  /* Ajustes de grid de notícias menores */
+  .clean-content {
+    padding: 14px 16px 16px !important; /* Padding confortável sem encostar */
+  }
+
+  .small-excerpt {
+    font-size: 13.5px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .small-meta {
+    font-size: 11px !important;
+    padding-top: 8px !important;
+  }
+}
+
+/* Breakpoint abaixo de 360px (Mobiles pequenos - ex: iPhone SE) */
+@media (max-width: 360px) {
+  .premium-home {
+    padding: 12px 12px 48px !important; /* Ligeiramente menor para telas muito estreitas */
+  }
+
+  .premium-card-content {
+    padding: 14px 14px !important;
+  }
+
+  /* Reduz font-size e padding do badge para não encostar ou quebrar */
+  .premium-tag-floating {
+    top: 12px !important;
+    left: 12px !important;
+    max-width: calc(100% - 24px) !important;
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+
+  .premium-tag {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .premium-title-large {
+    font-size: 20px !important;
+  }
+
+  .premium-title-medium-hero,
+  .premium-title-medium,
+  .small-title {
+    font-size: 17px !important;
+  }
+  
+  .clean-content {
+    padding: 12px 12px 12px !important;
+  }
+}
+
