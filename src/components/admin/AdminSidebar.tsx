@@ -49,7 +49,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'PAINEL',
     items: [
-      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+      { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
     ],
   },
   {

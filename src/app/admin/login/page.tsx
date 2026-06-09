@@ -66,8 +66,12 @@ export default function AdminLogin() {
       sessionStorage.setItem('userRole', data.user.role);
       sessionStorage.setItem('userId', data.user.id);
 
-      // Redireciona para o dashboard administrativo
-      router.push('/admin');
+      // Redireciona de acordo com o nível de permissão
+      if (data.user.role === 'COLUNISTA') {
+        router.push('/admin/noticias');
+      } else {
+        router.push('/admin');
+      }
       router.refresh();
     } catch (err) {
       if (err instanceof Error) {

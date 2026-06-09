@@ -830,6 +830,12 @@ export default function AdminDashboard() {
   const [emAlta, setEmAlta] = useState<NoticiaEmAlta[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
+  // Redireciona usuários que não têm acesso ao dashboard
+  useEffect(() => {
+    if (user && user.role === 'COLUNISTA') {
+      window.location.href = '/admin/noticias';
+    }
+  }, [user]);
 
   const toggleGrupo = (id: string) => {
     setGruposExpandidos(prev => {
