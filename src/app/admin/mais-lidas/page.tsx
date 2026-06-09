@@ -16,20 +16,54 @@ import {
   TrendingDown,
   Minus,
   Calendar,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
-import { NewsPerformanceData } from '@/components/admin/analytics/NewsPerformanceRow';
 import EmptyState from '@/components/admin/analytics/EmptyState';
 import { getImagePath } from '@/utils/imagePath';
 
 interface CategoriaOption { id: string; nome: string; }
 interface AutorOption { id: string; nome: string; tipo: string; }
 
+interface RankingItem {
+  posicao: number;
+  id: string;
+  titulo: string;
+  slug: string;
+  capaUrl: string;
+  publicadoEm: string;
+  categoria: string;
+  autor: string;
+  views: number;        // views do período
+  viewsTotais: number;  // views totais históricas
+  likes: number;
+  engajamento: number;
+  tendencia: 'subindo' | 'caiu' | 'estavel';
+  variacao: number;
+}
+
+interface MetaData {
+  periodo: string;
+  periodoLabel: string;
+  periodoAnalisado: string;
+  isFallback: boolean;
+  mensagemFallback: string | null;
+  totalMatérias: number;
+  geradoEm: string;
+}
+
+interface ApiResponse {
+  ranking: RankingItem[];
+  meta: MetaData;
+}
+
 const PERIOD_OPTIONS = [
-  { value: 'hoje', label: 'Hoje' },
-  { value: '7d', label: '7 dias' },
-  { value: '30d', label: '30 dias' },
-  { value: 'mes', label: 'Este mês' },
-  { value: 'geral', label: 'Geral' },
+  { value: 'hoje',   label: 'Hoje' },
+  { value: 'ontem',  label: 'Ontem' },
+  { value: 'semana', label: 'Semana atual' },
+  { value: '7d',     label: '7 dias' },
+  { value: 'mes',    label: 'Este mês' },
+  { value: 'geral',  label: 'Geral' },
 ];
 
 function TendenciaIcon({ tendencia }: { tendencia: string }) {
@@ -41,14 +75,14 @@ function TendenciaIcon({ tendencia }: { tendencia: string }) {
 export default function MaisLidasPage() {
   const { authFetch } = useAdminAuth();
 
-  const [periodo, setPeriodo] = useState('7d');
+  const [periodo, setPeriodo] = useState('semana'); // padrão: semana atual
   const [categoriaId, setCategoriaId] = useState('');
   const [autorId, setAutorId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [categorias, setCategorias] = useState<CategoriaOption[]>([]);
   const [autores, setAutores] = useState<AutorOption[]>([]);
-  const [rankingData, setRankingData] = useState<NewsPerformanceData[]>([]);
+  const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingFiltros, setLoadingFiltros] = useState(true);
   const [error, setError] = useState('');
@@ -74,7 +108,6 @@ export default function MaisLidasPage() {
     return () => { active = false; };
   }, [authFetch]);
 
-  // Callback para o botão Atualizar (manual)
   const fetchRanking = useCallback(async () => {
     try {
       setLoading(true);
@@ -84,7 +117,8 @@ export default function MaisLidasPage() {
       if (autorId) queryParams.set('usuarioId', autorId);
       const res = await authFetch(`/admin/analytics/mais-lidas?${queryParams}`);
       if (!res.ok) throw new Error('Falha ao obter o ranking');
-      setRankingData(await res.json());
+      const data = await res.json();
+      setApiData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
     } finally {
@@ -92,7 +126,6 @@ export default function MaisLidasPage() {
     }
   }, [authFetch, periodo, categoriaId, autorId]);
 
-  // Auto-fetch isolado com flag de cancelamento — não chama setState sincronamente
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -105,7 +138,7 @@ export default function MaisLidasPage() {
         const res = await authFetch(`/admin/analytics/mais-lidas?${queryParams}`);
         if (!res.ok) throw new Error('Falha ao obter o ranking');
         const data = await res.json();
-        if (!cancelled) setRankingData(data);
+        if (!cancelled) setApiData(data);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Erro inesperado.');
       } finally {
@@ -116,14 +149,18 @@ export default function MaisLidasPage() {
     return () => { cancelled = true; };
   }, [authFetch, periodo, categoriaId, autorId]);
 
+  // Suporte a resposta nova (com meta) e legada (array direto)
+  const rankingData: RankingItem[] = Array.isArray(apiData) ? apiData : (apiData?.ranking || []);
+  const meta: MetaData | null = Array.isArray(apiData) ? null : (apiData?.meta || null);
+
   const filteredRanking = rankingData.filter(item =>
     item.titulo.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalViews = rankingData.reduce((acc, item) => acc + (item.views || 0), 0);
   const avgViewsRaw = rankingData.length > 0 ? totalViews / rankingData.length : 0;
-  const avgViewsFormatted = avgViewsRaw >= 10 
-    ? Math.round(avgViewsRaw).toLocaleString('pt-BR') 
+  const avgViewsFormatted = avgViewsRaw >= 10
+    ? Math.round(avgViewsRaw).toLocaleString('pt-BR')
     : avgViewsRaw.toFixed(1).replace('.', ',');
 
   const categoryViewsMap = new Map<string, number>();
@@ -140,18 +177,30 @@ export default function MaisLidasPage() {
       {/* ── HEADER ── */}
       <div className="ml-header">
         <div>
-          <h1 className="ml-title">Mais Lidas</h1>
-          <p className="ml-subtitle">Matérias com maior audiência no período selecionado.</p>
+          <h1 className="ml-title">Mais Lidas da Semana</h1>
+          <p className="ml-subtitle">
+            Ranking baseado nas visualizações registradas no período selecionado.
+          </p>
+          {meta && (
+            <p className="ml-period-info">
+              <Info size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              Período analisado: <strong>{meta.periodoAnalisado}</strong>
+            </p>
+          )}
         </div>
-        <button
-          onClick={fetchRanking}
-          disabled={loading}
-          className="ml-btn-refresh"
-        >
+        <button onClick={fetchRanking} disabled={loading} className="ml-btn-refresh">
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} style={loading ? { color: '#ff6b3d' } : {}} />
           Atualizar
         </button>
       </div>
+
+      {/* ── BADGE FALLBACK ── */}
+      {meta?.isFallback && (
+        <div className="ml-fallback-banner">
+          <AlertCircle size={15} />
+          <span>{meta.mensagemFallback || 'Exibindo dados de fallback (views totais).'}</span>
+        </div>
+      )}
 
       {/* ── SELETOR DE PERÍODO ── */}
       <div className="ml-period-row">
@@ -173,14 +222,14 @@ export default function MaisLidasPage() {
       {!loading && rankingData.length > 0 && (
         <div className="ml-kpi-grid">
           <div className="ml-kpi-card">
-            <p className="ml-kpi-label">Total de Views</p>
+            <p className="ml-kpi-label">Views no Período</p>
             <p className="ml-kpi-value">{totalViews.toLocaleString('pt-BR')}</p>
-            <p className="ml-kpi-sub">soma do período</p>
+            <p className="ml-kpi-sub">{meta?.periodoLabel || 'período selecionado'}</p>
           </div>
           <div className="ml-kpi-card">
             <p className="ml-kpi-label">Média por Matéria</p>
             <p className="ml-kpi-value">{avgViewsFormatted}</p>
-            <p className="ml-kpi-sub">views</p>
+            <p className="ml-kpi-sub">views no período</p>
           </div>
           <div className="ml-kpi-card">
             <p className="ml-kpi-label">Matérias Ranqueadas</p>
@@ -279,14 +328,13 @@ export default function MaisLidasPage() {
           <div className="ml-panel-head">
             <div className="ml-panel-title">
               <Newspaper size={16} style={{ color: '#4b5563' }} />
-              Ranking de Desempenho
+              Ranking de Desempenho — {meta?.periodoLabel || 'Período selecionado'}
             </div>
             <span className="ml-panel-count">
               {filteredRanking.length} de {rankingData.length} matérias
             </span>
           </div>
 
-          {/* Busca sem resultado */}
           {filteredRanking.length === 0 && searchTerm && (
             <div className="ml-empty-search">
               <Search size={32} style={{ color: '#374151' }} />
@@ -295,7 +343,6 @@ export default function MaisLidasPage() {
             </div>
           )}
 
-          {/* Rows */}
           {filteredRanking.map((item) => {
             const rank = item.posicao;
             return (
@@ -337,20 +384,26 @@ export default function MaisLidasPage() {
                   </div>
                 </div>
 
-                {/* Views */}
+                {/* Views do período */}
                 <div className="ml-stat ml-hide-sm">
                   <p className="ml-stat-val">{item.views.toLocaleString('pt-BR')}</p>
-                  <p className="ml-stat-sub">views</p>
+                  <p className="ml-stat-sub">views período</p>
+                </div>
+
+                {/* Views totais */}
+                <div className="ml-stat ml-hide-md" style={{ opacity: 0.6 }}>
+                  <p className="ml-stat-val" style={{ fontSize: '0.85em' }}>{(item.viewsTotais || 0).toLocaleString('pt-BR')}</p>
+                  <p className="ml-stat-sub">totais</p>
                 </div>
 
                 {/* Engajamento */}
-                <div className="ml-stat ml-hide-md">
+                <div className="ml-stat ml-hide-lg">
                   <p className="ml-stat-val green">{item.engajamento || 0}%</p>
                   <p className="ml-stat-sub">engaj.</p>
                 </div>
 
                 {/* Tendência */}
-                <div className="ml-trend ml-hide-lg">
+                <div className="ml-trend ml-hide-xl">
                   <TendenciaIcon tendencia={item.tendencia} />
                 </div>
 

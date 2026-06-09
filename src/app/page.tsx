@@ -61,7 +61,13 @@ export default async function Home() {
       {/* BANNER PRINCIPAL PREMIUM (TOP) */}
       <div
         className="premium-ad-wrapper"
-        style={{ marginTop: "24px", marginBottom: "24px", maxWidth: "970px", marginLeft: "auto", marginRight: "auto" }}
+        style={{
+          marginTop: "24px",
+          marginBottom: "24px",
+          maxWidth: "970px",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
       >
         <a
           href={bannerTopoHome?.linkUrl || "#"}
@@ -72,9 +78,19 @@ export default async function Home() {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={bannerTopoHome ? getImagePath(bannerTopoHome.imageUrl) : getImagePath("anuncio/banner2.png")}
+            src={
+              bannerTopoHome
+                ? getImagePath(bannerTopoHome.imageUrl)
+                : getImagePath("anuncio/banner2.png")
+            }
             alt={bannerTopoHome?.titulo || "Patrocínio Premium"}
-            style={{ width: "100%", height: "auto", maxHeight: "135px", objectFit: "cover", display: "block" }}
+            style={{
+              width: "100%",
+              height: "auto",
+              maxHeight: "135px",
+              objectFit: "cover",
+              display: "block",
+            }}
           />
         </a>
       </div>
@@ -105,22 +121,39 @@ export default async function Home() {
             </div>
           </section>
 
-          <div
-            className="premium-ad-wrapper"
-            style={{ margin: "20px 0" }}
-          >
+          <div className="premium-ad-wrapper" style={{ margin: "20px 0" }}>
             <a
-              href={bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br"}
+              href={
+                bannerMeioHome?.linkUrl ||
+                "https://dinheironamao.trabalho.ce.gov.br"
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="premium-ad-container-v2"
-              style={{ cursor: (bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br") ? "pointer" : "default" }}
+              style={{
+                cursor:
+                  bannerMeioHome?.linkUrl ||
+                  "https://dinheironamao.trabalho.ce.gov.br"
+                    ? "pointer"
+                    : "default",
+              }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={bannerMeioHome ? getImagePath(bannerMeioHome.imageUrl) : getImagePath("anuncio/Anuncio1.png")}
+                src={
+                  bannerMeioHome
+                    ? getImagePath(bannerMeioHome.imageUrl)
+                    : getImagePath("anuncio/Anuncio1.png")
+                }
                 alt={bannerMeioHome?.titulo || "Publicidade Governo do Ceará"}
-                style={{ width: "100%", height: "auto", maxHeight: "140px", objectFit: "cover", borderRadius: "8px", display: "block" }}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: "140px",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                  display: "block",
+                }}
               />
             </a>
           </div>
@@ -288,7 +321,11 @@ export default async function Home() {
               target="_blank"
               rel="noopener noreferrer"
               className="sidebar-ad-box"
-              style={{ aspectRatio: "unset", height: "auto", position: "relative" }}
+              style={{
+                aspectRatio: "unset",
+                height: "auto",
+                position: "relative",
+              }}
             >
               <Image
                 src={getImagePath("sistema/insta2.jpeg")}
@@ -296,7 +333,12 @@ export default async function Home() {
                 width={320}
                 height={400}
                 sizes="300px"
-                style={{ width: "100%", height: "auto", display: "block", borderRadius: "8px" }}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  display: "block",
+                  borderRadius: "8px",
+                }}
               />
             </a>
           </div>

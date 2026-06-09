@@ -1224,7 +1224,8 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div className="cms-table-card" style={{ display: 'flex', flexDirection: 'column' }}>
+      {user?.role === 'SUPER_ADMIN' && (
+        <div className="cms-table-card" style={{ display: 'flex', flexDirection: 'column' }}>
         {/* Cabeçalho */}
         <div className="cms-table-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1593,6 +1594,7 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+      )}
 
       <div className="ed-quick-grid">
         <Link href="/admin/noticias/nova" className="ed-quick-item">

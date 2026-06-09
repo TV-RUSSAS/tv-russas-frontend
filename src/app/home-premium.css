@@ -759,51 +759,79 @@
     grid-template-columns: 1fr;
   }
 
-  /* Mixed list vira coluna de cards verticais no mobile */
-  .mixed-list .premium-card-list {
+  /* Mixed list e Parallel list no mobile seguem o padrão CNN Brasil (lista horizontal limpa) */
+  .mixed-list,
+  .parallel-list {
+    display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 0;
-    border-bottom: none;
-    background: #fff;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #eaeaea;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-top: 4px;
   }
 
-  .mixed-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-
-  .mixed-list .list-img-wrapper {
-    width: 100%;
-    height: 130px;
+  .mixed-list .premium-card-list,
+  .parallel-list .premium-card-list {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    padding: 16px 0;
+    background: transparent;
     border-radius: 0;
     border: none;
+    border-bottom: 1px solid #eaeaea;
+    box-shadow: none;
+    align-items: center;
   }
 
-  .mixed-list .list-content {
-    padding: 10px 12px 12px;
+  .mixed-list .premium-card-list:last-child,
+  .parallel-list .premium-card-list:last-child {
+    border-bottom: none;
   }
 
-  .mixed-list .list-title {
-    font-size: 13px;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
+  .mixed-list .list-img-wrapper,
+  .parallel-list .list-img-wrapper {
+    width: 130px;
+    height: 85px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    border: 1px solid #f0f0f0;
   }
 
-  .mixed-list .list-date {
-    font-size: 11px;
-    margin-top: 4px;
+  .mixed-list .list-content,
+  .parallel-list .list-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+  }
+
+  .mixed-list .list-title,
+  .parallel-list .list-title {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.35;
+    margin-bottom: 4px;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
     display: block;
   }
 
-  .mixed-list .premium-tag-small {
-    font-size: 9px;
-    margin-bottom: 4px;
+  .mixed-list .list-date,
+  .parallel-list .list-date {
+    font-size: 11.5px;
+    color: #888;
+  }
+
+  .mixed-list .premium-tag-small,
+  .parallel-list .premium-tag-small {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--laranja, #ff5722);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    display: inline-block;
   }
 
   /* rounded-box sem padding excessivo no mobile */
@@ -818,56 +846,6 @@
 
   .section-title-premium {
     font-size: 19px;
-  }
-
-  /* parallel-list também vira cards verticais no mobile */
-  .parallel-list .premium-card-list {
-    flex-direction: column;
-    gap: 0;
-    padding: 0;
-    border-bottom: none;
-    background: #fff;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #eaeaea;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  }
-
-  .parallel-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 4px;
-  }
-
-  .parallel-list .list-img-wrapper {
-    width: 100%;
-    height: 110px;
-    border-radius: 0;
-    border: none;
-  }
-
-  .parallel-list .list-content {
-    padding: 8px 10px 10px;
-  }
-
-  .parallel-list .list-title {
-    font-size: 12px;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-  }
-}
-
-/* Telas muito estreitas: 1 coluna para não espremer */
-@media (max-width: 380px) {
-  .mixed-list,
-  .parallel-list {
-    grid-template-columns: 1fr;
-  }
-
-  .mixed-list .list-img-wrapper,
-  .parallel-list .list-img-wrapper {
-    height: 160px;
   }
 }
 
