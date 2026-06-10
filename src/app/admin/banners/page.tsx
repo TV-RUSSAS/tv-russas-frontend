@@ -163,8 +163,8 @@ export default function BannersAdmin() {
     setError("");
     try {
       let finalPosicao = posicao;
-      if (posicao === "topo_interna" && categoriaSelecionada) {
-        finalPosicao = `topo_interna:${categoriaSelecionada}`;
+      if ((posicao === "topo_interna" || posicao === "topo_categoria") && categoriaSelecionada) {
+        finalPosicao = `${posicao}:${categoriaSelecionada}`;
       }
 
       const fd = new FormData();
@@ -386,12 +386,17 @@ export default function BannersAdmin() {
                           {banner.posicao === "meio_home" && "Meio da Home"}
                           {banner.posicao === "topo_interna" &&
                             "Topo da Matéria (Geral)"}
+                          {banner.posicao === "topo_categoria" &&
+                            "Topo da Categoria (Geral)"}
                           {banner.posicao.startsWith("topo_interna:") &&
                             `Topo da Matéria (${banner.posicao.split(":")[1].toUpperCase()})`}
-                          {!["topo_home", "meio_home", "topo_interna"].includes(
+                          {banner.posicao.startsWith("topo_categoria:") &&
+                            `Topo da Categoria (${banner.posicao.split(":")[1].toUpperCase()})`}
+                          {!["topo_home", "meio_home", "topo_interna", "topo_categoria"].includes(
                             banner.posicao,
                           ) &&
                             !banner.posicao.startsWith("topo_interna:") &&
+                            !banner.posicao.startsWith("topo_categoria:") &&
                             banner.posicao}
                         </code>
                       </td>
@@ -560,6 +565,7 @@ export default function BannersAdmin() {
                     <option value="topo_interna">
                       Topo da Matéria (Interna)
                     </option>
+                    <option value="topo_categoria">Topo da Página de Categoria</option>
                     <option value="topo_home">Topo da Home Page</option>
                     <option value="meio_home">Meio da Home Page</option>
                   </select>
@@ -569,7 +575,7 @@ export default function BannersAdmin() {
                   </span>
                 </div>
 
-                {posicao === "topo_interna" && (
+                {(posicao === "topo_interna" || posicao === "topo_categoria") && (
                   <div className="cms-form-group" style={{ marginBottom: 0 }}>
                     <label className="cms-label">
                       Filtrar por Categoria (Opcional)
@@ -724,6 +730,13 @@ export default function BannersAdmin() {
                             Para o <strong>Topo da Matéria (Interna)</strong>,
                             envie uma imagem de <strong>1200 x 135px</strong>{" "}
                             para cobrir a largura total do topo do artigo.
+                          </>
+                        )}
+                        {posicao === "topo_categoria" && (
+                          <>
+                            Para o <strong>Topo da Página de Categoria</strong>,
+                            envie uma imagem de <strong>1280 x 140px</strong>{" "}
+                            para cobrir a largura total do topo da categoria.
                           </>
                         )}
                       </div>

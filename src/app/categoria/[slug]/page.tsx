@@ -69,19 +69,7 @@ export async function generateMetadata({
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const getCategoryBanner = (slug: string): string => {
-  switch (slug) {
-    case "cidade": return "anuncio/Anuncio1.png";
-    case "politica": return "anuncio/banner2.png";
-    case "esporte": return "anuncio/Anuncio1.png";
-    case "entretenimento": return "anuncio/banner2.png";
-    case "policia": return "anuncio/Anuncio1.png";
-    case "youtube": return "anuncio/banner2.png";
-    case "brasil": return "anuncio/Anuncio1.png";
-    case "ceara": return "anuncio/banner2.png";
-    default: return "anuncio/Anuncio1.png";
-  }
-};
+// Removido getCategoryBanner hardcoded em favor de bannerCategoria do backend
 
 function stripHtml(html: string): string {
   if (!html) return "";
@@ -112,7 +100,7 @@ export default async function CategoriaPage({
   const pageData = await getCategoriaPageData(slug);
   if (!pageData) notFound();
 
-  const { categoria, noticias: noticiasRaw, maisLidas } = pageData;
+  const { categoria, noticias: noticiasRaw, maisLidas, bannerCategoria } = pageData;
   const nome = categoria.nome;
   const noticias = noticiasRaw as unknown as NoticiaLista[];
 
@@ -124,9 +112,10 @@ export default async function CategoriaPage({
       timeZone: "America/Sao_Paulo",
     });
 
-  const bannerImg = getCategoryBanner(slug);
-  const isClickable = bannerImg === "anuncio/Anuncio1.png";
-  const adLink = "https://dinheironamao.trabalho.ce.gov.br";
+  // Configurações do Banner Dinâmico
+  const bannerImg = bannerCategoria?.imageUrl || "anuncio/Anuncio1.png"; // Fallback para uma imagem default se preferir
+  const isClickable = !!bannerCategoria?.linkUrl;
+  const adLink = bannerCategoria?.linkUrl || "#";
 
   const categorySchema = {
     "@context": "https://schema.org",
@@ -177,29 +166,31 @@ export default async function CategoriaPage({
       />
 
       {/* BANNER TOPO: RODÍZIO POR CATEGORIA */}
-      <div className="banner-anuncio">
-        {isClickable ? (
-          <a href={adLink} target="_blank" rel="noopener noreferrer">
-            <Image
-              src={getImagePath(bannerImg)}
+      {bannerCategoria && (
+        <div className="banner-anuncio">
+          {isClickable ? (
+            <a href={adLink} target="_blank" rel="noopener noreferrer">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bannerImg.startsWith("http") ? bannerImg : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001"}${bannerImg}`}
+                alt={`Patrocínio ${nome}`}
+                width={1280}
+                height={140}
+                style={{ width: "100%", height: "auto", objectFit: "cover", display: "block" }}
+              />
+            </a>
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={bannerImg.startsWith("http") ? bannerImg : `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001"}${bannerImg}`}
               alt={`Patrocínio ${nome}`}
               width={1280}
               height={140}
-              unoptimized={true}
-              priority
+              style={{ width: "100%", height: "auto", objectFit: "cover", display: "block" }}
             />
-          </a>
-        ) : (
-          <Image
-            src={getImagePath(bannerImg)}
-            alt={`Patrocínio ${nome}`}
-            width={1280}
-            height={140}
-            unoptimized={true}
-            priority
-          />
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* CABEÇALHO DA CATEGORIA */}
       <header className="categoria-header">

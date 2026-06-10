@@ -17,6 +17,7 @@ export interface CategoriaPageData {
   categoria: { id: string; nome: string; slug: string };
   noticias: Noticia[];
   maisLidas: Noticia[];
+  bannerCategoria: Banner | null;
 }
 
 export interface NoticiaPageData {
