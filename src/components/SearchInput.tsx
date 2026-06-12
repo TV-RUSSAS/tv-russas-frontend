@@ -169,11 +169,11 @@ export function SearchInput() {
                   : "Ver resultados completos →"}
               </Link>
             </div>
-          ) : (
+          ) : !loading && query.length >= 3 ? (
             <div className="search-empty-v2">
               {TEXTS.search.noNewsFoundFor}&quot;{query}&quot;
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>
