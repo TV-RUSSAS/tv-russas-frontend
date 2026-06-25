@@ -62,8 +62,17 @@ export async function generateMetadata({
         type: "article",
         publishedTime: noticia.publicadoEm,
         modifiedTime: noticia.publicadoEm,
-        authors: noticia.colunista ? [noticia.colunista.nome] : ["Portal TV Russas"],
-        images: [{ url: absoluteCapaUrl, width: 1200, height: 675, alt: noticia.titulo }],
+        authors: noticia.colunista
+          ? [noticia.colunista.nome]
+          : ["Portal TV Russas"],
+        images: [
+          {
+            url: absoluteCapaUrl,
+            width: 1200,
+            height: 675,
+            alt: noticia.titulo,
+          },
+        ],
       },
       twitter: {
         card: "summary_large_image",
@@ -499,6 +508,23 @@ export default async function NoticiaPage({
                   <span className="read-time">
                     <i className="far fa-clock" /> {readTime} min de leitura
                   </span>
+                  {(noticia.fonte || noticia.creditosFoto || noticia.creditosVideo) && (
+                    <>
+                      <span className="meta-separator">·</span>
+                      <span style={{ fontSize: '11px', color: 'var(--c-muted)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        {noticia.fonte && (
+                          <span>Fonte: <span style={{ color: 'var(--c-text)' }}>{noticia.fonte}</span></span>
+                        )}
+                        {noticia.fonte && (noticia.creditosFoto || noticia.creditosVideo) && <span style={{ margin: '0 8px' }}>|</span>}
+                        {!!noticia.videoUrl && noticia.creditosVideo && (
+                          <span>Créditos do Vídeo: <span style={{ color: 'var(--c-text)' }}>{noticia.creditosVideo}</span></span>
+                        )}
+                        {!noticia.videoUrl && noticia.creditosFoto && (
+                          <span>Créditos da Foto: <span style={{ color: 'var(--c-text)' }}>{noticia.creditosFoto}</span></span>
+                        )}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -520,10 +546,25 @@ export default async function NoticiaPage({
             />
           )}
         </div>
-        <figcaption className="editorial-image-caption">
-          <span>{noticia.titulo}</span>
-          <span>{TEXTS.brand.acervo}</span>
-        </figcaption>
+        {(() => {
+          const isVideo = !!noticia.videoUrl;
+          const leftText = isVideo
+            ? noticia.descricaoVideo || ""
+            : noticia.descricaoFoto || noticia.titulo;
+            
+          const rightText = isVideo
+            ? (noticia.creditosVideo ? `Vídeo: ${noticia.creditosVideo}` : "")
+            : (noticia.creditosFoto ? `Foto: ${noticia.creditosFoto}` : TEXTS.brand.acervo);
+
+          if (!leftText && !rightText) return null;
+
+          return (
+            <figcaption className="editorial-image-caption">
+              <span>{leftText}</span>
+              <span>{rightText}</span>
+            </figcaption>
+          );
+        })()}
 
         {/* ===== GRID DE CONTEÚDO EDITORIAL ===== */}
         <div className="editorial-content-grid">
@@ -544,12 +585,20 @@ export default async function NoticiaPage({
                   >
                     {noticia.categoria.nome}
                   </Link>
-                  <Link href="/search?q=Ceará" className="tag-link">
-                    {TEXTS.common.ceara}
-                  </Link>
-                  <Link href="/search?q=Russas" className="tag-link">
-                    {TEXTS.common.russas}
-                  </Link>
+                  {noticia.tags &&
+                    noticia.tags
+                      .split(",")
+                      .map((tag) => tag.trim())
+                      .filter(Boolean)
+                      .map((tag, index) => (
+                        <Link
+                          key={index}
+                          href={`/search?q=${encodeURIComponent(tag)}`}
+                          className="tag-link"
+                        >
+                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                        </Link>
+                      ))}
                 </div>
               </div>
             </div>

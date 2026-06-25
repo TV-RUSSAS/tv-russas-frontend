@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import "./home-premium.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -26,7 +27,8 @@ export const metadata: Metadata = {
     default: "TV Russas - O portal de notícias de Russas e região",
     template: "%s | TV Russas",
   },
-  description: "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
+  description:
+    "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
   metadataBase: new URL(DOMAIN),
   alternates: {
     canonical: DOMAIN,
@@ -52,7 +54,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "TV Russas - O portal de notícias de Russas e região",
-    description: "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
+    description:
+      "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
     url: DOMAIN,
     siteName: "TV Russas",
     locale: "pt_BR",
@@ -70,7 +73,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "TV Russas - O portal de notícias de Russas e região",
-    description: "Fique por dentro das últimas notícias de Russas, Ceará e região.",
+    description:
+      "Fique por dentro das últimas notícias de Russas, Ceará e região.",
     // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
     images: ["/og-tv-russas.jpg"],
   },
@@ -99,63 +103,63 @@ export default function RootLayout({
       {
         "@type": "WebSite",
         "@id": `${DOMAIN}/#website`,
-        "url": `${DOMAIN}/`,
-        "name": "TV Russas",
-        "description": "O portal de notícias de Russas e região",
-        "publisher": {
-          "@id": `${DOMAIN}/#organization`
+        url: `${DOMAIN}/`,
+        name: "TV Russas",
+        description: "O portal de notícias de Russas e região",
+        publisher: {
+          "@id": `${DOMAIN}/#organization`,
         },
-        "potentialAction": {
+        potentialAction: {
           "@type": "SearchAction",
-          "target": {
+          target: {
             "@type": "EntryPoint",
-            "urlTemplate": `${DOMAIN}/search?q={search_term_string}`
+            urlTemplate: `${DOMAIN}/search?q={search_term_string}`,
           },
-          "query-input": "required name=search_term_string"
+          "query-input": "required name=search_term_string",
         },
-        "inLanguage": "pt-BR"
+        inLanguage: "pt-BR",
       },
       {
         "@type": "Organization",
         "@id": `${DOMAIN}/#organization`,
-        "name": "TV Russas",
-        "url": `${DOMAIN}/`,
-        "logo": {
+        name: "TV Russas",
+        url: `${DOMAIN}/`,
+        logo: {
           "@type": "ImageObject",
           // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
-          "url": "/logo-tv-russas.png",
-          "caption": "TV Russas"
+          url: "/logo-tv-russas.png",
+          caption: "TV Russas",
         },
-        "sameAs": [
+        sameAs: [
           "https://www.instagram.com/",
-          "https://www.facebook.com/share/1BN4Yrd75d/"
-        ]
+          "https://www.facebook.com/share/1BN4Yrd75d/",
+        ],
       },
       {
         "@type": "LocalBusiness",
         "@id": `${DOMAIN}/#localbusiness`,
-        "name": "TV Russas",
+        name: "TV Russas",
         // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
-        "image": "/og-tv-russas.jpg",
-        "url": `${DOMAIN}/`,
-        "telephone": "",
-        "address": {
+        image: "/og-tv-russas.jpg",
+        url: `${DOMAIN}/`,
+        telephone: "",
+        address: {
           "@type": "PostalAddress",
-          "addressLocality": "Russas",
-          "addressRegion": "CE",
-          "addressCountry": "BR"
+          addressLocality: "Russas",
+          addressRegion: "CE",
+          addressCountry: "BR",
         },
-        "geo": {
+        geo: {
           "@type": "GeoCoordinates",
-          "latitude": -4.9378,
-          "longitude": -37.9756
+          latitude: -4.9378,
+          longitude: -37.9756,
         },
-        "areaServed": {
+        areaServed: {
           "@type": "AdministrativeArea",
-          "name": "Russas e Região do Vale do Jaguaribe"
-        }
-      }
-    ]
+          name: "Russas e Região do Vale do Jaguaribe",
+        },
+      },
+    ],
   };
 
   // Carrega chaves de ambiente ou usa códigos padrão configurados
@@ -165,10 +169,6 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
       <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-        />
         {/* Schema estruturado global de SEO Local e Negócio */}
         <script
           type="application/ld+json"

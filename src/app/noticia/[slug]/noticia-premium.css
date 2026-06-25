@@ -284,7 +284,7 @@
 /* Player de vídeo opcional de capa */
 .editorial-video-wrapper {
   max-width: 860px; /* Ajustado para a largura da imagem */
-  margin: 32px auto !important;
+  margin: 32px auto;
 }
 
 .editorial-image-caption span {

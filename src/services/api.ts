@@ -3,6 +3,11 @@ import { Noticia, Colunista, Categoria, Banner } from '@/types';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api` : 'http://127.0.0.1:3001/api';
 
+if (process.env.NODE_ENV === 'production' && API_URL.startsWith('http://') && !API_URL.includes('localhost') && !API_URL.includes('127.0.0.1')) {
+  console.error("ERRO CRÍTICO DE SEGURANÇA: API_URL não pode usar http:// em produção.");
+  throw new Error("HTTPS obrigatório em produção. Configure NEXT_PUBLIC_API_URL com https://");
+}
+
 // O Modo Híbrido ativa cache estático de revalidação de 5 minutos (300 segundos) nas listagens públicas 
 // a nível de CDN/Next.js para economizar banda e processamento do backend no Render.
 const FETCH_OPTIONS: RequestInit = { next: { revalidate: 300 } };

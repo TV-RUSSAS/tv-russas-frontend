@@ -28,6 +28,10 @@ export interface Noticia {
   videoUrl?: string | null;
   fonte?: string | null;
   publicadoPor?: string | null;
+  creditosFoto?: string | null;
+  descricaoFoto?: string | null;
+  creditosVideo?: string | null;
+  descricaoVideo?: string | null;
 }
 
 export interface Banner {
