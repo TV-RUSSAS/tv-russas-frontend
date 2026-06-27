@@ -20,6 +20,10 @@ interface Noticia {
   videoUrl?: string | null;
   fonte?: string | null;
   publicadoPor?: string | null;
+  creditosFoto?: string | null;
+  descricaoFoto?: string | null;
+  creditosVideo?: string | null;
+  descricaoVideo?: string | null;
 }
 
 interface Categoria {
@@ -97,6 +101,10 @@ export default function EditarNoticiaPage() {
         videoUrl: noticia.videoUrl || "",
         fonte: noticia.fonte || "",
         publicadoPor: noticia.publicadoPor || "",
+        creditosFoto: noticia.creditosFoto || "",
+        descricaoFoto: noticia.descricaoFoto || "",
+        creditosVideo: noticia.creditosVideo || "",
+        descricaoVideo: noticia.descricaoVideo || "",
       }}
       initialCategorias={categorias}
       initialColunistas={colunistas}

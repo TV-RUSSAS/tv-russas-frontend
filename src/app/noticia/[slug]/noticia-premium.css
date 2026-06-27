@@ -312,13 +312,44 @@
 .article-body-content img,
 .premium-editorial-flow img {
   display: block;
-  width: auto;
-  max-width: 100%;
+  width: 100%;
   height: auto;
-  max-height: 480px;
-  margin: 32px auto;
+  margin: 32px auto 8px auto;
   border-radius: 8px;
-  object-fit: contain; /* Exibe as imagens no meio da matéria inteiras, sem cortes */
+  object-fit: contain;
+}
+
+/* Legendas de imagens inseridas no editor — mesmo estilo da legenda de capa */
+.article-inline-caption {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  padding: 8px 0 !important;
+  font-family: var(--edit-font-sans) !important;
+  font-size: 11px !important;
+  color: #777 !important;
+  border-bottom: 1px solid #eee !important;
+  margin: 0 auto 32px !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  gap: 20px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1.4 !important;
+}
+
+.article-inline-caption span:first-child {
+  font-weight: 600 !important;
+  color: #666 !important;
+  white-space: normal !important;
+}
+
+.article-inline-caption span:last-child {
+  font-weight: 500 !important;
+  color: #999 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 
 /* Share inline no header */
@@ -360,6 +391,9 @@
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100%;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 /* Espaçamento generoso entre parágrafos - Igual à imagem */
@@ -375,9 +409,7 @@
 }
 
 /* DROP CAP - DETALHE LARANJA DE MARCA (CONTIDO NO FLUXO, SEM QUEBRAR ALINHAMENTO) */
-.article-body-content > p:first-of-type::first-letter,
-.article-body-content > p:first-child::first-letter,
-.article-body-content > div:first-child::first-letter {
+.article-body-content p.has-dropcap::first-letter {
   font-family: var(--edit-font-display) !important;
   font-size: 72px !important; /* Destaque majestoso e editorial! */
   font-weight: 900 !important;
@@ -550,6 +582,11 @@
     padding: 20px;
   }
   .article-body-content { font-size: 19px; }
+}
+
+.article-body-content .inline-title {
+  font-weight: 800;
+  color: var(--edit-primary);
 }
 
 .article-pullquote::before {
@@ -1408,9 +1445,7 @@
     margin-bottom: 18px !important;
   }
 
-  .article-body-content > p:first-of-type::first-letter,
-  .article-body-content > p:first-child::first-letter,
-  .article-body-content > div:first-child::first-letter {
+  .article-body-content p.has-dropcap::first-letter {
     font-size: 56px !important; /* Proporcional para celulares */
     line-height: 0.8 !important;
   }

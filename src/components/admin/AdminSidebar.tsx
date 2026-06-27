@@ -65,6 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: 'INTERAÇÃO',
     items: [
       { href: '/admin/sugestoes', label: 'Você Repórter', icon: Megaphone, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
+      { href: '/admin/contatos', label: 'Caixa de Entrada', icon: Inbox, roles: ['SUPER_ADMIN', 'ADMIN', 'EDITOR'] },
     ],
   },
   {

@@ -647,6 +647,9 @@
   background: transparent;
   font-size: 21px; line-height: 1.85;
   font-family: 'Merriweather', 'Lora', serif;
+  word-wrap: break-word;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
@@ -682,6 +685,10 @@
   font-family: 'Lora', serif;
   font-size: 24px; line-height: 1.5;
 }
+.ProseMirror .inline-title {
+  font-weight: 800;
+  color: var(--c-accent);
+}
 .ProseMirror strong { font-weight: 700; color: #000; }
 .ProseMirror em { font-style: italic; }
 .ProseMirror u { text-decoration: underline; }
@@ -715,11 +722,11 @@
 .ed-btn {
   width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
   border: none; background: transparent; color: #52525b;
-  border-radius: 6px; cursor: pointer; transition: all 0.15s;
-  font-size: 14px;
+  border-radius: 4px; cursor: pointer; transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ed-btn:hover { background: #f4f4f5; color: #09090b; }
-.ed-btn.active { background: rgba(224, 74, 45, 0.1); color: var(--c-accent); }
+.ed-btn:hover { background: #e4e4e7; color: #09090b; }
+.ed-btn:active { transform: scale(0.92); }
+.ed-btn.active { background: rgba(224, 74, 45, 0.15); color: var(--c-accent); }
 .ed-separator { width: 1px; height: 16px; background: #e4e4e7; margin: 0 4px; }
 
 .ed-dropdown {
@@ -732,7 +739,7 @@
   box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   z-index: 50; display: none; min-width: 140px;
 }
-.ed-dropdown:hover .ed-dropdown-content, .ed-dropdown.open .ed-dropdown-content {
+.ed-dropdown.open .ed-dropdown-content {
   display: block; animation: slideUp 0.15s ease;
 }
 .ed-dropdown-item {

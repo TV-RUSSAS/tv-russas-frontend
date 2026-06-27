@@ -8,9 +8,9 @@ if (process.env.NODE_ENV === 'production' && API_URL.startsWith('http://') && !A
   throw new Error("HTTPS obrigatório em produção. Configure NEXT_PUBLIC_API_URL com https://");
 }
 
-// O Modo Híbrido ativa cache estático de revalidação de 5 minutos (300 segundos) nas listagens públicas 
+// O Modo Híbrido ativa cache estático de revalidação de 1 minuto (60 segundos) nas listagens públicas 
 // a nível de CDN/Next.js para economizar banda e processamento do backend no Render.
-const FETCH_OPTIONS: RequestInit = { next: { revalidate: 300 } };
+const FETCH_OPTIONS: RequestInit = { next: { revalidate: 60 } };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FASE B: Funções consolidadas de página pública com cache do React.

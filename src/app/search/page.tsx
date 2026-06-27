@@ -4,6 +4,14 @@ import { API_URL, apiService } from "@/services/api";
 import { TEXTS } from "@/constants/texts";
 import TrendingWidget from "@/components/TrendingWidget";
 import "../categoria/[slug]/categoria.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export interface Noticia {
   id: string;

@@ -22,8 +22,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    // Busca todas as notícias dinâmicas do banco de dados
-    const noticias = await apiService.getNoticias();
+    // Busca todas as notícias dinâmicas do banco de dados e filtra as já publicadas
+    const allNoticias = await apiService.getNoticias();
+    const now = new Date();
+    const noticias = allNoticias.filter(n => new Date(n.publicadoEm) <= now);
     
     // Rota de notícias individuais (prioridade alta de indexação)
     const newsRoutes = noticias.map((noticia) => ({

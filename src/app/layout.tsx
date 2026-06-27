@@ -8,9 +8,7 @@ import { Footer } from "@/components/Footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import { DOMAIN } from "@/utils/domain";
-
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -109,6 +107,9 @@ export default function RootLayout({
         publisher: {
           "@id": `${DOMAIN}/#organization`,
         },
+        // Documentação: SearchAction descreve a busca funcional interna do portal TV Russas.
+        // A presença deste schema não garante a exibição da "Sitelinks Search Box" especial no Google,
+        // mas ajuda o bot a entender a arquitetura interna.
         potentialAction: {
           "@type": "SearchAction",
           target: {
@@ -120,13 +121,12 @@ export default function RootLayout({
         inLanguage: "pt-BR",
       },
       {
-        "@type": "Organization",
+        "@type": "NewsMediaOrganization",
         "@id": `${DOMAIN}/#organization`,
         name: "TV Russas",
         url: `${DOMAIN}/`,
         logo: {
           "@type": "ImageObject",
-          // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
           url: "/logo-tv-russas.png",
           caption: "TV Russas",
         },
@@ -134,40 +134,13 @@ export default function RootLayout({
           "https://www.instagram.com/",
           "https://www.facebook.com/share/1BN4Yrd75d/",
         ],
-      },
-      {
-        "@type": "LocalBusiness",
-        "@id": `${DOMAIN}/#localbusiness`,
-        name: "TV Russas",
-        // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
-        image: "/og-tv-russas.jpg",
-        url: `${DOMAIN}/`,
-        telephone: "",
-        address: {
-          "@type": "PostalAddress",
-          addressLocality: "Russas",
-          addressRegion: "CE",
-          addressCountry: "BR",
-        },
-        geo: {
-          "@type": "GeoCoordinates",
-          latitude: -4.9378,
-          longitude: -37.9756,
-        },
-        areaServed: {
-          "@type": "AdministrativeArea",
-          name: "Russas e Região do Vale do Jaguaribe",
-        },
-      },
+      }
     ],
   };
 
-  // Carrega chaves de ambiente ou usa códigos padrão configurados
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID || "GTM-PW5B7N3Q";
-  const gaId = "G-PTJPVDHEWK";
-
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
+      {/* Layout Principal da TV Russas */}
       <head>
         {/* Schema estruturado global de SEO Local e Negócio */}
         <script
@@ -184,8 +157,6 @@ export default function RootLayout({
         <Footer />
         <Analytics />
         <SpeedInsights />
-        <GoogleTagManager gtmId={gtmId} />
-        <GoogleAnalytics gaId={gaId} />
       </body>
     </html>
   );

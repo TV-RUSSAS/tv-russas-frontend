@@ -26,6 +26,8 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
+        
+        {/* COLUNA 1: Identidade */}
         <div className="footer-section">
           <div className="footer-logo-wrapper">
             <Image
@@ -68,52 +70,60 @@ export function Footer() {
             </a>
           </div>
         </div>
+
+        {/* COLUNA 2: Categorias */}
         <div className="footer-section">
-          <h4>{TEXTS.navigation.categories}</h4>
+          <h4>Categorias</h4>
           <ul>
             {categorias.map((cat) => (
               <li key={cat.slug}>
-                <Link href={`/categoria/${cat.slug}`} prefetch={false}>{cat.nome}</Link>
+                <Link href={`/categoria/${cat.slug}`}>{cat.nome}</Link>
               </li>
             ))}
           </ul>
         </div>
+
+        {/* COLUNA 3: Institucional */}
         <div className="footer-section">
-          <h4>{TEXTS.navigation.navigation}</h4>
+          <h4>Institucional</h4>
           <ul>
             <li>
-              <Link href="/">{TEXTS.navigation.home}</Link>
+              <Link href="/">Página Inicial</Link>
             </li>
             <li>
-              <Link href="/colunistas">{TEXTS.navigation.columnists}</Link>
+              <Link href="/colunistas">Colunistas</Link>
             </li>
             <li>
-              <Link href="/reporter">{TEXTS.navigation.reporter}</Link>
+              <Link href="/reporter">Você Repórter</Link>
             </li>
             <li>
-              <Link href="/admin" style={{ opacity: 0.6 }}>
-                <i className="fas fa-lock" style={{ marginRight: '4px', fontSize: '0.9em' }} /> {"Acesso Restrito"}
+              <Link href="/contato">Contato</Link>
+            </li>
+            <li style={{ marginTop: '16px' }}>
+              <Link href="/admin" style={{ opacity: 0.6, fontSize: '0.9em' }}>
+                <i className="fas fa-lock" style={{ marginRight: '4px' }} /> Acesso Restrito
               </Link>
             </li>
           </ul>
         </div>
+
+        {/* COLUNA 4: Legal e Privacidade */}
         <div className="footer-section">
-          <h4>{TEXTS.navigation.contact}</h4>
+          <h4>Legal e Privacidade</h4>
           <ul>
             <li>
-              <i className="fas fa-envelope" /> {"contato@tvrussas.com.br"}
+              <Link href="/politica-de-privacidade">Política de Privacidade</Link>
             </li>
             <li>
-              <i className="fas fa-phone" /> {"(88) 99692-5964"}
-            </li>
-            <li>
-              <i className="fas fa-map-marker-alt" /> {"Russas, CE"}
+              <Link href="/termos-de-uso">Termos de Uso</Link>
             </li>
           </ul>
         </div>
       </div>
+      
       <div className="footer-bottom">
-        &copy; {new Date().getFullYear()} {TEXTS.brand.name}. {TEXTS.brand.rights}
+        <p>&copy; {new Date().getFullYear()} TV Russas. Todos os direitos reservados.</p>
+        <p style={{ fontSize: '12px', marginTop: '4px', opacity: 0.7 }}>O conteúdo publicado neste portal é de cunho informativo e jornalístico. A TV Russas se compromete com a veracidade e atualização, ressalvados os direitos de terceiros.</p>
       </div>
     </footer>
   );

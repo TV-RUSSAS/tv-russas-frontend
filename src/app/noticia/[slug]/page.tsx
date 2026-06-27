@@ -125,6 +125,76 @@ function formatArticleContent(htmlContent: string): string {
     '<h3 class="article-subheading">$1</h3>',
   );
 
+  // Transformar marcadores de legenda de imagem {{IMGCAPTION:...}} em layout editorial (legado)
+  content = content.replace(
+    /<p[^>]*>\s*\{\{IMGCAPTION:(.*?)\}\}\s*<\/p>/gi,
+    (_match: string, captionText: string) => {
+      const parts = captionText.split(' | ');
+      const descricao = parts[0] || '';
+      const credito = parts[1] || '';
+      return `<div class="article-inline-caption"><span>${descricao}</span><span>${credito}</span></div>`;
+    },
+  );
+
+  // Transformar legendas de imagem: <p> com font-size 11px ou 12px contendo texto com FOTO:
+  content = content.replace(
+    /<p[^>]*style="[^"]*font-size:\s*1[12]px[^"]*"[^>]*>([\s\S]*?)<\/p>/gi,
+    (_match: string, inner: string) => {
+      const cleanText = inner.replace(/<\/?span[^>]*>/gi, '').trim();
+      if (!cleanText) return '';
+      // Formato "descrição | FOTO: crédito"
+      const pipeMatch = cleanText.match(/^(.*?)\s*\|\s*FOTO:\s*(.*)$/i);
+      if (pipeMatch) {
+        return `<div class="article-inline-caption"><span>${pipeMatch[1].trim()}</span><span>FOTO: ${pipeMatch[2].trim()}</span></div>`;
+      }
+      // Formato "descriçãoFOTO: crédito" (sem pipe)
+      const fotoMatch = cleanText.match(/^(.*?)FOTO:\s*(.*)$/i);
+      if (fotoMatch && fotoMatch[1].trim()) {
+        return `<div class="article-inline-caption"><span>${fotoMatch[1].trim()}</span><span>FOTO: ${fotoMatch[2].trim()}</span></div>`;
+      }
+      // Apenas "FOTO: crédito" sem descrição
+      const fotoOnly = cleanText.match(/^FOTO:\s*(.+)$/i);
+      if (fotoOnly) {
+        return `<div class="article-inline-caption"><span></span><span>FOTO: ${fotoOnly[1].trim()}</span></div>`;
+      }
+      // Legenda sem crédito (só descrição)
+      return `<div class="article-inline-caption"><span>${cleanText}</span><span></span></div>`;
+    },
+  );
+
+  // Formato legado sem estilo inline: <p>descFOTO: cred</p> ou <p>desc | FOTO: cred</p>
+  content = content.replace(
+    /<p>\s*([^<]{1,80}?)\s*\|\s*FOTO:\s*([^<]{1,80}?)\s*<\/p>/gi,
+    (_match: string, desc: string, cred: string) => {
+      return `<div class="article-inline-caption"><span>${desc.trim()}</span><span>FOTO: ${cred.trim()}</span></div>`;
+    },
+  );
+  content = content.replace(
+    /<p>\s*([^<]{1,60}?)FOTO:\s*([^<]{1,60}?)\s*<\/p>/g,
+    (_match: string, desc: string, cred: string) => {
+      const trimDesc = desc.trim();
+      const trimCred = cred.trim();
+      if (!trimDesc && !trimCred) return _match;
+      return `<div class="article-inline-caption"><span>${trimDesc}</span><span>FOTO: ${trimCred}</span></div>`;
+    },
+  );
+
+  // Adicionar classe 'has-dropcap' ao primeiro parágrafo de texto real
+  let dropcapApplied = false;
+  content = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (match, inner) => {
+    if (dropcapApplied) return match;
+    if (inner.includes('<img')) return match;
+    if (inner.includes('<iframe') || inner.includes('social-embed-placeholder')) return match;
+    if (inner.includes('FOTO:')) return match;
+    
+    const textOnly = inner.replace(/<[^>]+>/g, '').trim();
+    if (textOnly.length > 0) {
+      dropcapApplied = true;
+      return match.replace(/^<p/, '<p class="has-dropcap"');
+    }
+    return match;
+  });
+
   return content;
 }
 
@@ -394,7 +464,8 @@ export default async function NoticiaPage({
             : ""),
         image: [getImagePath(noticia.capaUrl)],
         datePublished: noticia.publicadoEm,
-        dateModified: noticia.publicadoEm,
+        inLanguage: 'pt-BR',
+        articleSection: noticia.categoria.nome,
         author: {
           "@type": "Person",
           name: noticia.colunista?.nome || "Portal TV Russas",
@@ -508,20 +579,11 @@ export default async function NoticiaPage({
                   <span className="read-time">
                     <i className="far fa-clock" /> {readTime} min de leitura
                   </span>
-                  {(noticia.fonte || noticia.creditosFoto || noticia.creditosVideo) && (
+                  {noticia.fonte && (
                     <>
                       <span className="meta-separator">·</span>
                       <span style={{ fontSize: '11px', color: 'var(--c-muted)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                        {noticia.fonte && (
-                          <span>Fonte: <span style={{ color: 'var(--c-text)' }}>{noticia.fonte}</span></span>
-                        )}
-                        {noticia.fonte && (noticia.creditosFoto || noticia.creditosVideo) && <span style={{ margin: '0 8px' }}>|</span>}
-                        {!!noticia.videoUrl && noticia.creditosVideo && (
-                          <span>Créditos do Vídeo: <span style={{ color: 'var(--c-text)' }}>{noticia.creditosVideo}</span></span>
-                        )}
-                        {!noticia.videoUrl && noticia.creditosFoto && (
-                          <span>Créditos da Foto: <span style={{ color: 'var(--c-text)' }}>{noticia.creditosFoto}</span></span>
-                        )}
+                        <span>Fonte: <span style={{ color: 'var(--c-text)' }}>{noticia.fonte}</span></span>
                       </span>
                     </>
                   )}
