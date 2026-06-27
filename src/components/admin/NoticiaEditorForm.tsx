@@ -23,7 +23,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 
 // Custom Tiptap Social/Video Embed Node View
-import { Node, mergeAttributes } from "@tiptap/core";
+import { Node, Mark, mergeAttributes } from "@tiptap/core";
 import {
   ReactNodeViewRenderer,
   NodeViewWrapper,
@@ -233,6 +233,72 @@ const SocialEmbedExtension = Node.create({
   },
 });
 
+const ImageCaptionExtension = Node.create({
+  name: "imageCaption",
+  group: "block",
+  atom: true,
+
+  addAttributes() {
+    return {
+      descricao: { default: "" },
+      credito: { default: "" },
+    };
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'div[class="article-inline-caption"]',
+        getAttrs: (dom: HTMLElement | string) => {
+          if (typeof dom === "string") return {};
+          const spans = dom.querySelectorAll('span');
+          return {
+            descricao: spans[0]?.textContent || "",
+            credito: spans[1]?.textContent || "",
+          };
+        },
+      },
+    ];
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return [
+      "div",
+      { class: "article-inline-caption" },
+      ["span", {}, HTMLAttributes.descricao],
+      ["span", {}, HTMLAttributes.credito],
+    ];
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(({ node }) => {
+      const { descricao, credito } = node.attrs;
+      return (
+        <NodeViewWrapper
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            paddingBottom: "10px",
+            borderBottom: "1px solid #e5e7eb",
+            fontSize: "11px",
+            color: "#6b7280",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            marginTop: "8px",
+            marginBottom: "24px",
+            fontFamily: "var(--font-sans), sans-serif",
+            fontWeight: 500,
+          }}
+        >
+          <span>{descricao}</span>
+          <span>{credito}</span>
+        </NodeViewWrapper>
+      );
+    });
+  },
+});
+
 interface Categoria {
   id: string;
   nome: string;
@@ -252,7 +318,44 @@ function generateSlug(title: string): string {
     .replace(/\s+/g, "-");
 }
 
-// ── TOOLBAR DO EDITOR ─────────────────────────────────────────────
+// ── EXTENSÃO CUSTOMIZADA: INLINE TITLE ──────────────────────────
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    inlineTitle: {
+      setInlineTitle: () => ReturnType;
+      toggleInlineTitle: () => ReturnType;
+      unsetInlineTitle: () => ReturnType;
+    }
+  }
+}
+const InlineTitleExtension = Mark.create({
+  name: 'inlineTitle',
+  parseHTML() {
+    return [{ tag: 'span.inline-title' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(HTMLAttributes, { class: 'inline-title' }), 0]
+  },
+  // TipTap requires module augmentation for custom commands
+  addCommands() {
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setInlineTitle: () => ({ commands }: { commands: any }) => {
+        return commands.setMark('inlineTitle')
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      toggleInlineTitle: () => ({ commands }: { commands: any }) => {
+        return commands.toggleMark('inlineTitle')
+      },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      unsetInlineTitle: () => ({ commands }: { commands: any }) => {
+        return commands.unsetMark('inlineTitle')
+      },
+    }
+  },
+});
+
+// ── COMPONENTES DO EDITOR ─────────────────────────────────────────────
 function EditorToolbar({
   editor,
   authFetch,
@@ -262,7 +365,7 @@ function EditorToolbar({
 }) {
   const [showFontMenu, setShowFontMenu] = useState(false);
   const [showColorMenu, setShowColorMenu] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [, forceUpdate] = useState(0);
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -356,16 +459,16 @@ function EditorToolbar({
         ? data.url
         : `${baseUrl}${data.url}`;
 
-      editor.chain().focus().setImage({ src: fullUrl }).run();
+      let chain = editor.chain().focus().setImage({ src: fullUrl });
 
       if (imageDescricao || imageCreditos) {
-        let captionHtml = `<p style="text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-muted); margin-top: 4px; font-weight: 500;">`;
-        if (imageDescricao) captionHtml += `<span style="color: var(--c-text);">${imageDescricao}</span>`;
-        if (imageDescricao && imageCreditos) captionHtml += ` <span style="margin: 0 8px;">|</span> `;
-        if (imageCreditos) captionHtml += `FOTO: <span style="color: var(--c-text);">${imageCreditos}</span>`;
-        captionHtml += `</p><p></p>`;
-        editor.commands.insertContent(captionHtml);
+        const desc = imageDescricao || "";
+        const cred = imageCreditos ? `FOTO: ${imageCreditos}` : "";
+        const html = `<div class="article-inline-caption"><span>${desc}</span><span>${cred}</span></div><p></p>`;
+        chain = chain.insertContent(html);
       }
+
+      chain.run();
 
       setShowImageModal(false);
       setImageFile(null);
@@ -389,15 +492,14 @@ function EditorToolbar({
     }
   };
 
-  const btn = (
-    action: () => void,
-    iconClass: string,
-    title: string,
-    active?: boolean,
-  ) => (
+  const btn = (action: () => void, iconClass: string, title: string, active = false) => (
     <button
       type="button"
-      onClick={action}
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => {
+        action();
+        forceUpdate((n) => n + 1);
+      }}
       title={title}
       className={`ed-btn ${active ? "active" : ""}`}
     >
@@ -405,8 +507,29 @@ function EditorToolbar({
     </button>
   );
 
-  const isDestaqueFont = editor.isActive("textStyle", { fontFamily: "Inter" });
-  const activeFontLabel = isDestaqueFont ? "Título / Destaque" : "Texto Padrão";
+  const isMarkActive = (markName: string) => {
+    if (editor.state.storedMarks) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return editor.state.storedMarks.some((m: any) => m.type.name === markName);
+    }
+    return editor.isActive(markName);
+  };
+
+  const getActiveColor = () => {
+    if (editor.state.storedMarks) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mark = editor.state.storedMarks.find((m: any) => m.type.name === "textStyle");
+      if (mark && mark.attrs.color) return mark.attrs.color;
+    }
+    return editor.getAttributes("textStyle").color || "#000000";
+  };
+
+  const isInlineTitle = isMarkActive("inlineTitle");
+  const isH2 = editor.isActive("heading", { level: 2 });
+  
+  let activeFormatLabel = "Texto Padrão";
+  if (isInlineTitle) activeFormatLabel = "Destaque (Inline)";
+  else if (isH2) activeFormatLabel = "Título Principal";
 
   return (
     <div className="ed-toolbar-sticky">
@@ -419,11 +542,12 @@ function EditorToolbar({
       {btn(() => editor.chain().focus().redo().run(), "fas fa-redo", "Refazer")}
       <div className="ed-separator" />
 
-      {/* Font Family Dropdown */}
+      {/* Format Dropdown */}
       <div className="ed-dropdown" ref={fontMenuRef}>
         <button
           type="button"
           className="ed-btn"
+          onMouseDown={(e) => e.preventDefault()}
           style={{
             width: "auto",
             padding: "0 10px",
@@ -434,7 +558,7 @@ function EditorToolbar({
           onClick={() => setShowFontMenu(!showFontMenu)}
         >
           <span>
-            Fonte: <strong>{activeFontLabel}</strong>
+            Formato: <strong>{activeFormatLabel}</strong>
           </span>
           <i className="fas fa-chevron-down" style={{ fontSize: "10px" }} />
         </button>
@@ -443,24 +567,40 @@ function EditorToolbar({
             <button
               type="button"
               className="ed-dropdown-item"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
-                editor.chain().focus().unsetFontFamily().run();
+                editor.chain().focus().unsetInlineTitle().setParagraph().run();
                 setShowFontMenu(false);
+                forceUpdate((n) => n + 1);
               }}
               style={{ fontFamily: "var(--font-sans)" }}
             >
-              {"Texto Padrão (Serifado)"}
+              {"Texto Padrão"}
+            </button>
+            <button
+              type="button"
+              className="ed-dropdown-item"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                editor.chain().focus().toggleInlineTitle().run();
+                setShowFontMenu(false);
+                forceUpdate((n) => n + 1);
+              }}
+              style={{ fontFamily: "Inter, sans-serif", fontWeight: "bold", fontSize: "14px", color: "var(--c-accent)" }}
+            >
+              {"Destaque (Apenas Seleção)"}
             </button>
             <button
               type="button"
               className="ed-dropdown-item"
               onClick={() => {
-                editor.chain().focus().setFontFamily("Inter").run();
+                editor.chain().focus().unsetInlineTitle().setHeading({ level: 2 }).run();
                 setShowFontMenu(false);
+                forceUpdate((n) => n + 1);
               }}
-              style={{ fontFamily: "Inter, sans-serif", fontWeight: "bold" }}
+              style={{ fontFamily: "Inter, sans-serif", fontWeight: "bold", fontSize: "16px" }}
             >
-              {"Título / Destaque (Inter)"}
+              {"Título Principal"}
             </button>
           </div>
         )}
@@ -473,31 +613,31 @@ function EditorToolbar({
         () => editor.chain().focus().toggleBold().run(),
         "fas fa-bold",
         "Negrito",
-        editor.isActive("bold"),
+        isMarkActive("bold"),
       )}
       {btn(
         () => editor.chain().focus().toggleItalic().run(),
         "fas fa-italic",
         "Itálico",
-        editor.isActive("italic"),
+        isMarkActive("italic"),
       )}
       {btn(
         () => editor.chain().focus().toggleUnderline().run(),
         "fas fa-underline",
         "Sublinhado",
-        editor.isActive("underline"),
+        isMarkActive("underline"),
       )}
       {btn(
         () => editor.chain().focus().toggleStrike().run(),
         "fas fa-strikethrough",
         "Tachado",
-        editor.isActive("strike"),
+        isMarkActive("strike"),
       )}
       {btn(
         () => editor.chain().focus().toggleHighlight().run(),
         "fas fa-highlighter",
         "Destacar Texto",
-        editor.isActive("highlight"),
+        isMarkActive("highlight"),
       )}
 
       {/* Cor do Texto Dropdown */}
@@ -505,6 +645,7 @@ function EditorToolbar({
         <button
           type="button"
           className="ed-btn"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => setShowColorMenu(!showColorMenu)}
           title="Cor do Texto"
         >
@@ -534,7 +675,7 @@ function EditorToolbar({
                 key={color}
                 onClick={() => {
                   editor.chain().focus().setColor(color).run();
-                  setShowColorMenu(false);
+                  forceUpdate((n) => n + 1);
                 }}
                 style={{
                   width: "20px",
@@ -542,28 +683,56 @@ function EditorToolbar({
                   background: color,
                   borderRadius: "50%",
                   cursor: "pointer",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  border: "1px solid #e4e4e7",
                 }}
               />
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                editor.chain().focus().unsetColor().run();
-                setShowColorMenu(false);
-              }}
+            <div
               style={{
                 gridColumn: "span 4",
-                fontSize: "11px",
-                marginTop: "4px",
-                background: "transparent",
-                border: "none",
-                color: "var(--c-text)",
-                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                marginTop: "8px",
+                borderTop: "1px solid #e4e4e7",
+                paddingTop: "8px"
               }}
             >
-              {"Resetar"}
-            </button>
+              <label style={{ fontSize: "11px", color: "#52525b", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", fontWeight: 600 }}>
+                <span>Personalizada:</span>
+                <input
+                  type="color"
+                  value={getActiveColor()}
+                  onChange={(e) => {
+                    editor.chain().setColor(e.target.value).run();
+                    forceUpdate((n) => n + 1);
+                  }}
+                  style={{ width: "24px", height: "24px", padding: 0, border: "none", cursor: "pointer", background: "transparent", borderRadius: "4px" }}
+                  title="Escolher outra cor"
+                />
+              </label>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  editor.chain().focus().unsetColor().run();
+                  forceUpdate((n) => n + 1);
+                }}
+                style={{
+                  fontSize: "11px",
+                  background: "#f4f4f5",
+                  border: "1px solid #e4e4e7",
+                  borderRadius: "4px",
+                  padding: "4px",
+                  color: "#52525b",
+                  cursor: "pointer",
+                  width: "100%",
+                  fontWeight: 600,
+                }}
+              >
+                {"Resetar (Cor Padrão)"}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1146,7 +1315,7 @@ export function NoticiaEditorForm({
     initialData?.fonte ||
       (initialData?.conteudo ? extractFonte(initialData.conteudo) : ""),
   );
-  const [publicadoPorText, setPublicadoPorText] = useState(
+  const [publicadoPorText] = useState(
     initialData?.publicadoPor ||
       (initialData?.conteudo ? extractPublicadoPor(initialData.conteudo) : ""),
   );
@@ -1178,11 +1347,13 @@ export function NoticiaEditorForm({
       TextStyle,
       FontFamily,
       Highlight.configure({ multicolor: true }),
+      InlineTitleExtension,
       Image.configure({ inline: true, allowBase64: true }),
       LinkExtension.configure({ openOnClick: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
       SocialEmbedExtension,
+      ImageCaptionExtension,
     ],
     content: removePublicadoPor(removeFonte(initialData?.conteudo || "")),
     editorProps: {
@@ -2284,6 +2455,7 @@ export function NoticiaEditorForm({
                       justifyContent: "center",
                     }}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/logo-tv-russas.png"
                       alt={TEXTS.brand.name}
@@ -2408,146 +2580,169 @@ export function NoticiaEditorForm({
               width: "100%",
               maxWidth: "400px",
               maxHeight: "90vh",
-              overflowY: "auto",
-              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
               boxShadow: "0 24px 48px rgba(0,0,0,0.2)",
+              overflow: "hidden",
             }}
           >
-            <h3
-              style={{
-                margin: "0 0 20px 0",
-                fontSize: "18px",
-                color: "var(--c-text)",
-              }}
-            >
-              Capa da Matéria
-            </h3>
-
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Selecione a Imagem
-              </label>
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  marginBottom: "12px",
-                  borderRadius: "6px",
-                  height: capaPreview ? "auto" : "130px",
-                  border: "2px dashed var(--c-border)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--c-muted)",
-                  cursor: "pointer",
-                  background: "rgba(255,255,255,0.02)",
-                  overflow: "hidden",
-                }}
-              >
-                {capaPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={capaPreview}
-                    alt="Preview"
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      maxHeight: "300px",
-                      objectFit: "contain",
-                    }}
-                  />
-                ) : (
-                  <>
-                    <i
-                      className="far fa-image"
-                      style={{ fontSize: "24px", marginBottom: "8px" }}
-                    />
-                    <span style={{ fontSize: "12px", fontWeight: "500" }}>
-                      Clique para escolher imagem
-                    </span>
-                  </>
-                )}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleCapaChange}
-                style={{ display: "none" }}
-              />
-            </div>
-
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Descrição da Foto (opcional)
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Cerimônia de 10 anos da empresa"
-                value={descricaoCapaText}
-                onChange={(e) => setDescricaoCapaText(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  background: "var(--c-bg)",
-                  border: "1px solid var(--c-border)",
-                  borderRadius: "8px",
-                  color: "var(--c-text)",
-                  outline: "none",
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: "24px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Créditos da Foto (opcional)
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: João Silva / Agência Brasil"
-                value={creditosFotoText}
-                onChange={(e) => {
-                  setCreditosFotoText(e.target.value);
-                  setSaveStatus("saving");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  background: "var(--c-bg)",
-                  border: "1px solid var(--c-border)",
-                  borderRadius: "8px",
-                  color: "var(--c-text)",
-                  outline: "none",
-                }}
-              />
-            </div>
-
+            {/* Modal Header */}
             <div
               style={{
+                padding: "24px 24px 16px 24px",
+                borderBottom: "1px solid var(--c-border)",
+                flexShrink: 0,
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "18px",
+                  color: "var(--c-text)",
+                }}
+              >
+                Capa da Matéria
+              </h3>
+            </div>
+
+            {/* Modal Body (Scrollable) */}
+            <div
+              style={{
+                padding: "24px",
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Selecione a Imagem
+                </label>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    marginBottom: "12px",
+                    borderRadius: "6px",
+                    height: capaPreview ? "auto" : "130px",
+                    border: "2px dashed var(--c-border)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--c-muted)",
+                    cursor: "pointer",
+                    background: "rgba(255,255,255,0.02)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {capaPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={capaPreview}
+                      alt="Preview"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "300px",
+                        objectFit: "contain",
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <i
+                        className="far fa-image"
+                        style={{ fontSize: "24px", marginBottom: "8px" }}
+                      />
+                      <span style={{ fontSize: "12px", fontWeight: "500" }}>
+                        Clique para escolher imagem
+                      </span>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCapaChange}
+                  style={{ display: "none" }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Descrição da Foto (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Cerimônia de 10 anos da empresa"
+                  value={descricaoCapaText}
+                  onChange={(e) => setDescricaoCapaText(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    background: "var(--c-bg)",
+                    border: "1px solid var(--c-border)",
+                    borderRadius: "8px",
+                    color: "var(--c-text)",
+                    outline: "none",
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: "24px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Créditos da Foto (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: João Silva / Agência Brasil"
+                  value={creditosFotoText}
+                  onChange={(e) => {
+                    setCreditosFotoText(e.target.value);
+                    setSaveStatus("saving");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    background: "var(--c-bg)",
+                    border: "1px solid var(--c-border)",
+                    borderRadius: "8px",
+                    color: "var(--c-text)",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "16px 24px",
+                borderTop: "1px solid var(--c-border)",
                 display: "flex",
                 justifyContent: "flex-end",
                 gap: "12px",
+                flexShrink: 0,
               }}
             >
               <button
@@ -2699,6 +2894,7 @@ export function NoticiaEditorForm({
                           flexShrink: 0,
                         }}
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={getApiUrl(noticia.capaUrl) || ""}
                           alt={noticia.titulo}
@@ -2826,171 +3022,187 @@ export function NoticiaEditorForm({
               width: "100%",
               maxWidth: "400px",
               maxHeight: "90vh",
-              overflowY: "auto",
-              padding: "24px",
+              display: "flex",
+              flexDirection: "column",
               boxShadow: "0 24px 48px rgba(0,0,0,0.2)",
             }}
           >
-            <h3
+            <div
               style={{
-                margin: "0 0 20px 0",
-                fontSize: "18px",
-                color: "var(--c-text)",
+                padding: "24px 24px 16px",
+                borderBottom: "1px solid rgba(255,255,255,0.05)",
               }}
             >
-              Vídeo de Capa (Opcional)
-            </h3>
+              <h3
+                style={{
+                  margin: "0",
+                  fontSize: "18px",
+                  color: "var(--c-text)",
+                }}
+              >
+                Vídeo de Capa (Opcional)
+              </h3>
+            </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Selecione o Vídeo
-              </label>
-              <div
-                onClick={() => videoFileInputRef.current?.click()}
-                style={{
-                  marginBottom: "12px",
-                  borderRadius: "6px",
-                  height: videoPreview ? "auto" : "130px",
-                  border: "2px dashed var(--c-border)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--c-muted)",
-                  cursor: "pointer",
-                  background: "rgba(255,255,255,0.02)",
-                  overflow: "hidden",
-                }}
-              >
-                {videoPreview && !getYouTubeEmbedUrl(videoUrl || "") ? (
-                  <video
-                    src={videoPreview}
-                    controls
-                    muted
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      maxHeight: "200px",
-                      objectFit: "contain",
-                    }}
-                  />
-                ) : (
-                  <>
-                    <i
-                      className="fas fa-file-video"
-                      style={{ fontSize: "24px", marginBottom: "8px" }}
+            <div
+              style={{
+                padding: "16px 24px",
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Selecione o Vídeo
+                </label>
+                <div
+                  onClick={() => videoFileInputRef.current?.click()}
+                  style={{
+                    marginBottom: "12px",
+                    borderRadius: "6px",
+                    height: videoPreview ? "auto" : "130px",
+                    border: "2px dashed var(--c-border)",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--c-muted)",
+                    cursor: "pointer",
+                    background: "rgba(255,255,255,0.02)",
+                    overflow: "hidden",
+                  }}
+                >
+                  {videoPreview && !getYouTubeEmbedUrl(videoUrl || "") ? (
+                    <video
+                      src={videoPreview}
+                      controls
+                      muted
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        maxHeight: "200px",
+                        objectFit: "contain",
+                      }}
                     />
-                    <span style={{ fontSize: "12px", fontWeight: "500" }}>
-                      Clique para escolher vídeo
-                    </span>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <i
+                        className="fas fa-file-video"
+                        style={{ fontSize: "24px", marginBottom: "8px" }}
+                      />
+                      <span style={{ fontSize: "12px", fontWeight: "500" }}>
+                        Clique para escolher vídeo
+                      </span>
+                    </>
+                  )}
+                </div>
+                <input
+                  ref={videoFileInputRef}
+                  type="file"
+                  accept="video/*"
+                  onChange={handleVideoFileChange}
+                  style={{ display: "none" }}
+                />
               </div>
-              <input
-                ref={videoFileInputRef}
-                type="file"
-                accept="video/*"
-                onChange={handleVideoFileChange}
-                style={{ display: "none" }}
-              />
-            </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Ou vincular link do YouTube/Instagram
-              </label>
-              <input
-                className="cms-input"
-                value={videoUrl}
-                onChange={(e) => {
-                  setVideoUrl(e.target.value);
-                  setVideoPreview(e.target.value ? e.target.value : null);
-                  setVideoFile(null);
-                  setSaveStatus("saving");
-                }}
-                placeholder="https://www.youtube.com/watch?v=..."
-                style={{ fontSize: "12px", padding: "10px 12px" }}
-              />
-            </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Ou vincular link do YouTube/Instagram
+                </label>
+                <input
+                  className="cms-input"
+                  value={videoUrl}
+                  onChange={(e) => {
+                    setVideoUrl(e.target.value);
+                    setVideoPreview(e.target.value ? e.target.value : null);
+                    setVideoFile(null);
+                    setSaveStatus("saving");
+                  }}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  style={{ fontSize: "12px", padding: "10px 12px" }}
+                />
+              </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Descrição do Vídeo (opcional)
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: Trecho da entrevista com o prefeito"
-                value={descricaoVideoText}
-                onChange={(e) => setDescricaoVideoText(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  background: "var(--c-bg)",
-                  border: "1px solid var(--c-border)",
-                  borderRadius: "8px",
-                  color: "var(--c-text)",
-                  outline: "none",
-                }}
-              />
-            </div>
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Descrição do Vídeo (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Trecho da entrevista com o prefeito"
+                  value={descricaoVideoText}
+                  onChange={(e) => setDescricaoVideoText(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    background: "var(--c-bg)",
+                    border: "1px solid var(--c-border)",
+                    borderRadius: "8px",
+                    color: "var(--c-text)",
+                    outline: "none",
+                  }}
+                />
+              </div>
 
-            <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontSize: "14px",
-                  color: "var(--c-secondary)",
-                }}
-              >
-                Créditos do Vídeo (opcional)
-              </label>
-              <input
-                type="text"
-                placeholder="Ex: João Silva / Agência Brasil"
-                value={creditosVideoText}
-                onChange={(e) => {
-                  setCreditosVideoText(e.target.value);
-                  setSaveStatus("saving");
-                }}
-                style={{
-                  width: "100%",
-                  padding: "12px",
-                  background: "var(--c-bg)",
-                  border: "1px solid var(--c-border)",
-                  borderRadius: "8px",
-                  color: "var(--c-text)",
-                  outline: "none",
-                }}
-              />
+              <div style={{ marginBottom: "16px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontSize: "14px",
+                    color: "var(--c-secondary)",
+                  }}
+                >
+                  Créditos do Vídeo (opcional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: João Silva / Agência Brasil"
+                  value={creditosVideoText}
+                  onChange={(e) => {
+                    setCreditosVideoText(e.target.value);
+                    setSaveStatus("saving");
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    background: "var(--c-bg)",
+                    border: "1px solid var(--c-border)",
+                    borderRadius: "8px",
+                    color: "var(--c-text)",
+                    outline: "none",
+                  }}
+                />
+              </div>
             </div>
 
             <div
               style={{
                 display: "flex",
                 gap: "8px",
-                marginTop: "24px",
+                padding: "16px 24px",
+                borderTop: "1px solid rgba(255,255,255,0.05)",
                 justifyContent: "flex-end",
               }}
             >
