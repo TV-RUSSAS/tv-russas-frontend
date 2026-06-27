@@ -6,6 +6,7 @@ import { apiService } from "@/services/api";
 import { Noticia, Colunista } from "@/types";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
+import "../colunistas.css";
 
 export async function generateMetadata({
   params,
@@ -195,57 +196,25 @@ export default async function ColunistaPerfil({
                 key={n.id}
                 href={`/noticia/${n.slug}`}
                 className="noticia-card-horizontal group"
-                style={{
-                  background: '#fff',
-                  display: 'flex',
-                  gap: '30px',
-                  padding: '15px 0',
-                  borderBottom: '1px solid #eee',
-                  textDecoration: 'none',
-                  alignItems: 'flex-start',
-                  transition: 'opacity 0.2s'
-                }}
               >
                 {/* Imagem à Esquerda */}
-                <div style={{ 
-                  width: '280px', 
-                  height: '160px', 
-                  position: 'relative', 
-                  flexShrink: 0,
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
+                <div className="noticia-card-horizontal-img">
                   <Image
                     src={getImagePath(n.capaUrl)}
                     alt={n.titulo}
                     fill
-                    sizes="280px"
+                    sizes="(max-width: 768px) 120px, 260px"
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 
                 {/* Conteúdo à Direita */}
-                <div style={{ flex: 1, paddingTop: '5px' }}>
-                  <span style={{ 
-                    fontSize: '13px', 
-                    color: '#e53e3e', 
-                    fontWeight: '900', 
-                    textTransform: 'uppercase',
-                    marginBottom: '8px',
-                    display: 'block',
-                    letterSpacing: '0.5px'
-                  }}>
+                <div className="noticia-card-horizontal-body">
+                  <span className="noticia-card-horizontal-tag">
                     {n.categoria?.nome}
                   </span>
                   
-                  <h3 style={{ 
-                    fontSize: '24px', 
-                    fontWeight: '800', 
-                    color: '#1a202c', 
-                    lineHeight: '1.2',
-                    marginBottom: '10px',
-                    fontFamily: 'inherit'
-                  }}>
+                  <h3 className="noticia-card-horizontal-title">
                     {n.titulo}
                   </h3>
 
@@ -253,32 +222,16 @@ export default async function ColunistaPerfil({
                     const stripHtml = (html: string) => html.replace(/<[^>]*>?/gm, "");
                     const cleanText = n.resumo ? stripHtml(n.resumo) : (n.conteudo ? stripHtml(n.conteudo) : "");
                     return (
-                      <p style={{ 
-                        fontSize: '15px', 
-                        color: '#4a5568', 
-                        lineHeight: '1.5',
-                        marginBottom: '12px',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden'
-                      }}>
+                      <p className="noticia-card-horizontal-resumo">
                         {cleanText.substring(0, 160) + (cleanText.length > 160 ? '...' : '')}
                       </p>
                     );
                   })()}
 
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '10px', 
-                    fontSize: '14px', 
-                    color: '#2d3748',
-                    fontWeight: '600'
-                  }}>
-                    <span>{colunista.nome}</span>
-                    <span style={{ color: '#cbd5e0', fontWeight: '400' }}>|</span>
-                    <span style={{ color: '#718096', fontWeight: '400' }}>
+                  <div className="noticia-card-horizontal-meta">
+                    <span className="noticia-card-horizontal-meta-autor">{colunista.nome}</span>
+                    <span className="separator" style={{ color: '#cbd5e0', fontWeight: '400' }}>|</span>
+                    <span>
                       {new Date(n.publicadoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Sao_Paulo' })}
                     </span>
                   </div>
