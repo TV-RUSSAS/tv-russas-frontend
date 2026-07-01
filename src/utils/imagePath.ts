@@ -4,14 +4,15 @@ export function getImagePath(
   path: string | undefined | null,
   type: 'main' | 'card' | 'thumbnail' | 'none' = 'none'
 ): string {
-  if (!path) return '/uploads/placeholder.png';
+  // FASE 1 — Placeholder migrado de /uploads (Render) para /public (Vercel)
+  if (!path) return '/placeholder.jpg';
   
   // Se for uma URL completa do Cloudinary (ou outra externa), retorna ela mesma
   if (path.startsWith('http')) {
     // Aplicar transformações dinâmicas automáticas no Cloudinary
     if (path.includes('res.cloudinary.com') && path.includes('/upload/') && type !== 'none') {
       const transformation = type === 'main'
-        ? 'f_auto,q_auto,c_fill,g_auto,w_1200,h_675'
+        ? 'f_auto,q_auto,c_limit,w_1200'
         : type === 'thumbnail'
         ? 'f_auto,q_auto,c_fill,g_auto,w_300,h_170'
         : 'f_auto,q_auto,c_fill,g_auto,w_600,h_338';

@@ -71,6 +71,23 @@ export function getYouTubeEmbedUrl(url: string): string | null {
   return null;
 }
 
+export function getInstagramEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url.startsWith('http') ? url : `https://${url}`);
+    if (parsed.hostname.includes('instagram.com')) {
+      // Remove barra final e query params
+      const path = parsed.pathname.replace(/\/$/, '');
+      // Suporta posts, reels e IGTV
+      if (path.startsWith('/p/') || path.startsWith('/reel/') || path.startsWith('/tv/')) {
+        return `https://www.instagram.com${path}/embed/captioned`;
+      }
+    }
+  } catch (e) {
+    // Erro ao analisar URL
+  }
+  return null;
+}
+
 interface ArticleVideoEmbedProps {
   url: string;
   platform?: VideoPlatform;
@@ -132,15 +149,40 @@ export function ArticleVideoEmbed({ url, platform: initialPlatform, caption, cre
     );
   }
 
-  // 3. LINK EDITORIAL COMPACTO PARA INSTAGRAM
+  // 3. INSTAGRAM EMBED
   if (platform === 'instagram') {
+    const embedUrl = getInstagramEmbedUrl(url);
+    if (!embedUrl) {
+      return (
+        <div className="article-video-fallback-container">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="editorial-link-fallback">
+            <i className="fab fa-instagram" style={{ marginRight: '8px', color: '#e1306c' }} />
+            Ver publicação original no Instagram <i className="fas fa-external-link-alt" style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.7 }} />
+          </a>
+          {caption && <span className="article-video-caption" style={{ marginTop: '8px', display: 'block', textAlign: 'center' }}>{caption}</span>}
+        </div>
+      );
+    }
+
     return (
-      <div className="article-video-fallback-container">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="editorial-link-fallback">
-          <i className="fab fa-instagram" style={{ marginRight: '8px', color: '#e1306c' }} />
-          Ver publicação original no Instagram <i className="fas fa-external-link-alt" style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.7 }} />
-        </a>
-        {caption && <span className="article-video-caption" style={{ marginTop: '8px', display: 'block', textAlign: 'center' }}>{caption}</span>}
+      <div className="article-video-block" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span className="video-label" style={{ alignSelf: 'flex-start' }}><i className="fab fa-instagram" style={{ marginRight: '6px' }} />Instagram</span>
+        <iframe
+          src={embedUrl}
+          title={caption || "Publicação do Instagram"}
+          width="100%"
+          height="650"
+          style={{ maxWidth: '540px', border: '1px solid #dbdbdb', borderRadius: '3px', boxShadow: 'none', margin: '15px 0' }}
+          allow="encrypted-media"
+          allowFullScreen
+          loading="lazy"
+        />
+        {(caption || credit) && (
+          <div className="article-video-info-meta" style={{ alignSelf: 'flex-start', width: '100%' }}>
+            {caption && <span className="article-video-caption">{caption}</span>}
+            {credit && <span className="article-video-credit">Crédito: {credit}</span>}
+          </div>
+        )}
       </div>
     );
   }

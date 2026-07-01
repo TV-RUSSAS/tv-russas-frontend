@@ -1,40 +1,23 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { getImagePath } from "@/utils/imagePath";
 import { TEXTS } from "@/constants/texts";
-import { apiService } from "@/services/api";
-
-const CATEGORIAS_FALLBACK = [
+const CATEGORIAS_FIXAS = [
   { nome: "Cidade", slug: "cidade" },
   { nome: "Política", slug: "politica" },
   { nome: "Esporte", slug: "esporte" },
   { nome: "Entretenimento", slug: "entretenimento" },
   { nome: "Polícia", slug: "policia" },
-  { nome: "Youtube", slug: "youtube" },
-  { nome: "Brasil", slug: "brasil" },
   { nome: "Ceará", slug: "ceara" },
+  { nome: "Brasil", slug: "brasil" },
+  { nome: "Mundo", slug: "mundo" },
 ];
 
 export function Footer() {
   const pathname = usePathname();
-  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FALLBACK);
-
-  useEffect(() => {
-    let active = true;
-    const fetchCategorias = async () => {
-      const cats = await apiService.getCategorias();
-      if (cats && cats.length > 0 && active) {
-        setCategorias(cats);
-      }
-    };
-    fetchCategorias();
-    return () => {
-      active = false;
-    };
-  }, []);
+  const [categorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FIXAS);
 
   if (pathname.startsWith('/admin')) {
     return null;
@@ -43,10 +26,12 @@ export function Footer() {
   return (
     <footer className="footer">
       <div className="footer-inner">
+        
+        {/* COLUNA 1: Identidade */}
         <div className="footer-section">
           <div className="footer-logo-wrapper">
             <Image
-              src={getImagePath("sistema/5.png")}
+              src="/logo-footer.png"
               alt={TEXTS.brand.name}
               width={60}
               height={60}
@@ -85,8 +70,10 @@ export function Footer() {
             </a>
           </div>
         </div>
+
+        {/* COLUNA 2: Categorias */}
         <div className="footer-section">
-          <h4>{TEXTS.navigation.categories}</h4>
+          <h4>Categorias</h4>
           <ul>
             {categorias.map((cat) => (
               <li key={cat.slug}>
@@ -95,42 +82,48 @@ export function Footer() {
             ))}
           </ul>
         </div>
+
+        {/* COLUNA 3: Institucional */}
         <div className="footer-section">
-          <h4>{TEXTS.navigation.navigation}</h4>
+          <h4>Institucional</h4>
           <ul>
             <li>
-              <Link href="/">{TEXTS.navigation.home}</Link>
+              <Link href="/">Página Inicial</Link>
             </li>
             <li>
-              <Link href="/colunistas">{TEXTS.navigation.columnists}</Link>
+              <Link href="/colunistas">Colunistas</Link>
             </li>
             <li>
-              <Link href="/reporter">{TEXTS.navigation.reporter}</Link>
+              <Link href="/reporter">Você Repórter</Link>
             </li>
             <li>
-              <Link href="/admin" style={{ opacity: 0.6 }}>
-                <i className="fas fa-lock" style={{ marginRight: '4px', fontSize: '0.9em' }} /> {"Acesso Restrito"}
+              <Link href="/contato">Contato</Link>
+            </li>
+            <li style={{ marginTop: '16px' }}>
+              <Link href="/admin" style={{ opacity: 0.6, fontSize: '0.9em' }}>
+                <i className="fas fa-lock" style={{ marginRight: '4px' }} /> Acesso Restrito
               </Link>
             </li>
           </ul>
         </div>
+
+        {/* COLUNA 4: Legal e Privacidade */}
         <div className="footer-section">
-          <h4>{TEXTS.navigation.contact}</h4>
+          <h4>Legal e Privacidade</h4>
           <ul>
             <li>
-              <i className="fas fa-envelope" /> {"contato@tvrussas.com.br"}
+              <Link href="/politica-de-privacidade">Política de Privacidade</Link>
             </li>
             <li>
-              <i className="fas fa-phone" /> {"(88) 99692-5964"}
-            </li>
-            <li>
-              <i className="fas fa-map-marker-alt" /> {"Russas, CE"}
+              <Link href="/termos-de-uso">Termos de Uso</Link>
             </li>
           </ul>
         </div>
       </div>
+      
       <div className="footer-bottom">
-        &copy; {new Date().getFullYear()} {TEXTS.brand.name}. {TEXTS.brand.rights}
+        <p>&copy; {new Date().getFullYear()} TV Russas. Todos os direitos reservados.</p>
+        <p style={{ fontSize: '12px', marginTop: '4px', opacity: 0.7 }}>O conteúdo publicado neste portal é de cunho informativo e jornalístico. A TV Russas se compromete com a veracidade e atualização, ressalvados os direitos de terceiros.</p>
       </div>
     </footer>
   );

@@ -1,7 +1,17 @@
 import { getImagePath } from "@/utils/imagePath";
 import Image from "next/image";
-import { API_URL } from "@/services/api";
+import { API_URL, apiService } from "@/services/api";
 import { TEXTS } from "@/constants/texts";
+import TrendingWidget from "@/components/TrendingWidget";
+import "../categoria/[slug]/categoria.css";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export interface Noticia {
   id: string;
@@ -24,6 +34,12 @@ export default async function SearchPage({
   const query = q || "";
   let results: Noticia[] = [];
   let suggestion: string | null = null;
+
+  // Buscar dados da sidebar paralelamente
+  const [maisLidas, trending] = await Promise.all([
+    apiService.getMaisLidas(),
+    apiService.getTrending(),
+  ]);
 
   if (query) {
     try {
@@ -68,60 +84,73 @@ export default async function SearchPage({
             </div>
           </div>
 
-        {results.length > 0 ? (
-          <div className="search-results-list">
-            {results.map((noticia) => (
-              <a
-                key={noticia.id}
-                href={`/noticia/${noticia.slug}`}
-                className="search-result-horizontal-card group"
-              >
-                {/* Imagem */}
-                <div className="search-result-img-wrapper">
-                  <Image
-                    src={getImagePath(noticia.capaUrl)}
-                    alt={noticia.titulo}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                    className="transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
-                
-                {/* Texto */}
-                <div className="search-result-info">
-                  <span className="search-result-tag">
-                    {noticia.categoria?.nome}
-                  </span>
-                  
-                  <h3 className="search-result-title">
-                    {noticia.titulo}
-                  </h3>
+          <div className="categoria-layout-columns">
+            {/* Coluna da Esquerda: Resultados */}
+            <main className="categoria-feed-principal">
+              {results.length > 0 ? (
+                <div className="search-results-list">
+                  {results.map((noticia) => (
+                    <a
+                      key={noticia.id}
+                      href={`/noticia/${noticia.slug}`}
+                      className="search-result-horizontal-card group"
+                    >
+                      {/* Imagem */}
+                      <div className="search-result-img-wrapper">
+                        <Image
+                          src={getImagePath(noticia.capaUrl)}
+                          alt={noticia.titulo}
+                          fill
+                          style={{ objectFit: 'cover' }}
+                          className="transition-transform duration-500 group-hover:scale-105"
+                        />
+                      </div>
+                      
+                      {/* Texto */}
+                      <div className="search-result-info">
+                        <span className="search-result-tag">
+                          {noticia.categoria?.nome}
+                        </span>
+                        
+                        <h3 className="search-result-title">
+                          {noticia.titulo}
+                        </h3>
 
-                  <p className="search-result-excerpt">
-                    {noticia.resumo || (noticia.conteudo ? noticia.conteudo.substring(0, 160) + '...' : '')}
-                  </p>
+                        <p className="search-result-excerpt">
+                          {noticia.resumo || (noticia.conteudo ? noticia.conteudo.substring(0, 160) + '...' : '')}
+                        </p>
 
-                  <div className="search-result-meta">
-                    <span>
-                      <i className="far fa-calendar-alt"></i>
-                      {new Date(noticia.publicadoEm).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
-                    </span>
-                    <span>
-                      <i className="far fa-eye"></i>
-                      {noticia.views || 0} {TEXTS.common.views}
-                    </span>
-                  </div>
+                        <div className="search-result-meta">
+                          <span>
+                            <i className="far fa-calendar-alt"></i>
+                            {new Date(noticia.publicadoEm).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
                 </div>
-              </a>
-            ))}
+              ) : query ? (
+                <div className="search-no-results">
+                  <i className="fas fa-search-minus"></i>
+                  <h3>{TEXTS.search.noNewsFound}</h3>
+                  <p>{TEXTS.search.tryOtherTerms}</p>
+                </div>
+              ) : null}
+            </main>
+
+            {/* Coluna da Direita: Sidebar */}
+            <aside className="categoria-sidebar">
+              {maisLidas && maisLidas.length > 0 && (
+                <TrendingWidget items={maisLidas.slice(0, 5) as import("@/types").Noticia[]} title="Mais Lidas" />
+              )}
+              {trending && trending.length > 0 && (
+                <div style={{ marginTop: '40px' }}>
+                  <TrendingWidget items={trending.slice(0, 5) as import("@/types").Noticia[]} title="Em Alta" />
+                </div>
+              )}
+            </aside>
           </div>
-        ) : query ? (
-          <div className="search-no-results">
-            <i className="fas fa-search-minus"></i>
-            <h3>{TEXTS.search.noNewsFound}</h3>
-            <p>{TEXTS.search.tryOtherTerms}</p>
-          </div>
-        ) : null}
         </div>
       </main>
     </div>

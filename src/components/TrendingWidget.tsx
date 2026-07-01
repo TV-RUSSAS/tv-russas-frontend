@@ -17,6 +17,7 @@ export default function TrendingWidget({ items, title }: TrendingWidgetProps) {
           <Link
             key={`${title.toLowerCase().replace(/\s+/g, "-")}-${n.slug}`}
             href={`/noticia/${n.slug}`}
+            prefetch={false}
             className="trending-item"
           >
             <span className="trending-number">{idx + 1}</span>

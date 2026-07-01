@@ -30,6 +30,13 @@ const ROLE_BADGE: Record<string, string> = {
   COLUNISTA: 'cms-badge-gray',
 };
 
+const ROLE_LEVELS: Record<string, number> = {
+  COLUNISTA: 1,
+  EDITOR: 2,
+  ADMIN: 3,
+  SUPER_ADMIN: 4,
+};
+
 interface Usuario {
   id: string;
   nome: string;
@@ -323,15 +330,17 @@ export default function UsuariosAdmin() {
                       </td>
                       <td style={{ textAlign: 'right', verticalAlign: 'middle' }}>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-                          <button
-                            className="cms-btn cms-btn-secondary cms-btn-sm"
-                            onClick={() => openEdit(u)}
-                            title="Editar Usuário"
-                          >
-                            <Edit size={13} />
-                            <span>Editar</span>
-                          </button>
-                          {isSuperAdmin && u.id !== currentUser?.id && (
+                          {currentUser && ROLE_LEVELS[currentUser.role] >= ROLE_LEVELS[u.role] && (
+                            <button
+                              className="cms-btn cms-btn-secondary cms-btn-sm"
+                              onClick={() => openEdit(u)}
+                              title="Editar Usuário"
+                            >
+                              <Edit size={13} />
+                              <span>Editar</span>
+                            </button>
+                          )}
+                          {currentUser && ROLE_LEVELS[currentUser.role] >= ROLE_LEVELS[u.role] && u.id !== currentUser?.id && (
                             <button
                               className="cms-btn cms-btn-danger cms-btn-sm"
                               onClick={() => setConfirmDeleteId(u.id)}
@@ -407,16 +416,28 @@ export default function UsuariosAdmin() {
                 
                 <div className="cms-form-group" style={{ marginBottom: 0 }}>
                   <label className="cms-label">Cargo / Nível de Permissão <span>*</span></label>
-                  <select 
-                    className="cms-select" 
-                    value={role} 
-                    onChange={e => setRole(e.target.value)}
-                  >
-                    {isSuperAdmin && <option value="SUPER_ADMIN">Super Admin</option>}
-                    <option value="ADMIN">Administrador</option>
-                    <option value="EDITOR">Editor</option>
-                    <option value="COLUNISTA">Colunista</option>
-                  </select>
+                  {modalMode === 'edit' && editingId === currentUser?.id ? (
+                    <input 
+                      type="text"
+                      className="cms-input"
+                      value={ROLE_LABELS[role] || role}
+                      disabled
+                    />
+                  ) : (
+                    <select 
+                      className="cms-select" 
+                      value={role} 
+                      onChange={e => setRole(e.target.value)}
+                    >
+                      {isSuperAdmin && <option value="SUPER_ADMIN">Super Admin</option>}
+                      <option value="ADMIN">Administrador</option>
+                      <option value="EDITOR">Editor</option>
+                      <option value="COLUNISTA">Colunista</option>
+                    </select>
+                  )}
+                  {modalMode === 'edit' && editingId === currentUser?.id && (
+                    <span style={{ color: 'var(--c-secondary)', fontSize: '11.5px', display: 'block', marginTop: '4px' }}>Você não pode alterar seu próprio cargo.</span>
+                  )}
                 </div>
                 
                 {modalMode === 'edit' && (
@@ -466,7 +487,7 @@ export default function UsuariosAdmin() {
             </div>
             <div className="cms-modal-body">
               <p style={{ fontSize: '14px', lineHeight: '1.5' }}>
-                Deseja realmente excluir permanentemente a conta de <strong style={{ color: 'var(--c-accent)' }}>"{userParaExcluir?.nome}"</strong>?
+                Deseja realmente excluir permanentemente a conta de <strong style={{ color: 'var(--c-accent)' }}>&quot;{userParaExcluir?.nome}&quot;</strong>?
               </p>
               <p style={{ marginTop: '8px', color: 'var(--c-secondary)', fontSize: '12.5px' }}>
                 Esta ação é definitiva, impossibilitará futuros logins da credencial e será registrada na auditoria de segurança.

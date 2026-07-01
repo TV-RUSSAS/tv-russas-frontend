@@ -13,8 +13,9 @@ import {
   Edit,
   Clock,
   Loader2,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
-import { NewsPerformanceData } from '@/components/admin/analytics/NewsPerformanceRow';
 import EmptyState from '@/components/admin/analytics/EmptyState';
 import { getImagePath } from '@/utils/imagePath';
 
@@ -23,33 +24,60 @@ interface CategoriaOption {
   nome: string;
 }
 
+interface EmAltaItem {
+  posicao: number;
+  id: string;
+  titulo: string;
+  slug: string;
+  categoria: string;
+  autor: string;
+  publicadoEm: string;
+  capaUrl: string;
+  viewsRecentes: number;   // views do período (de Analytics)
+  viewsTotais: number;     // views totais históricas
+  crescimentoPercentual: number;
+  tendencia: string;
+  horarioDePico: string;
+}
+
 interface CardsData {
-  maiorCrescimento: {
-    titulo: string;
-    crescimento: string;
-  };
+  maiorCrescimento: { titulo: string; crescimento: string; };
   categoriaEmAlta: string;
   picoDeAcessos: string;
   mediaViewsHora: string;
 }
 
+interface MetaData {
+  periodo: string;
+  periodoLabel: string;
+  periodoAnalisado: string;
+  isFallback: boolean;
+  mensagemFallback: string | null;
+  geradoEm: string;
+}
+
+interface ApiResponse {
+  noticias: EmAltaItem[];
+  cards: CardsData;
+  meta: MetaData;
+}
+
 const EM_ALTA_PERIOD_OPTIONS = [
-  { value: '1h', label: 'Última 1h' },
-  { value: '6h', label: 'Últimas 6h' },
-  { value: '24h', label: '24 Horas' },
-  { value: '48h', label: '48 Horas' },
+  { value: '24h',    label: 'Últimas 24h (padrão)' },
+  { value: 'hoje',   label: 'Hoje' },
+  { value: '7d',     label: 'Últimos 7 dias' },
+  { value: 'semana', label: 'Semana atual' },
 ];
 
 export default function EmAltaPage() {
   const { authFetch } = useAdminAuth();
 
-  const [periodo, setPeriodo] = useState('24h');
+  const [periodo, setPeriodo] = useState('24h'); // padrão: ontem
   const [categoriaId, setCategoriaId] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [categorias, setCategorias] = useState<CategoriaOption[]>([]);
-  const [noticias, setNoticias] = useState<NewsPerformanceData[]>([]);
-  const [cards, setCards] = useState<CardsData | null>(null);
+  const [apiData, setApiData] = useState<ApiResponse | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadingFiltros, setLoadingFiltros] = useState(true);
@@ -58,22 +86,17 @@ export default function EmAltaPage() {
 
   useEffect(() => {
     let active = true;
-    Promise.resolve().then(() => {
-      if (active) setMounted(true);
-    });
+    Promise.resolve().then(() => { if (active) setMounted(true); });
     return () => { active = false; };
   }, []);
 
-  // Carregar filtros
   useEffect(() => {
     let active = true;
     const fetchFiltros = async () => {
       try {
         setLoadingFiltros(true);
         const res = await authFetch('/admin/categorias');
-        if (res.ok && active) {
-          setCategorias(await res.json());
-        }
+        if (res.ok && active) setCategorias(await res.json());
       } catch (err) {
         console.error('Erro ao buscar categorias:', err);
       } finally {
@@ -84,23 +107,16 @@ export default function EmAltaPage() {
     return () => { active = false; };
   }, [authFetch]);
 
-  // Carregar tráfego em alta
   const fetchEmAlta = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-
       const queryParams = new URLSearchParams({ periodo });
       if (categoriaId) queryParams.set('categoriaId', categoriaId);
-
       const res = await authFetch(`/admin/analytics/em-alta?${queryParams}`);
-      if (!res.ok) {
-        throw new Error('Falha ao obter dados de tráfego em alta');
-      }
-
+      if (!res.ok) throw new Error('Falha ao obter dados de tráfego em alta');
       const data = await res.json();
-      setNoticias(data.noticias || []);
-      setCards(data.cards || null);
+      setApiData(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
     } finally {
@@ -115,14 +131,10 @@ export default function EmAltaPage() {
         if (active) setLoading(true);
         const queryParams = new URLSearchParams({ periodo });
         if (categoriaId) queryParams.set('categoriaId', categoriaId);
-
         const res = await authFetch(`/admin/analytics/em-alta?${queryParams}`);
         if (!res.ok) throw new Error('Falha ao obter dados');
         const data = await res.json();
-        if (active) {
-          setNoticias(data.noticias || []);
-          setCards(data.cards || null);
-        }
+        if (active) setApiData(data);
       } catch (err) {
         if (active) setError(err instanceof Error ? err.message : 'Erro inesperado.');
       } finally {
@@ -132,6 +144,10 @@ export default function EmAltaPage() {
     load();
     return () => { active = false; };
   }, [authFetch, periodo, categoriaId]);
+
+  const noticias: EmAltaItem[] = apiData?.noticias || [];
+  const cards: CardsData | null = apiData?.cards || null;
+  const meta: MetaData | null = apiData?.meta || null;
 
   const filteredNoticias = noticias.filter(item =>
     item.titulo.toLowerCase().includes(searchTerm.toLowerCase())
@@ -153,19 +169,31 @@ export default function EmAltaPage() {
         <div>
           <h1 className="ea-title">
             <Zap size={26} />
-            Em Alta
+            Em Alta — Últimas 24 Horas
           </h1>
-          <p className="ea-subtitle">Velocidade editorial: notícias com aceleração de acessos nas últimas horas.</p>
+          <p className="ea-subtitle">
+            Matérias com melhor desempenho nas últimas 24 horas corridas. Atualiza continuamente ao longo do dia.
+          </p>
+          {meta && (
+            <p className="ea-period-info">
+              <Info size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+              Baseado em: <strong>{meta.periodoAnalisado}</strong>
+            </p>
+          )}
         </div>
-        <button
-          onClick={fetchEmAlta}
-          disabled={loading}
-          className="ea-btn-refresh"
-        >
+        <button onClick={fetchEmAlta} disabled={loading} className="ea-btn-refresh">
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} style={loading ? { color: '#ff6b3d' } : {}} />
           Atualizar
         </button>
       </div>
+
+      {/* ── BADGE FALLBACK ── */}
+      {meta?.isFallback && (
+        <div className="ea-fallback-banner">
+          <AlertCircle size={15} />
+          <span>{meta.mensagemFallback || 'Sem views suficientes no período. Exibindo dados de fallback (últimos 7 dias).'}</span>
+        </div>
+      )}
 
       {/* ── SELETOR DE PERÍODO ── */}
       <div className="ea-period-row">
@@ -187,32 +215,32 @@ export default function EmAltaPage() {
       {!loading && cards && (
         <div className="ea-kpi-grid">
           <div className="ea-kpi-card">
-            <p className="ea-kpi-label">Maior Crescimento</p>
-            <p className="ea-kpi-value green">{cards.maiorCrescimento?.crescimento || '0%'}</p>
+            <p className="ea-kpi-label">Matéria Mais Vista</p>
+            <p className="ea-kpi-value green">{noticias[0]?.viewsRecentes || 0} views</p>
             <p className="ea-kpi-sub" title={cards.maiorCrescimento?.titulo || 'Sem matérias'}>
-              {cards.maiorCrescimento?.titulo || 'Sem matérias'}
+              {cards.maiorCrescimento?.titulo
+                ? cards.maiorCrescimento.titulo.length > 35
+                  ? cards.maiorCrescimento.titulo.slice(0, 35) + '…'
+                  : cards.maiorCrescimento.titulo
+                : 'Sem matérias'}
             </p>
           </div>
           <div className="ea-kpi-card">
             <p className="ea-kpi-label">Frequência de Acessos</p>
             <p className="ea-kpi-value">{cards.mediaViewsHora || '0 views/h'}</p>
-            <p className="ea-kpi-sub">últimas {periodo}</p>
+            <p className="ea-kpi-sub">{meta?.periodoLabel || periodo}</p>
           </div>
           <div className="ea-kpi-card">
             <p className="ea-kpi-label">Categoria Líder</p>
             <p className="ea-kpi-value orange">{cards.categoriaEmAlta || 'Geral'}</p>
-            <p className="ea-kpi-sub">maior aceleração</p>
+            <p className="ea-kpi-sub">maior volume</p>
           </div>
           <div className="ea-kpi-card">
-            <p className="ea-kpi-label">Pico de Tráfego</p>
+            <p className="ea-kpi-label">Pico Estimado</p>
             <p className="ea-kpi-value">
               {cards.picoDeAcessos ? cards.picoDeAcessos.split(' (')[0] : '0 acessos/h'}
             </p>
-            <p className="ea-kpi-sub">
-              {cards.picoDeAcessos && cards.picoDeAcessos.includes('(')
-                ? `Estimado (${cards.picoDeAcessos.split(' (')[1]}`
-                : 'no período'}
-            </p>
+            <p className="ea-kpi-sub">no período</p>
           </div>
         </div>
       )}
@@ -255,7 +283,7 @@ export default function EmAltaPage() {
           <div className="ea-panel-head">
             <div className="ea-panel-title">
               <Zap size={16} style={{ color: '#4b5563' }} />
-              Notícias em Rápida Ascensão
+              Notícias em Alta
             </div>
           </div>
           {Array.from({ length: 5 }).map((_, i) => (
@@ -275,8 +303,8 @@ export default function EmAltaPage() {
       {/* ── VAZIO ── */}
       {!loading && noticias.length === 0 && (
         <EmptyState
-          title="Sem picos de aceleração"
-          description="Nenhuma matéria apresentou crescimento fora da média ou picos de velocidade no período selecionado."
+          title="Sem dados para o período"
+          description="Nenhuma visualização foi registrada no período selecionado."
         />
       )}
 
@@ -286,14 +314,13 @@ export default function EmAltaPage() {
           <div className="ea-panel-head">
             <div className="ea-panel-title">
               <Zap size={16} style={{ color: '#4b5563' }} />
-              Notícias em Rápida Ascensão
+              Notícias em Alta — {meta?.periodoLabel || 'Últimas 24 Horas'}
             </div>
             <span className="ea-panel-count">
               {filteredNoticias.length} de {noticias.length} matérias
             </span>
           </div>
 
-          {/* Busca sem resultado */}
           {filteredNoticias.length === 0 && searchTerm && (
             <div className="ea-empty-search">
               <Search size={32} style={{ color: '#374151' }} />
@@ -302,7 +329,6 @@ export default function EmAltaPage() {
             </div>
           )}
 
-          {/* Rows */}
           {filteredNoticias.map((item) => {
             const rank = item.posicao;
             return (
@@ -344,22 +370,22 @@ export default function EmAltaPage() {
                   </div>
                 </div>
 
-                {/* Aceleração */}
+                {/* Views recentes */}
                 <div className="ea-stat">
-                  <p className="ea-stat-val green">+{item.crescimentoPercentual || 0}%</p>
-                  <p className="ea-stat-sub">aceleração</p>
+                  <p className="ea-stat-val green">{item.viewsRecentes.toLocaleString('pt-BR')}</p>
+                  <p className="ea-stat-sub">views em 24h</p>
                 </div>
 
-                {/* Horário Pico */}
+                {/* Aceleração */}
                 <div className="ea-stat ea-hide-sm">
-                  <p className="ea-stat-val">{item.horarioDePico || '—'}</p>
-                  <p className="ea-stat-sub">pico acessos</p>
+                  <p className="ea-stat-val orange">+{item.crescimentoPercentual || 0}%</p>
+                  <p className="ea-stat-sub">vs média</p>
                 </div>
 
-                {/* Views */}
-                <div className="ea-stat ea-hide-md">
-                  <p className="ea-stat-val orange">+{item.viewsRecentes || 0}</p>
-                  <p className="ea-stat-sub">{item.views || 0} totais</p>
+                {/* Views totais */}
+                <div className="ea-stat ea-hide-md" style={{ opacity: 0.6 }}>
+                  <p className="ea-stat-val" style={{ fontSize: '0.85em' }}>{(item.viewsTotais || 0).toLocaleString('pt-BR')}</p>
+                  <p className="ea-stat-sub">totais</p>
                 </div>
 
                 {/* Status */}

@@ -25,6 +25,34 @@
   padding-bottom: 80px;
 }
 
+/* Banner de Publicidade no Topo (Desktop/Geral) */
+.editorial-ad-banner-topo {
+  margin: 24px auto;
+  max-width: 908px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 16px;
+}
+
+.editorial-ad-banner-topo img {
+  width: 100%;
+  height: auto;
+  max-height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: none;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .editorial-ad-banner-topo {
+    margin: 16px auto;
+  }
+  .editorial-ad-banner-topo img {
+    max-height: 80px; /* Entre 70px e 90px */
+  }
+}
+
 /* RESET DE HEADER: Remove linha laranja duplicada que vaza do header global */
 .premium-header, 
 .category-nav {
@@ -217,8 +245,7 @@
   width: 100%;
   max-width: 860px; /* Alinhada perfeitamente com a grade do cabeçalho */
   margin: 32px auto 0;
-  aspect-ratio: 16 / 9;
-  max-height: 485px; /* Ajustada proporcionalmente para a largura de 860px */
+  /* Proporção livre: removido aspect-ratio para não cortar imagens na vertical */
   overflow: hidden;
   border-radius: 8px;
   background: transparent; /* Fundo transparente para visual integrado e limpo */
@@ -231,8 +258,9 @@
 .article-main-image-wrapper img,
 .article-img {
   width: 100%;
-  height: 100%;
-  object-fit: contain; /* ESSENCIAL: Mostra a imagem de capa inteira, sem nenhum corte! */
+  height: auto; /* Permite que a imagem dite a própria altura sem distorcer */
+  max-height: 800px; /* Limite de segurança para imagens gigantescas */
+  object-fit: contain; /* Garante que a imagem nunca será cortada */
   display: block;
 }
 
@@ -256,7 +284,7 @@
 /* Player de vídeo opcional de capa */
 .editorial-video-wrapper {
   max-width: 860px; /* Ajustado para a largura da imagem */
-  margin: 32px auto !important;
+  margin: 32px auto;
 }
 
 .editorial-image-caption span {
@@ -284,13 +312,44 @@
 .article-body-content img,
 .premium-editorial-flow img {
   display: block;
-  width: auto;
-  max-width: 100%;
+  width: 100%;
   height: auto;
-  max-height: 480px;
-  margin: 32px auto;
+  margin: 32px auto 8px auto;
   border-radius: 8px;
-  object-fit: contain; /* Exibe as imagens no meio da matéria inteiras, sem cortes */
+  object-fit: contain;
+}
+
+/* Legendas de imagens inseridas no editor — mesmo estilo da legenda de capa */
+.article-inline-caption {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: flex-start !important;
+  padding: 8px 0 !important;
+  font-family: var(--edit-font-sans) !important;
+  font-size: 11px !important;
+  color: #777 !important;
+  border-bottom: 1px solid #eee !important;
+  margin: 0 auto 32px !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  gap: 20px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  line-height: 1.4 !important;
+}
+
+.article-inline-caption span:first-child {
+  font-weight: 600 !important;
+  color: #666 !important;
+  white-space: normal !important;
+}
+
+.article-inline-caption span:last-child {
+  font-weight: 500 !important;
+  color: #999 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
 }
 
 /* Share inline no header */
@@ -332,6 +391,9 @@
   margin-left: auto !important;
   margin-right: auto !important;
   width: 100%;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
 }
 
 /* Espaçamento generoso entre parágrafos - Igual à imagem */
@@ -347,9 +409,7 @@
 }
 
 /* DROP CAP - DETALHE LARANJA DE MARCA (CONTIDO NO FLUXO, SEM QUEBRAR ALINHAMENTO) */
-.article-body-content > p:first-of-type::first-letter,
-.article-body-content > p:first-child::first-letter,
-.article-body-content > div:first-child::first-letter {
+.article-body-content p.has-dropcap::first-letter {
   font-family: var(--edit-font-display) !important;
   font-size: 72px !important; /* Destaque majestoso e editorial! */
   font-weight: 900 !important;
@@ -522,6 +582,11 @@
     padding: 20px;
   }
   .article-body-content { font-size: 19px; }
+}
+
+.article-body-content .inline-title {
+  font-weight: 800;
+  color: var(--edit-primary);
 }
 
 .article-pullquote::before {
@@ -1254,20 +1319,98 @@
 }
 
 /* Responsividade para Imagens e Elementos Visuais */
+/* Responsividade para Imagens e Elementos Visuais */
 @media (max-width: 768px) {
+  /* Margem lateral global padronizada para 16px */
+  .editorial-article {
+    padding: 0 16px !important;
+  }
+
+  /* 3. Banner de Publicidade no Topo (Container e imagem) */
+  .editorial-ad-banner-topo {
+    margin: 16px auto !important;
+    padding: 0 16px !important; /* Respiro lateral no mobile */
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 860px !important;
+  }
+
+  .editorial-ad-banner-topo img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: clamp(70px, 12vh, 90px) !important; /* Altura controlada no mobile */
+    object-fit: contain !important; /* Não corta informações ou logos do patrocinador */
+    border-radius: 8px !important;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    display: block !important;
+  }
+
+  /* 4. Escala tipográfica melhor na página de notícia no mobile */
+  .editorial-breadcrumb {
+    max-width: 100% !important;
+    padding: 12px 16px 6px !important;
+    margin-bottom: 0 !important;
+  }
+
+  .editorial-header {
+    max-width: 100% !important;
+    padding: 8px 16px 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .editorial-category {
+    font-size: 11px !important;
+    padding: 5px 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .editorial-title {
+    font-size: clamp(24px, 5.5vw, 32px) !important; /* Título com clamp responsivo */
+    line-height: 1.25 !important;
+    letter-spacing: -0.5px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .editorial-subtitle {
+    font-size: clamp(14px, 3.5vw, 16px) !important; /* Subtítulo menor e confortável */
+    line-height: 1.45 !important;
+    margin-bottom: 16px !important;
+    color: #555 !important;
+  }
+
+  .editorial-meta-bar {
+    gap: 12px !important;
+  }
+
+  .author-avatar {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .author-name {
+    font-size: 12.5px !important;
+  }
+
+  .meta-details {
+    font-size: 11px !important;
+    gap: 4px 8px !important;
+  }
+
+  /* Capa e imagens com largura controlada (Sem dominar a tela) */
   .article-main-image-wrapper {
     aspect-ratio: 16 / 10 !important;
-    max-height: 320px !important;
-    border-radius: 4px !important;
-    margin: 20px auto 8px !important;
+    max-height: 280px !important; /* Altura controlada para não dominar a viewport */
+    border-radius: 6px !important;
+    margin: 16px auto 8px !important;
   }
+
   .article-body-content img,
   .premium-editorial-flow img {
-    max-height: 280px !important;
-    aspect-ratio: 16 / 10 !important;
-    border-radius: 4px !important;
+    max-height: 240px !important; /* Altura máxima controlada para imagens internas */
+    border-radius: 6px !important;
     margin: 20px auto !important;
   }
+
   .editorial-image-caption {
     flex-direction: column !important;
     align-items: flex-start !important;
@@ -1275,45 +1418,117 @@
     padding: 8px 8px !important;
     max-width: 100% !important;
     border-bottom: 1px solid #eee !important;
+    margin-bottom: 24px !important;
   }
+
   .editorial-image-caption span:last-child {
     white-space: normal !important;
     color: #a5a5a5 !important;
   }
-  .editorial-header,
-  .editorial-breadcrumb {
-    max-width: 100% !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-  }
+
   .editorial-main-content {
     max-width: 100% !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
+    padding: 0 16px !important;
   }
+
+  /* Corpo do texto principal de leitura entre 18px e 19px */
   .article-body-content {
     max-width: 100% !important;
+    font-size: 18px !important; /* Padronizado para 18px de conforto */
+    line-height: 1.75 !important;
+  }
+
+  .article-body-content p,
+  .premium-editorial-flow p {
+    font-size: 18px !important; /* Corpo do parágrafo entre 18px e 19px */
+    line-height: 1.75 !important;
+    margin-bottom: 18px !important;
+  }
+
+  .article-body-content p.has-dropcap::first-letter {
+    font-size: 56px !important; /* Proporcional para celulares */
+    line-height: 0.8 !important;
+  }
+
+  /* Escala tipográfica para citações e cabeçalhos no texto */
+  .article-body-content blockquote {
+    padding-left: 16px !important;
+    margin: 24px 0 24px 12px !important;
     font-size: 19px !important;
   }
+
+  .article-body-content blockquote p {
+    font-size: 19px !important;
+  }
+
+  .article-body-content h2 {
+    font-size: 24px !important;
+    margin: 24px 0 12px !important;
+    line-height: 1.25 !important;
+  }
+
+  .article-body-content h3,
+  .article-body-content h3.article-subheading {
+    font-size: 19px !important;
+    margin: 32px 0 14px !important;
+  }
+
+  /* Mais lidas no rodapé */
   .editorial-mais-lidas-bottom {
     max-width: 100% !important;
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-    margin-top: 40px !important;
+    padding: 20px 16px !important;
+    margin-top: 36px !important;
   }
+
   .mais-lidas-item {
     gap: 12px !important;
-    padding: 12px 0 !important;
+    padding: 14px 0 !important;
   }
+
   .mais-lidas-number {
-    font-size: 40px !important;
+    font-size: 38px !important;
     width: 30px !important;
   }
+
   .mais-lidas-title {
-    font-size: 14px !important;
+    font-size: 14.5px !important;
   }
-  .mais-lidas-thumb {
-    width: 80px !important;
-    height: 50px !important;
+}
+
+/* Otimizações abaixo de 360px */
+@media (max-width: 360px) {
+  .editorial-ad-banner-topo {
+    margin: 12px auto !important;
+    padding: 0 12px !important;
+  }
+
+  .editorial-header,
+  .editorial-breadcrumb {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .editorial-title {
+    font-size: 22px !important;
+  }
+
+  .article-main-image-wrapper {
+    max-height: 220px !important;
+  }
+
+  .article-body-content {
+    font-size: 17px !important;
+  }
+
+  .article-body-content p,
+  .premium-editorial-flow p {
+    font-size: 17px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .article-body-content blockquote {
+    padding-left: 12px !important;
+    margin: 20px 0 20px 8px !important;
+    font-size: 18px !important;
   }
 }

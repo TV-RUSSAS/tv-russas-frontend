@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { apiService } from "@/services/api";
+import { apiService, getCategoriaPageData } from "@/services/api";
 import { getImagePath } from "@/utils/imagePath";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
@@ -10,17 +10,11 @@ import TrendingWidget from "@/components/TrendingWidget";
 import type { Noticia as NoticiaGlobal } from "@/types";
 import "./categoria.css";
 
-interface Noticia {
-  id: string;
-  titulo: string;
-  slug: string;
-  capaUrl: string;
-  publicadoEm: string;
-  categoria: { nome: string; slug: string };
-  conteudo?: string;
-  resumo?: string | null;
-}
+// Cache ISR de 5 minutos — a Vercel revalidará em background após esse período
+export const revalidate = 300;
 
+// ─── generateMetadata usa o mesmo getCategoriaPageData (React.cache)
+// Garantia: se a Page também chamar, apenas 1 request HTTP é feito ao Render ───
 export async function generateMetadata({
   params,
 }: {
@@ -57,7 +51,7 @@ export async function generateMetadata({
       type: "website",
       images: [
         {
-          url: "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
+          url: "/og-tv-russas.jpg",
           width: 1200,
           height: 630,
           alt: `Notícias sobre ${nome}`,
@@ -68,7 +62,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: ["https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg"],
+      images: ["/og-tv-russas.jpg"],
     },
     keywords: [
       `Notícias sobre ${nome}`,
@@ -81,41 +75,27 @@ export async function generateMetadata({
   };
 }
 
-const getCategoryBanner = (slug: string): string => {
-  switch (slug) {
-    case "cidade": return "anuncio/Anuncio1.png";
-    case "politica": return "anuncio/banner2.png";
-    case "esporte": return "anuncio/Anuncio1.png";
-    case "entretenimento": return "anuncio/banner2.png";
-    case "policia": return "anuncio/Anuncio1.png";
-    case "youtube": return "anuncio/banner2.png";
-    case "brasil": return "anuncio/Anuncio1.png";
-    case "ceara": return "anuncio/banner2.png";
-    default: return "anuncio/Anuncio1.png";
-  }
-};
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const getCategoryDescription = (slug: string, nome: string): string => {
-  // Usa Map em vez de object literal para evitar prototype pollution
-  // (slugs vêm da URL e não devem acessar propriedades herdadas como __proto__)
-  const descriptions = new Map<string, string>([
-    ["cidade", `Últimas notícias, reportagens e eventos sobre o cotidiano de Russas e região.`],
-    ["politica", `Bastidores do poder, eleições e cobertura política local, estadual e regional.`],
-    ["esporte", `Futebol local, competições regionais e tudo sobre o esporte em Russas e no Ceará.`],
-    ["entretenimento", `Cultura, shows, festas e a agenda de eventos no Vale do Jaguaribe.`],
-    ["policia", `Segurança pública, ocorrências e informações de utilidade na região.`],
-    ["brasil", `As principais notícias do cenário nacional que impactam o país.`],
-    ["ceara", `Acontecimentos do estado do Ceará, desenvolvimento regional e notícias do interior.`],
-    ["youtube", `Vídeos exclusivos, reportagens e coberturas produzidas pela TV Russas.`],
-  ]);
-  return descriptions.get(slug.toLowerCase()) ?? `Últimas notícias, matérias e reportagens de ${nome} no portal TV Russas.`;
-};
+// Removido getCategoryBanner hardcoded em favor de bannerCategoria do backend
 
 function stripHtml(html: string): string {
   if (!html) return "";
   return html.replace(/<[^>]*>?/gm, "").trim();
 }
 
+// ─── Interface local (sem conteudo — os dados de listagem não trazem esse campo) ─
+interface NoticiaLista {
+  id: string;
+  titulo: string;
+  slug: string;
+  capaUrl: string;
+  publicadoEm: string;
+  categoria: { nome: string; slug: string };
+  resumo?: string | null;
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function CategoriaPage({
   params,
 }: {
@@ -123,18 +103,17 @@ export default async function CategoriaPage({
 }) {
   const { slug } = await params;
 
-  // Buscar dados em paralelo para melhor performance
-  const [categoria, noticiasRaw, maisLidas] = await Promise.all([
-    apiService.getCategoriaBySlug(slug),
-    apiService.getNoticiasByCategoria(slug, 20),
-    apiService.getMaisLidas()
-  ]);
 
-  if (!categoria) notFound();
+  // Uma única chamada HTTP ao Render — consolidada no backend (/api/categorias/:slug/page)
+  // React.cache garante que generateMetadata e esta Page compartilham o mesmo resultado
+  const pageData = await getCategoriaPageData(slug);
+  if (!pageData) notFound();
 
+  const { categoria, noticias: noticiasRaw, maisLidas, bannerCategoria } = pageData;
   const nome = categoria.nome;
-  const noticias = noticiasRaw as unknown as Noticia[];
-  const data = (iso: string) =>
+  const noticias = noticiasRaw as unknown as NoticiaLista[];
+
+  const formatData = (iso: string) =>
     new Date(iso).toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -142,9 +121,10 @@ export default async function CategoriaPage({
       timeZone: "America/Sao_Paulo",
     });
 
-  const bannerImg = getCategoryBanner(slug);
-  const isClickable = bannerImg === "anuncio/Anuncio1.png";
-  const adLink = "https://dinheironamao.trabalho.ce.gov.br";
+  // Configurações do Banner Dinâmico
+  const bannerImg = bannerCategoria?.imageUrl || "anuncio/Anuncio1.png"; // Fallback para uma imagem default se preferir
+  const isClickable = !!bannerCategoria?.linkUrl;
+  const adLink = bannerCategoria?.linkUrl || "#";
 
   const categorySchema = {
     "@context": "https://schema.org",
@@ -170,13 +150,10 @@ export default async function CategoriaPage({
     ],
   };
 
-  // Separação de Destaques (Hero + Secundárias) e Grid Principal
-  // Se tivermos 3 ou mais notícias, usamos a primeira como Destaque Principal (Hero),
-  // as posições 1 e 2 como Secundárias (conforme a imagem, que mostra 1 grande e 2 empilhadas ao lado).
-  // Caso contrário, a 1ª é o Hero e o restante vai direto para o Grid principal.
-  let heroNoticia: Noticia | null = null;
-  let secundariasNoticias: Noticia[] = [];
-  let noticiasRestantes: Noticia[] = [];
+  // Separação em destaque hero, secundárias e restante
+  let heroNoticia: NoticiaLista | null = null;
+  let secundariasNoticias: NoticiaLista[] = [];
+  let noticiasRestantes: NoticiaLista[] = [];
 
   if (noticias.length >= 3) {
     heroNoticia = noticias[0];
@@ -204,107 +181,111 @@ export default async function CategoriaPage({
           <a href={adLink} target="_blank" rel="noopener noreferrer">
             <Image
               src={getImagePath(bannerImg)}
-              alt={`Patrocínio ${nome}`}
-              width={1280}
-              height={140}
-              unoptimized={true}
-              priority
-            />
-          </a>
+      alt={`Patrocínio ${nome}`}
+      width={1280}
+      height={140}
+      style={{ width: "100%", height: "auto", objectFit: "cover", display: "block" }}
+    />
+          </a >
         ) : (
-          <Image
-            src={getImagePath(bannerImg)}
-            alt={`Patrocínio ${nome}`}
-            width={1280}
-            height={140}
-            unoptimized={true}
-            priority
-          />
-        )}
-      </div>
+    <Image
+      src={getImagePath(bannerImg)}
+      alt={`Patrocínio ${nome}`}
+      width={1280}
+      height={140}
+      unoptimized={true}
+      priority
+    />
+  )
+}
+      </div >
       */}
 
       {/* CABEÇALHO DA CATEGORIA */}
       <header className="categoria-header">
         <nav className="categoria-breadcrumb" aria-label="breadcrumb">
-          <Link href="/">INÍCIO</Link>
+          <Link href="/" prefetch={false}>INÍCIO</Link>
           <span>/</span>
-          <Link href={`/categoria/${slug}`}>CATEGORIAS</Link>
+          <Link href={`/categoria/${slug}`} prefetch={false}>CATEGORIAS</Link>
           <span>/</span>
           <span>{nome.toUpperCase()}</span>
         </nav>
-        <h1>{nome}</h1>
+        <h1>{nome.charAt(0).toUpperCase() + nome.slice(1)}</h1>
       </header>
 
       {/* BLOCO DE DESTAQUES EDITORIAL (ESTILO G1) */}
-      {noticias.length > 0 && (
-        <section className="categoria-highlights-section">
-          {/* Destaque Principal (Hero à esquerda) */}
-          {heroNoticia && (
-            <Link href={`/noticia/${heroNoticia.slug}`} className="destaque-card-g1 hero-large">
-              <div className="destaque-card-media">
-                <Image
-                  src={getImagePath(heroNoticia.capaUrl)}
-                  alt={heroNoticia.titulo}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 700px"
-                  priority
-                />
-              </div>
-              <div className="destaque-card-overlay" />
-              <span className="destaque-card-tag">{nome}</span>
-              <div className="destaque-card-content">
-                <h2 className="destaque-card-title">{heroNoticia.titulo}</h2>
-                {(() => {
-                  const cleanText = heroNoticia.resumo ? stripHtml(heroNoticia.resumo) : (heroNoticia.conteudo ? stripHtml(heroNoticia.conteudo) : "");
-                  return (
-                    <p className="destaque-card-resumo">
-                      {cleanText.substring(0, 160)}{cleanText.length > 160 ? "..." : ""}
-                    </p>
-                  );
-                })()}
-                <div className="destaque-card-meta">
-                  <time>{data(heroNoticia.publicadoEm)}</time>
+      {
+        noticias.length > 0 && (
+          <section className="categoria-highlights-section">
+            {/* Destaque Principal (Hero à esquerda) */}
+            {heroNoticia && (
+              <Link href={`/noticia/${heroNoticia.slug}`} prefetch={false} className="destaque-card-g1 hero-large">
+                <div className="destaque-card-media">
+                  <Image
+                    src={getImagePath(heroNoticia.capaUrl)}
+                    alt={heroNoticia.titulo}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 700px"
+                    priority
+                  />
                 </div>
-              </div>
-            </Link>
-          )}
+                <div className="destaque-card-overlay" />
+                <span className="destaque-card-tag">{nome}</span>
+                <div className="destaque-card-content">
+                  <h2 className="destaque-card-title">{heroNoticia.titulo}</h2>
+                  {(() => {
+                    const cleanText = heroNoticia.resumo ? stripHtml(heroNoticia.resumo) : "";
+                    return (
+                      <p className="destaque-card-resumo">
+                        {cleanText.substring(0, 160)}{cleanText.length > 160 ? "..." : ""}
+                      </p>
+                    );
+                  })()}
+                  <div className="destaque-card-meta">
+                    <time>{formatData(heroNoticia.publicadoEm)}</time>
+                  </div>
+                </div>
+              </Link>
+            )}
 
-          {/* Destaques Secundários (Pilha à direita - Estilo G1) */}
-          {secundariasNoticias.length > 0 && (
-            <div className="secondary-noticias-column">
-              {secundariasNoticias.map((n) => (
-                <Link key={n.slug} href={`/noticia/${n.slug}`} className="destaque-card-g1 secondary-small">
-                  <div className="destaque-card-media">
-                    <Image
-                      src={getImagePath(n.capaUrl)}
-                      alt={n.titulo}
-                      fill
-                      sizes="(max-width: 768px) 100vw, 400px"
-                    />
-                  </div>
-                  <div className="destaque-card-overlay" />
-                  <span className="destaque-card-tag">{nome}</span>
-                  <div className="destaque-card-content">
-                    <h3 className="destaque-card-title">{n.titulo}</h3>
-                    <div className="destaque-card-meta">
-                      <time>{data(n.publicadoEm)}</time>
+            {/* Destaques Secundários (Pilha à direita - Estilo G1) */}
+            {secundariasNoticias.length > 0 && (
+              <div className="secondary-noticias-column">
+                {secundariasNoticias.map((n) => (
+                  <Link key={n.slug} href={`/noticia/${n.slug}`} prefetch={false} className="destaque-card-g1 secondary-small">
+                    <div className="destaque-card-media">
+                      <Image
+                        src={getImagePath(n.capaUrl)}
+                        alt={n.titulo}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 400px"
+                      />
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+                    <div className="destaque-card-overlay" />
+                    <span className="destaque-card-tag">{nome}</span>
+                    <div className="destaque-card-content">
+                      <h3 className="destaque-card-title">{n.titulo}</h3>
+                      <div className="destaque-card-meta">
+                        <time>{formatData(n.publicadoEm)}</time>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
+        )
+      }
 
       {/* DIVISOR DE CONTEÚDO EDITORIAL */}
-      {noticias.length > 0 && (
-        <div className="section-divider">
-          <h3>VEJA MAIS NOTÍCIAS</h3>
-          <div className="section-divider-line" />
-        </div>
-      )}
+      {
+        noticias.length > 0 && (
+          <div className="section-divider">
+            <h3>VEJA MAIS NOTÍCIAS</h3>
+            <div className="section-divider-line" />
+          </div>
+        )
+      }
 
       {/* GRID PRINCIPAL + SIDEBAR */}
       <div className="categoria-layout-columns">
@@ -312,7 +293,7 @@ export default async function CategoriaPage({
         <main className="categoria-feed-principal">
           {noticiasRestantes.length > 0 ? (
             noticiasRestantes.map((n) => (
-              <Link key={n.slug} href={`/noticia/${n.slug}`} className="card-noticia-horizontal">
+              <Link key={n.slug} href={`/noticia/${n.slug}`} prefetch={false} className="card-noticia-horizontal">
                 <div className="card-horizontal-media">
                   <Image
                     src={getImagePath(n.capaUrl)}
@@ -325,14 +306,14 @@ export default async function CategoriaPage({
                   <span className="card-horizontal-categoria">{n.categoria.nome}</span>
                   <h4 className="card-horizontal-titulo">{n.titulo}</h4>
                   {(() => {
-                    const cleanText = n.resumo ? stripHtml(n.resumo) : (n.conteudo ? stripHtml(n.conteudo) : "");
+                    const cleanText = n.resumo ? stripHtml(n.resumo) : "";
                     return (
                       <p className="card-horizontal-resumo">
                         {cleanText.substring(0, 140)}{cleanText.length > 140 ? "..." : ""}
                       </p>
                     );
                   })()}
-                  <time className="card-horizontal-meta">{data(n.publicadoEm)}</time>
+                  <time className="card-horizontal-meta">{formatData(n.publicadoEm)}</time>
                 </div>
               </Link>
             ))
@@ -348,10 +329,10 @@ export default async function CategoriaPage({
 
         {/* Coluna da direita: Sidebar */}
         <aside className="categoria-sidebar">
-          {/* Widget Mais Lidas — usa as mesmas classes trending-* do resto do site */}
+          {/* Widget Mais Lidas — dados já vêm no payload consolidado, sem request adicional */}
           <TrendingWidget items={maisLidas.slice(0, 5) as unknown as NoticiaGlobal[]} title="Mais Lidas" />
         </aside>
       </div>
-    </div>
+    </div >
   );
 }

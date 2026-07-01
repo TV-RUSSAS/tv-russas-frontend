@@ -16,7 +16,7 @@ export function NewsCard({ slug, titulo, capaUrl, categoria, data, variant = 'de
   // Versão 1: Destaque Principal (Grande com texto por cima)
   if (variant === 'highlight') {
     return (
-      <Link href={`/noticia/${slug}`} className="highlight-main block relative">
+      <Link href={`/noticia/${slug}`} prefetch={false} className="highlight-main block relative">
         <div className="relative w-full h-full">
           <Image 
             src={getImagePath(capaUrl)} 
@@ -37,7 +37,7 @@ export function NewsCard({ slug, titulo, capaUrl, categoria, data, variant = 'de
   // Versão 2: Item de Lista (Horizontal pequeno para "Últimas")
   if (variant === 'item') {
     return (
-      <Link href={`/noticia/${slug}`} className="noticia-item">
+      <Link href={`/noticia/${slug}`} prefetch={false} className="noticia-item">
         <div className="relative w-[110px] h-[70px] shrink-0">
           <Image 
             src={getImagePath(capaUrl)} 
@@ -57,7 +57,7 @@ export function NewsCard({ slug, titulo, capaUrl, categoria, data, variant = 'de
 
   // Versão 3: Card Padrão (Vertical com imagem no topo)
   return (
-    <Link href={`/noticia/${slug}`} className="card">
+    <Link href={`/noticia/${slug}`} prefetch={false} className="card">
       <span className="card-categoria">{categoria}</span>
       <div className="relative w-full h-[180px]">
         <Image 

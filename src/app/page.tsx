@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const revalidate = 300; // Cache de 5 minutos para a Home
 
 import Link from "next/link";
 import Image from "next/image";
@@ -15,7 +15,7 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
     <div className="section-header-premium">
       <h2 className="section-title-premium">{title}</h2>
       {link && (
-        <Link href={link} className="section-view-all">
+        <Link href={link} className="section-view-all" prefetch={false}>
           {TEXTS.navigation.verTodas} <i className="fas fa-chevron-right"></i>
         </Link>
       )}
@@ -24,42 +24,25 @@ function SectionHeader({ title, link }: { title: string; link?: string }) {
 }
 
 export default async function Home() {
-  const [
+  const homeData = await apiService.getHomeData();
+
+  const {
     destaques,
-    ultimasNews,
-    maisLidasRaw,
-    trendingRaw,
-    categorias,
-    bannerTopoHome,
-    bannerMeioHome,
-  ] = await Promise.all([
-    apiService.getDestaques(),
-    apiService.getUltimasNoticias(10), // Busca 10 notícias uma única vez e compartilha o resultado
-    apiService.getMaisLidas(),
-    apiService.getTrending(),
-    apiService.getCategorias(),
-    apiService.getBannerAtivo("topo_home").catch(() => null),
-    apiService.getBannerAtivo("meio_home").catch(() => null),
-  ]);
+    ultimas: ultimasNews,
+    maisLidas: maisLidasRaw,
+    trending: trendingRaw,
+    noticiasPorCategoria,
+    bannerTopo: bannerTopoHome,
+    bannerMeio: bannerMeioHome,
+  } = homeData;
 
   // Dividir o resultado no frontend para economizar 1 chamada de API inteira
   const ultimasNoticias = ultimasNews.slice(0, 6);
   const fallbackNews = ultimasNews;
 
-  // Buscar notícias de cada categoria de forma paralela
-  const noticiasPorCategoria = await Promise.all(
-    categorias.map(async (cat) => {
-      const noticias = await apiService.getNoticiasByCategoria(cat.slug, 3);
-      return {
-        categoria: cat,
-        noticias,
-      };
-    }),
-  );
-
   // Filtrar apenas categorias que possuem pelo menos 1 notícia
   const categoriasAtivas = noticiasPorCategoria.filter(
-    (item) => item.noticias.length > 0,
+    (item) => item.noticias && item.noticias.length > 0,
   );
 
   // 1. Destaques (Top Banner)
@@ -78,7 +61,13 @@ export default async function Home() {
       {/* BANNER PRINCIPAL PREMIUM (TOP) */}
       <div
         className="premium-ad-wrapper"
-        style={{ marginTop: "24px", marginBottom: "24px", maxWidth: "970px", marginLeft: "auto", marginRight: "auto" }}
+        style={{
+          marginTop: "24px",
+          marginBottom: "24px",
+          maxWidth: "970px",
+          marginLeft: "auto",
+          marginRight: "auto",
+        }}
       >
         <a
           href={bannerTopoHome?.linkUrl || "#"}
@@ -88,9 +77,19 @@ export default async function Home() {
           style={{ cursor: bannerTopoHome?.linkUrl ? "pointer" : "default" }}
         >
           <img
-            src={bannerTopoHome ? getImagePath(bannerTopoHome.imageUrl) : getImagePath("anuncio/banner2.png")}
+            src={
+              bannerTopoHome
+                ? getImagePath(bannerTopoHome.imageUrl)
+                : getImagePath("anuncio/banner2.png")
+            }
             alt={bannerTopoHome?.titulo || "Patrocínio Premium"}
-            style={{ width: "100%", height: "auto", maxHeight: "135px", objectFit: "cover", display: "block" }}
+            style={{
+              width: "100%",
+              height: "auto",
+              maxHeight: "135px",
+              objectFit: "cover",
+              display: "block",
+            }}
           />
         </a>
       </div>
@@ -127,16 +126,36 @@ export default async function Home() {
             style={{ margin: "20px 0" }}
           >
             <a
-              href={bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br"}
+              href={
+                bannerMeioHome?.linkUrl ||
+                "https://dinheironamao.trabalho.ce.gov.br"
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="premium-ad-container-v2"
-              style={{ cursor: (bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br") ? "pointer" : "default" }}
+              style={{
+                cursor:
+                  bannerMeioHome?.linkUrl ||
+                  "https://dinheironamao.trabalho.ce.gov.br"
+                    ? "pointer"
+                    : "default",
+              }}
             >
               <img
-                src={bannerMeioHome ? getImagePath(bannerMeioHome.imageUrl) : getImagePath("anuncio/Anuncio1.png")}
+                src={
+                  bannerMeioHome
+                    ? getImagePath(bannerMeioHome.imageUrl)
+                    : getImagePath("anuncio/Anuncio1.png")
+                }
                 alt={bannerMeioHome?.titulo || "Publicidade Governo do Ceará"}
-                style={{ width: "100%", height: "auto", maxHeight: "140px", objectFit: "cover", borderRadius: "8px", display: "block" }}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  maxHeight: "140px",
+                  objectFit: "cover",
+                  borderRadius: "8px",
+                  display: "block",
+                }}
               />
             </a>
           </div>
@@ -305,15 +324,25 @@ export default async function Home() {
               target="_blank"
               rel="noopener noreferrer"
               className="sidebar-ad-box"
+              style={{
+                aspectRatio: "unset",
+                height: "auto",
+                position: "relative",
+              }}
             >
               <Image
-                src={getImagePath("sistema/insta2.png")}
+                src={getImagePath("sistema/insta2.jpeg")}
                 alt={TEXTS.brand.name + " no Instagram"}
-                fill
+                width={320}
+                height={400}
                 sizes="300px"
-                style={{ objectFit: "cover" }}
+                style={{
+                  width: "100%",
+                  height: "auto",
+                  display: "block",
+                  borderRadius: "8px",
+                }}
               />
-              <div className="ad-overlay">{"Siga no Instagram"}</div>
             </a>
           </div>
 

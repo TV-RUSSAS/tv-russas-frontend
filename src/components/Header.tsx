@@ -4,20 +4,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SearchInput } from "./SearchInput";
-import { getImagePath } from "@/utils/imagePath";
 import { TEXTS } from "@/constants/texts";
-
 import { apiService } from "@/services/api";
 
-const CATEGORIAS_FALLBACK = [
+const CATEGORIAS_FIXAS = [
   { nome: "Cidade", slug: "cidade" },
   { nome: "Política", slug: "politica" },
   { nome: "Esporte", slug: "esporte" },
   { nome: "Entretenimento", slug: "entretenimento" },
   { nome: "Polícia", slug: "policia" },
-  { nome: "Youtube", slug: "youtube" },
-  { nome: "Brasil", slug: "brasil" },
   { nome: "Ceará", slug: "ceara" },
+  { nome: "Brasil", slug: "brasil" },
+  { nome: "Mundo", slug: "mundo" },
 ];
 
 export function Header() {
@@ -25,8 +23,24 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const pathname = usePathname();
-  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FALLBACK);
+  const [categorias, setCategorias] = useState<{ nome: string; slug: string }[]>(CATEGORIAS_FIXAS);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchCategorias = async () => {
+      try {
+        const dynamicCats = await apiService.getCategorias();
+        if (active && Array.isArray(dynamicCats) && dynamicCats.length > 0) {
+          setCategorias(dynamicCats.map(c => ({ nome: c.nome, slug: c.slug })));
+        }
+      } catch (err) {
+        console.error("Erro ao buscar categorias dinâmicas no Header:", err);
+      }
+    };
+    fetchCategorias();
+    return () => { active = false; };
+  }, [pathname]);
 
   useEffect(() => {
     const handleCategoryChange = (e: Event) => {
@@ -36,20 +50,6 @@ export function Header() {
     window.addEventListener('active-category-change', handleCategoryChange);
     return () => {
       window.removeEventListener('active-category-change', handleCategoryChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    const fetchCategorias = async () => {
-      const cats = await apiService.getCategorias();
-      if (cats && cats.length > 0 && active) {
-        setCategorias(cats);
-      }
-    };
-    fetchCategorias();
-    return () => {
-      active = false;
     };
   }, []);
 
@@ -109,7 +109,8 @@ export function Header() {
           <div className="header-top-inner">
             <Link href="/" className="logo-wrapper">
               <Image
-                src={getImagePath(encodeURI("sistema/1.png"))}
+                // FASE 1 — Migrado de getImagePath("sistema/1.png") → /public do Next.js (Vercel)
+                src="/logo-tv-russas.png"
                 alt={TEXTS.brand.name}
                 width={200}
                 height={56}
@@ -127,12 +128,14 @@ export function Header() {
                 </Link>
                 <Link
                   href="/colunistas"
+                  prefetch={false}
                   className={pathname === "/colunistas" ? "active" : ""}
                 >
                   {TEXTS.navigation.columnists}
                 </Link>
                 <Link
                   href="/reporter"
+                  prefetch={false}
                   className={pathname === "/reporter" ? "active" : ""}
                 >
                   {TEXTS.navigation.reporter}
@@ -182,6 +185,7 @@ export function Header() {
               <li key={cat.slug}>
                 <Link
                   href={`/categoria/${cat.slug}`}
+                  prefetch={false}
                   className={
                     pathname === `/categoria/${cat.slug}` || activeCategory === cat.slug ? "active" : ""
                   }
@@ -214,10 +218,10 @@ export function Header() {
               <Link href="/">
                 <i className="fas fa-home" /> {TEXTS.navigation.inicio}
               </Link>
-              <Link href="/colunistas">
+              <Link href="/colunistas" prefetch={false}>
                 <i className="fas fa-user-edit" /> {TEXTS.navigation.columnists}
               </Link>
-              <Link href="/reporter">
+              <Link href="/reporter" prefetch={false}>
                 <i className="fas fa-camera" /> {TEXTS.navigation.reporter}
               </Link>
             </nav>
@@ -230,6 +234,7 @@ export function Header() {
                 <Link 
                   key={cat.slug} 
                   href={`/categoria/${cat.slug}`}
+                  prefetch={false}
                   className={
                     pathname === `/categoria/${cat.slug}` || activeCategory === cat.slug ? "active" : ""
                   }

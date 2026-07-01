@@ -11,6 +11,8 @@ export const metadata = {
   description: "Conheça os colunistas da TV Russas e acompanhe seus artigos.",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function ColunistasPage() {
   const colunistas = await apiService.getColunistas();
 

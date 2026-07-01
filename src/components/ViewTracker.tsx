@@ -8,14 +8,6 @@ interface ViewTrackerProps {
 
 export function ViewTracker({ slug }: ViewTrackerProps) {
   useEffect(() => {
-    // ECONOMY_MODE: view tracking temporariamente desativado para reduzir banda do Render.
-    // TODO: Reativar quando backend estiver em plano com banda suficiente.
-    // Para reativar, defina ECONOMY_MODE=false no .env.
-    if (process.env.NEXT_PUBLIC_ECONOMY_MODE === "true") {
-      return;
-    }
-
-    // Registra a visualização após 500ms de permanência
     const timer = setTimeout(async () => {
       try {
         const localKey = `viewed_${slug}`;

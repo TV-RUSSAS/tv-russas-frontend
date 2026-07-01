@@ -17,14 +17,14 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
-interface Sugestao {
+interface Contato {
   id: string;
   nome: string;
   email: string | null;
-  telefone: string | null;
-  relato: string;
-  midiaUrl: string | null;
-  status: 'pendente' | 'lida' | 'arquivada';
+  assunto: string;
+  mensagem: string;
+  
+  status: 'pendente' | 'lido' | 'arquivado';
   criadoEm: string;
 }
 
@@ -32,14 +32,14 @@ interface Sugestao {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3001';
 
-export default function SugestoesAdmin() {
+export default function ContatosAdmin() {
   const { authFetch } = useAdminAuth();
   
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pendente': return 'cms-badge-yellow';
-      case 'lida': return 'cms-badge-green';
-      case 'arquivada': return 'cms-badge-gray';
+      case 'lido': return 'cms-badge-green';
+      case 'arquivado': return 'cms-badge-gray';
       default: return '';
     }
   };
@@ -47,12 +47,12 @@ export default function SugestoesAdmin() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'pendente': return 'Pendente';
-      case 'lida': return 'Lida';
-      case 'arquivada': return 'Arquivada';
+      case 'lido': return 'Lida';
+      case 'arquivado': return 'Arquivada';
       default: return '';
     }
   };
-  const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
+  const [contatos, setContatos] = useState<Contato[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -62,9 +62,9 @@ export default function SugestoesAdmin() {
 
   const load = useCallback(async () => {
     try {
-      const res = await authFetch('/admin/sugestoes');
+      const res = await authFetch('/admin/contatos');
       const data = await res.json();
-      setSugestoes(Array.isArray(data) ? data : data.sugestoes || []);
+      setContatos(Array.isArray(data) ? data : data.contatos || []);
     } catch (err) {
       if (err instanceof Error) setError(err.message);
     } finally {
@@ -76,10 +76,10 @@ export default function SugestoesAdmin() {
     let active = true;
     const fetchInit = async () => {
       try {
-        const res = await authFetch('/admin/sugestoes');
+        const res = await authFetch('/admin/contatos');
         const data = await res.json();
         if (active) {
-          setSugestoes(Array.isArray(data) ? data : data.sugestoes || []);
+          setContatos(Array.isArray(data) ? data : data.contatos || []);
           setLoading(false);
         }
       } catch (err) {
@@ -90,17 +90,17 @@ export default function SugestoesAdmin() {
     return () => { active = false; };
   }, [authFetch]);
 
-  const updateStatus = async (id: string, status: Sugestao['status']) => {
+  const updateStatus = async (id: string, status: Contato['status']) => {
     setChangingStatus(id);
     try {
-      const res = await authFetch(`/admin/sugestoes/${id}/status`, {
+      const res = await authFetch(`/admin/contatos/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error('Erro ao atualizar status.');
       setSuccess('Status atualizado com sucesso!');
-      setSugestoes(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+      setContatos(prev => prev.map(s => s.id === id ? { ...s, status } : s));
       setTimeout(() => setSuccess(''), 2000);
     } catch (err) {
       if (err instanceof Error) setError(err.message);
@@ -111,27 +111,27 @@ export default function SugestoesAdmin() {
 
   // KPIs dinâmicos
   const kpis = useMemo(() => {
-    const total = sugestoes.length;
-    const pendentes = sugestoes.filter(s => s.status === 'pendente').length;
-    const lidas = sugestoes.filter(s => s.status === 'lida').length;
-    const comMidia = sugestoes.filter(s => s.midiaUrl).length;
+    const total = contatos.length;
+    const pendentes = contatos.filter(s => s.status === 'pendente').length;
+    const lidos = contatos.filter(s => s.status === 'lido').length;
+    const comMidia = 0;
 
-    return { total, pendentes, lidas, comMidia };
-  }, [sugestoes]);
+    return { total, pendentes, lidos, comMidia };
+  }, [contatos]);
 
   const filtered = useMemo(() => {
-    return filtroStatus ? sugestoes.filter(s => s.status === filtroStatus) : sugestoes;
-  }, [sugestoes, filtroStatus]);
+    return filtroStatus ? contatos.filter(s => s.status === filtroStatus) : contatos;
+  }, [contatos, filtroStatus]);
 
-  const selected = sugestoes.find(s => s.id === selectedId);
+  const selected = contatos.find(s => s.id === selectedId);
 
   return (
     <>
       {/* Cabeçalho Editorial */}
       <div className="cms-page-header">
         <div>
-          <h2 className="cms-page-title">{TEXTS.navigation.reporter}</h2>
-          <p className="cms-page-subtitle">{TEXTS.admin.reporterSub}</p>
+          <h2 className="cms-page-title">"Caixa de Entrada"</h2>
+          <p className="cms-page-subtitle">"Gerencie as mensagens recebidas pelo Fale Conosco."</p>
         </div>
         
         {/* Filtros em Pílulas */}
@@ -149,14 +149,14 @@ export default function SugestoesAdmin() {
             {TEXTS.admin.statusPending} ({kpis.pendentes})
           </button>
           <button
-            className={`cms-btn ${filtroStatus === 'lida' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
-            onClick={() => setFiltroStatus('lida')}
+            className={`cms-btn ${filtroStatus === 'lido' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
+            onClick={() => setFiltroStatus('lido')}
           >
-            {TEXTS.admin.statusRead} ({kpis.lidas})
+            {TEXTS.admin.statusRead} ({kpis.lidos})
           </button>
           <button
-            className={`cms-btn ${filtroStatus === 'arquivada' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
-            onClick={() => setFiltroStatus('arquivada')}
+            className={`cms-btn ${filtroStatus === 'arquivado' ? 'cms-btn-primary' : 'cms-btn-secondary'} cms-btn-sm`}
+            onClick={() => setFiltroStatus('arquivado')}
           >
             {TEXTS.admin.statusArchived}
           </button>
@@ -199,7 +199,7 @@ export default function SugestoesAdmin() {
           <div className="cms-stat-icon" style={{ color: '#10b981' }}>
             <CheckCircle size={16} />
           </div>
-          <span className="cms-stat-value">{kpis.lidas}</span>
+          <span className="cms-stat-value">{kpis.lidos}</span>
           <span className="cms-stat-label">{TEXTS.admin.readReports}</span>
         </div>
 
@@ -227,7 +227,7 @@ export default function SugestoesAdmin() {
           ) : (
             filtered.map(s => {
               const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(s.nome)}&background=1e2535&color=e2e8f0`;
-              const finalMidiaUrl = s.midiaUrl ? (s.midiaUrl.startsWith('http') ? s.midiaUrl : `${API_BASE_URL}${s.midiaUrl}`) : null;
+
 
               return (
                 <div 
@@ -286,36 +286,9 @@ export default function SugestoesAdmin() {
                       borderRadius: '4px',
                       borderLeft: '2px solid rgba(255,255,255,0.08)'
                     }}>
-                      &quot;{s.relato.length > 140 ? s.relato.slice(0, 140) + '...' : s.relato}&quot;
+                      &quot;{s.mensagem.length > 140 ? s.mensagem.slice(0, 140) + '...' : s.mensagem}&quot;
                     </p>
                   </div>
-
-                  {/* Anexo Preview Rápido */}
-                  {finalMidiaUrl && (
-                    <div style={{ 
-                      borderRadius: '4px', 
-                      overflow: 'hidden', 
-                      height: '110px', 
-                      width: '100%', 
-                      background: '#09090d',
-                      border: '1px solid rgba(255,255,255,0.04)',
-                      position: 'relative'
-                    }}>
-                      {s.midiaUrl?.endsWith('.mp4') ? (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--c-secondary)', fontSize: '12px' }}>
-                          <Paperclip size={14} style={{ marginRight: '6px' }} />
-                          Anexo de Vídeo (.mp4)
-                        </div>
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img 
-                          src={finalMidiaUrl} 
-                          alt="Denúncia" 
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                        />
-                      )}
-                    </div>
-                  )}
 
                   {/* Rodapé do Card com Ações */}
                   <div style={{ 
@@ -334,11 +307,11 @@ export default function SugestoesAdmin() {
                       <span>{TEXTS.admin.analyzing}</span>
                     </button>
                     
-                    {s.status !== 'lida' && (
+                    {s.status !== 'lido' && (
                       <button 
                         className="cms-btn cms-btn-secondary cms-btn-sm" 
                         disabled={changingStatus === s.id}
-                        onClick={() => updateStatus(s.id, 'lida')}
+                        onClick={() => updateStatus(s.id, 'lido')}
                         title="Marcar como revisada"
                         style={{ color: '#10b981' }}
                       >
@@ -346,12 +319,12 @@ export default function SugestoesAdmin() {
                       </button>
                     )}
                     
-                    {s.status !== 'arquivada' && (
+                    {s.status !== 'arquivado' && (
                       <button 
                         className="cms-btn cms-btn-secondary cms-btn-sm" 
                         disabled={changingStatus === s.id}
-                        onClick={() => updateStatus(s.id, 'arquivada')}
-                        title="Arquivar relato"
+                        onClick={() => updateStatus(s.id, 'arquivado')}
+                        title="Arquivar mensagem"
                       >
                         <Archive size={13} />
                       </button>
@@ -407,12 +380,12 @@ export default function SugestoesAdmin() {
                   </div>
                 )}
                 
-                {selected.telefone && (
+                {selected.assunto && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Phone size={14} style={{ color: 'var(--c-secondary)' }} />
                     <div>
-                      <span style={{ fontSize: '10.5px', color: 'var(--c-secondary)', display: 'block' }}>{TEXTS.admin.phone}</span>
-                      <span style={{ fontSize: '13px', fontWeight: '500' }}>{selected.telefone}</span>
+                      <span style={{ fontSize: '10.5px', color: 'var(--c-secondary)', display: 'block' }}>"Assunto"</span>
+                      <span style={{ fontSize: '13px', fontWeight: '500' }}>{selected.assunto}</span>
                     </div>
                   </div>
                 )}
@@ -420,7 +393,7 @@ export default function SugestoesAdmin() {
 
               {/* Corpo da Denúncia */}
               <div>
-                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{TEXTS.admin.citizenReport}</span>
+                <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>"Mensagem"</span>
                 <p style={{ 
                   marginTop: '8px', 
                   lineHeight: '1.8', 
@@ -432,33 +405,20 @@ export default function SugestoesAdmin() {
                   color: 'var(--c-text)',
                   whiteSpace: 'pre-wrap'
                 }}>
-                  &quot;{selected.relato}&quot;
+                  &quot;{selected.mensagem}&quot;
                 </p>
               </div>
 
-              {/* Mídia Anexada em Resolução Completa */}
-              {selected.midiaUrl && (
-                <div>
-                  <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--c-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>{TEXTS.admin.evidenceMedia}</span>
-                  <div style={{ borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--c-border)' }}>
-                    {selected.midiaUrl.endsWith('.mp4') ? (
-                      <video src={`${API_BASE_URL}${selected.midiaUrl}`} controls style={{ width: '100%', display: 'block' }} />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={`${API_BASE_URL}${selected.midiaUrl}`} alt="Evidência" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                    )}
-                  </div>
-                </div>
-              )}
+
             </div>
             
             <div className="cms-modal-footer">
               <button className="cms-btn cms-btn-secondary" onClick={() => setSelectedId(null)}>{TEXTS.actions.close}</button>
               
-              {selected.status !== 'lida' && (
+              {selected.status !== 'lido' && (
                 <button 
                   className="cms-btn cms-btn-primary" 
-                  onClick={() => { updateStatus(selected.id, 'lida'); setSelectedId(null); }}
+                  onClick={() => { updateStatus(selected.id, 'lido'); setSelectedId(null); }}
                 >
                   <CheckCircle size={14} />
                   <span>{TEXTS.admin.markAsRead}</span>

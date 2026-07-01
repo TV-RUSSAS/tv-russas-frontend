@@ -385,8 +385,7 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
-  position: sticky;
-  top: 90px;
+  position: static;
 }
 
 /* ===== Widget Mais Lidas (TrendingWidget) — espelha o home-premium.css ===== */
@@ -528,28 +527,77 @@
   }
 }
 
-/* Tablets (768px e abaixo) */
+/* Tablets (768px e abaixo) e Celulares */
 @media (max-width: 768px) {
+  /* Margem lateral global padronizada para 16px */
+  .site-container {
+    padding: 0 16px 36px !important;
+  }
+
+  .categoria-header {
+    margin: 20px 0 24px !important;
+  }
+
+  .categoria-breadcrumb {
+    padding-left: 0 !important;
+    margin-bottom: 8px !important;
+  }
+
   .categoria-highlights-section {
     grid-template-columns: 1fr;
     gap: 12px;
   }
-  
 
   .destaque-card-g1.hero-large {
-    height: 320px;
+    height: 280px !important; /* Altura controlada no mobile */
   }
 
   .destaque-card-g1.secondary-small {
-    height: 200px;
+    height: 190px !important;
   }
 
+  .destaque-card-content {
+    padding: 16px !important; /* Respiro seguro de 16px */
+    gap: 4px !important;
+  }
+
+  .destaque-card-g1.secondary-small .destaque-card-content {
+    padding: 12px 14px !important;
+  }
+
+  /* Títulos dos cards com clamp e line-height controlado */
   .destaque-card-title {
-    font-size: 20px;
+    font-size: clamp(18px, 4.5vw, 24px) !important;
+    line-height: 1.25 !important;
   }
 
   .destaque-card-g1.secondary-small .destaque-card-title {
-    font-size: 15px;
+    font-size: clamp(14px, 3.5vw, 16px) !important;
+    line-height: 1.3 !important;
+  }
+
+  .destaque-card-resumo {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+  }
+
+  /* 1. Badges de categoria com área segura no mobile */
+  .destaque-card-tag {
+    position: absolute !important;
+    top: 16px !important;
+    left: 16px !important;
+    max-width: calc(100% - 32px) !important;
+    font-size: 9px !important;
+    padding: 4px 8px !important;
+    margin: 0 !important;
+    z-index: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .destaque-card-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 55%, rgba(0, 0, 0, 0.2) 100%) !important;
   }
 
   /* O card horizontal vira vertical em celulares */
@@ -564,15 +612,44 @@
     aspect-ratio: 16 / 10;
   }
 
+  .card-horizontal-body {
+    padding: 0 4px !important;
+  }
+
   .card-horizontal-titulo {
-    font-size: 17px;
+    font-size: 16px !important;
+    line-height: 1.3 !important;
+  }
+
+  .card-horizontal-resumo {
+    font-size: 13px !important;
+    line-height: 1.4 !important;
   }
 }
 
-/* Mobile (576px e abaixo) */
-@media (max-width: 576px) {
+/* Otimizações abaixo de 360px */
+@media (max-width: 360px) {
   .site-container {
-    padding: 0 16px 36px;
+    padding: 0 12px 28px !important;
+  }
+  
+  .destaque-card-content {
+    padding: 12px !important;
   }
 
+  .destaque-card-tag {
+    top: 12px !important;
+    left: 12px !important;
+    max-width: calc(100% - 24px) !important;
+    font-size: 8px !important;
+    padding: 3px 6px !important;
+  }
+
+  .destaque-card-title {
+    font-size: 17px !important;
+  }
+
+  .destaque-card-g1.secondary-small .destaque-card-title {
+    font-size: 13px !important;
+  }
 }

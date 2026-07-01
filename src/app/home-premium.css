@@ -101,6 +101,13 @@
   gap: 40px;
 }
 
+@media (max-width: 640px) {
+  .premium-home {
+    padding: 16px 14px 60px;
+    gap: 28px;
+  }
+}
+
 /* SISTEMA DE ANÚNCIOS PREMIUM */
 .premium-ad-wrapper {
   width: 100%;
@@ -601,8 +608,7 @@
 }
 
 .sticky-widget {
-  position: sticky;
-  top: 100px;
+  position: relative;
 }
 
 .sidebar-ad-box {
@@ -752,4 +758,230 @@
   .news-grid-modern {
     grid-template-columns: 1fr;
   }
+
+  /* Mixed list e Parallel list no mobile seguem o padrão CNN Brasil (lista horizontal limpa) */
+  .mixed-list,
+  .parallel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 4px;
+  }
+
+  .mixed-list .premium-card-list,
+  .parallel-list .premium-card-list {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    padding: 16px 0;
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid #eaeaea;
+    box-shadow: none;
+    align-items: center;
+  }
+
+  .mixed-list .premium-card-list:last-child,
+  .parallel-list .premium-card-list:last-child {
+    border-bottom: none;
+  }
+
+  .mixed-list .list-img-wrapper,
+  .parallel-list .list-img-wrapper {
+    width: 130px;
+    height: 85px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    border: 1px solid #f0f0f0;
+  }
+
+  .mixed-list .list-content,
+  .parallel-list .list-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+  }
+
+  .mixed-list .list-title,
+  .parallel-list .list-title {
+    font-size: 15.5px;
+    font-weight: 700;
+    color: #111;
+    line-height: 1.35;
+    margin-bottom: 4px;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+    display: block;
+  }
+
+  .mixed-list .list-date,
+  .parallel-list .list-date {
+    font-size: 11.5px;
+    color: #888;
+  }
+
+  .mixed-list .premium-tag-small,
+  .parallel-list .premium-tag-small {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--laranja, #ff5722);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+    display: inline-block;
+  }
+
+  /* rounded-box sem padding excessivo no mobile */
+  .rounded-box {
+    padding: 18px 16px;
+  }
+
+  /* section header mais compacto */
+  .section-header-premium {
+    margin-bottom: 16px;
+  }
+
+  .section-title-premium {
+    font-size: 19px;
+  }
 }
+
+/* ==========================================================================
+   OTIMIZAÇÕES RESPONSIVAS ADICIONAIS (CRITÉRIOS OBRIGATÓRIOS MOBILE)
+   ========================================================================== */
+
+/* Breakpoint geral para mobiles (telas de até 768px) */
+@media (max-width: 768px) {
+  /* Margens laterais globais da Home padronizadas para 16px */
+  .premium-home {
+    padding: 16px 16px 60px !important;
+    gap: 28px !important;
+  }
+
+  /* Padding interno seguro nos cards com texto por cima */
+  .premium-card-content {
+    padding: 16px 20px !important; /* Espaço confortável para os lados */
+  }
+
+  /* Reforço de contraste do gradiente sob o texto em celulares */
+  .premium-card-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.25) 100%) !important;
+  }
+
+  /* 1. Badges de categoria com área segura no mobile */
+  .premium-tag-floating {
+    position: absolute !important;
+    top: 16px !important;
+    left: 16px !important;
+    max-width: calc(100% - 32px) !important;
+    font-size: 10px !important;
+    padding: 4px 10px !important;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .premium-tag {
+    font-size: 10px !important;
+    padding: 4px 10px !important;
+    margin-bottom: 8px !important;
+    max-width: 100% !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 2. Títulos dos cards com clamp e line-height controlado */
+  .premium-title-large {
+    font-size: clamp(22px, 4.5vw, 32px) !important;
+    line-height: 1.25 !important;
+    margin-bottom: 8px !important;
+  }
+
+  .premium-title-medium-hero,
+  .premium-title-medium,
+  .small-title {
+    font-size: clamp(18px, 3.5vw, 24px) !important;
+    line-height: 1.3 !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Resumo e metadados nos cards de destaque */
+  .premium-card-excerpt {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 10px !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .premium-meta-white {
+    font-size: 11px !important;
+    gap: 12px !important;
+  }
+
+  /* Ajustes de grid de notícias menores */
+  .clean-content {
+    padding: 14px 16px 16px !important; /* Padding confortável sem encostar */
+  }
+
+  .small-excerpt {
+    font-size: 13.5px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 12px !important;
+  }
+
+  .small-meta {
+    font-size: 11px !important;
+    padding-top: 8px !important;
+  }
+}
+
+/* Breakpoint abaixo de 360px (Mobiles pequenos - ex: iPhone SE) */
+@media (max-width: 360px) {
+  .premium-home {
+    padding: 12px 12px 48px !important; /* Ligeiramente menor para telas muito estreitas */
+  }
+
+  .premium-card-content {
+    padding: 14px 14px !important;
+  }
+
+  /* Reduz font-size e padding do badge para não encostar ou quebrar */
+  .premium-tag-floating {
+    top: 12px !important;
+    left: 12px !important;
+    max-width: calc(100% - 24px) !important;
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+  }
+
+  .premium-tag {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .premium-title-large {
+    font-size: 20px !important;
+  }
+
+  .premium-title-medium-hero,
+  .premium-title-medium,
+  .small-title {
+    font-size: 17px !important;
+  }
+  
+  .clean-content {
+    padding: 12px 12px 12px !important;
+  }
+}
+

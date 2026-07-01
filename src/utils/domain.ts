@@ -4,7 +4,12 @@ export function getSiteUrl(): string {
     return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   }
 
-  // 2. Se estiver rodando na infraestrutura da Vercel, usa o domínio automático da Vercel
+  // 2. Se estiver em produção (main branch) na Vercel, forçar o domínio principal
+  if (process.env.NEXT_PUBLIC_VERCEL_ENV === "production") {
+    return "https://tvrussas.com.br";
+  }
+
+  // 3. Se estiver rodando na infraestrutura da Vercel (ex: Preview)
   if (process.env.NEXT_PUBLIC_VERCEL_URL) {
     return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
   }

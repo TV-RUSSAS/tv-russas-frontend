@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { API_URL } from '@/services/api';
-import { getImagePath } from '@/utils/imagePath';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { 
   Mail, 
@@ -67,8 +66,12 @@ export default function AdminLogin() {
       sessionStorage.setItem('userRole', data.user.role);
       sessionStorage.setItem('userId', data.user.id);
 
-      // Redireciona para o dashboard administrativo
-      router.push('/admin');
+      // Redireciona de acordo com o nível de permissão
+      if (data.user.role === 'COLUNISTA') {
+        router.push('/admin/noticias');
+      } else {
+        router.push('/admin');
+      }
       router.refresh();
     } catch (err) {
       if (err instanceof Error) {
@@ -89,7 +92,7 @@ export default function AdminLogin() {
           
           <div className="login-form-logo">
             <Image
-              src={getImagePath("sistema/1.png")}
+              src="/logo-tv-russas.png"
               alt="TV Russas"
               width={160}
               height={45}

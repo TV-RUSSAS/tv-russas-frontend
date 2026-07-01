@@ -16,6 +16,9 @@ interface SearchResult {
   categoria: { nome: string };
 }
 
+// Cache local em memória persistente durante a sessão do cliente
+const localCache: Record<string, SearchResult[]> = {};
+
 export function SearchInput() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -46,25 +49,42 @@ export function SearchInput() {
     }
   }
 
-  // Debounce search
+  // Debounce search com AbortController e cache local em memória
   useEffect(() => {
-    const isEconomy = process.env.NEXT_PUBLIC_ECONOMY_MODE === "true";
-    const delay = isEconomy ? 1000 : 300;
+    const delay = 500;
+    const controller = new AbortController();
 
-    // ECONOMY_MODE: debounce maior para reduzir chamadas ao backend no Render.
-    // TODO: Reativar quando backend estiver em plano com banda suficiente.
-    // Para reativar, defina ECONOMY_MODE=false no .env.
     const timer = setTimeout(async () => {
-      if (query.length >= 3) {
+      const trimmedQuery = query.trim().toLowerCase();
+      if (trimmedQuery.length >= 3) {
+        // Verificar cache local em memória
+        if (localCache[trimmedQuery]) {
+          setResults(localCache[trimmedQuery]);
+          setIsOpen(true);
+          setLoading(false);
+          return;
+        }
+
         setLoading(true);
         try {
-          const res = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`);
+          const res = await fetch(`${API_URL}/search?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal,
+          });
           if (res.ok) {
             const data = await res.json();
-            setResults(data.results || []);
+            const searchResults = data.results || [];
+            
+            // Gravar no cache local
+            localCache[trimmedQuery] = searchResults;
+
+            setResults(searchResults);
             setIsOpen(true);
           }
         } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            // Ignorar erro se a requisição foi abortada
+            return;
+          }
           console.error("Search error:", err);
         } finally {
           setLoading(false);
@@ -75,7 +95,10 @@ export function SearchInput() {
       }
     }, delay);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [query]);
 
   // Close dropdown on click outside
@@ -146,11 +169,11 @@ export function SearchInput() {
                   : "Ver resultados completos →"}
               </Link>
             </div>
-          ) : (
+          ) : !loading && query.length >= 3 ? (
             <div className="search-empty-v2">
               {TEXTS.search.noNewsFoundFor}&quot;{query}&quot;
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

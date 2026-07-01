@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/api`
-  : 'http://localhost:3001/api';
+  : 'http://127.0.0.1:3001/api';
 
 export interface AdminUser {
   id: string;
@@ -152,11 +152,14 @@ export function useAdminAuth() {
       }
     }
 
-    // 3. Se ainda der erro, desloga
-    if (res.status === 401 || res.status === 403) {
+    // 3. Se ainda der erro 401, desloga. Se der 403, apenas recusa o acesso sem deslogar.
+    if (res.status === 401) {
       sessionStorage.clear();
       window.location.href = '/admin/login';
-      throw new Error('Não autorizado.');
+      throw new Error('Sessão expirada.');
+    }
+    if (res.status === 403) {
+      throw new Error('Você não tem permissão para acessar este recurso.');
     }
     
     return res;

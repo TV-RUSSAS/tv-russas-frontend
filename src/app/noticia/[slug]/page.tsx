@@ -1,3 +1,4 @@
+export const revalidate = 300; // Cache ISR de 5 minutos para páginas de notícia
 import "./noticia-premium.css";
 import "@/app/social-embeds.css";
 import Image from "next/image";
@@ -10,7 +11,7 @@ import {
   InlineShare,
 } from "@/components/ArticleInteractions";
 import { ArticleFeedbackWrapper as ArticleFeedback } from "@/components/ArticleFeedbackWrapper";
-import { apiService } from "@/services/api";
+import { getNoticiaPageData } from "@/services/api";
 import type { Metadata } from "next";
 import { DOMAIN } from "@/utils/domain";
 import { TEXTS } from "@/constants/texts";
@@ -22,6 +23,8 @@ import {
 import { PremiumVideoPlayer } from "@/components/PremiumVideoPlayer";
 import CategoryActiveSetter from "@/components/CategoryActiveSetter";
 
+// ─── generateMetadata: usa getNoticiaPageData (React.cache)
+// Garante 0 requests duplicados com o componente de página no mesmo ciclo SSR ───
 export async function generateMetadata({
   params,
 }: {
@@ -29,12 +32,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const noticia = await apiService.getNoticia(slug);
-    if (!noticia) {
-      return {
-        title: "Matéria Não Encontrada | TV Russas",
-      };
+    const pageData = await getNoticiaPageData(slug);
+    if (!pageData) {
+      return { title: "Matéria Não Encontrada | TV Russas" };
     }
+    const { noticia } = pageData;
 
     const title = noticia.titulo;
     const cleanContent = noticia.conteudo
@@ -50,9 +52,7 @@ export async function generateMetadata({
     return {
       title,
       description,
-      alternates: {
-        canonical: articleUrl,
-      },
+      alternates: { canonical: articleUrl },
       openGraph: {
         title,
         description,
@@ -92,9 +92,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     console.error("Erro ao gerar metadados dinâmicos:", error);
-    return {
-      title: "Notícia | TV Russas",
-    };
+    return { title: "Notícia | TV Russas" };
   }
 }
 
@@ -126,6 +124,76 @@ function formatArticleContent(htmlContent: string): string {
     /<p>\s*(?:<strong>|<b>)\s*([^<]+?)\s*(?:<\/strong>|<\/b>)\s*<\/p>/gi,
     '<h3 class="article-subheading">$1</h3>',
   );
+
+  // Transformar marcadores de legenda de imagem {{IMGCAPTION:...}} em layout editorial (legado)
+  content = content.replace(
+    /<p[^>]*>\s*\{\{IMGCAPTION:(.*?)\}\}\s*<\/p>/gi,
+    (_match: string, captionText: string) => {
+      const parts = captionText.split(' | ');
+      const descricao = parts[0] || '';
+      const credito = parts[1] || '';
+      return `<div class="article-inline-caption"><span>${descricao}</span><span>${credito}</span></div>`;
+    },
+  );
+
+  // Transformar legendas de imagem: <p> com font-size 11px ou 12px contendo texto com FOTO:
+  content = content.replace(
+    /<p[^>]*style="[^"]*font-size:\s*1[12]px[^"]*"[^>]*>([\s\S]*?)<\/p>/gi,
+    (_match: string, inner: string) => {
+      const cleanText = inner.replace(/<\/?span[^>]*>/gi, '').trim();
+      if (!cleanText) return '';
+      // Formato "descrição | FOTO: crédito"
+      const pipeMatch = cleanText.match(/^(.*?)\s*\|\s*FOTO:\s*(.*)$/i);
+      if (pipeMatch) {
+        return `<div class="article-inline-caption"><span>${pipeMatch[1].trim()}</span><span>FOTO: ${pipeMatch[2].trim()}</span></div>`;
+      }
+      // Formato "descriçãoFOTO: crédito" (sem pipe)
+      const fotoMatch = cleanText.match(/^(.*?)FOTO:\s*(.*)$/i);
+      if (fotoMatch && fotoMatch[1].trim()) {
+        return `<div class="article-inline-caption"><span>${fotoMatch[1].trim()}</span><span>FOTO: ${fotoMatch[2].trim()}</span></div>`;
+      }
+      // Apenas "FOTO: crédito" sem descrição
+      const fotoOnly = cleanText.match(/^FOTO:\s*(.+)$/i);
+      if (fotoOnly) {
+        return `<div class="article-inline-caption"><span></span><span>FOTO: ${fotoOnly[1].trim()}</span></div>`;
+      }
+      // Legenda sem crédito (só descrição)
+      return `<div class="article-inline-caption"><span>${cleanText}</span><span></span></div>`;
+    },
+  );
+
+  // Formato legado sem estilo inline: <p>descFOTO: cred</p> ou <p>desc | FOTO: cred</p>
+  content = content.replace(
+    /<p>\s*([^<]{1,80}?)\s*\|\s*FOTO:\s*([^<]{1,80}?)\s*<\/p>/gi,
+    (_match: string, desc: string, cred: string) => {
+      return `<div class="article-inline-caption"><span>${desc.trim()}</span><span>FOTO: ${cred.trim()}</span></div>`;
+    },
+  );
+  content = content.replace(
+    /<p>\s*([^<]{1,60}?)FOTO:\s*([^<]{1,60}?)\s*<\/p>/g,
+    (_match: string, desc: string, cred: string) => {
+      const trimDesc = desc.trim();
+      const trimCred = cred.trim();
+      if (!trimDesc && !trimCred) return _match;
+      return `<div class="article-inline-caption"><span>${trimDesc}</span><span>FOTO: ${trimCred}</span></div>`;
+    },
+  );
+
+  // Adicionar classe 'has-dropcap' ao primeiro parágrafo de texto real
+  let dropcapApplied = false;
+  content = content.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (match, inner) => {
+    if (dropcapApplied) return match;
+    if (inner.includes('<img')) return match;
+    if (inner.includes('<iframe') || inner.includes('social-embed-placeholder')) return match;
+    if (inner.includes('FOTO:')) return match;
+    
+    const textOnly = inner.replace(/<[^>]+>/g, '').trim();
+    if (textOnly.length > 0) {
+      dropcapApplied = true;
+      return match.replace(/^<p/, '<p class="has-dropcap"');
+    }
+    return match;
+  });
 
   return content;
 }
@@ -312,7 +380,7 @@ function renderVideoPlayer(
     let fullSrc = videoUrl;
     if (videoUrl.startsWith("/") && !videoUrl.startsWith("//")) {
       const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+        process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3001";
       const cleanBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
       fullSrc = `${cleanBase}${videoUrl}`;
     }
@@ -328,27 +396,13 @@ export default async function NoticiaPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const noticia = await apiService.getNoticia(slug);
-  if (!noticia) notFound();
 
-  const [todasNoticias, bannerTopo, maisLidas] = await Promise.all([
-    apiService.getNoticias(),
-    apiService.getBannerAtivo(`topo_interna:${noticia.categoria.slug}`),
-    apiService.getMaisLidas().catch((err) => {
-      console.error("Erro ao buscar mais lidas:", err);
-      return [];
-    }),
-  ]);
+  // Uma única chamada HTTP ao Render — consolidada no backend (/api/noticias/:slug/page)
+  // React.cache garante que generateMetadata e esta Page compartilham o mesmo resultado
+  const pageData = await getNoticiaPageData(slug);
+  if (!pageData) notFound();
 
-  // Relacionadas: prioriza mesma categoria, fallback para qualquer outra
-  const mesmaCat = todasNoticias.filter(
-    (n) => n.slug !== slug && n.categoria.slug === noticia.categoria.slug,
-  );
-  const relacionadas = (
-    mesmaCat.length >= 3
-      ? mesmaCat
-      : todasNoticias.filter((n) => n.slug !== slug)
-  ).slice(0, 3);
+  const { noticia, relacionadas, maisLidas, bannerTopo } = pageData;
 
   const data = new Date(noticia.publicadoEm).toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -410,7 +464,8 @@ export default async function NoticiaPage({
             : ""),
         image: [getImagePath(noticia.capaUrl)],
         datePublished: noticia.publicadoEm,
-        dateModified: noticia.publicadoEm,
+        inLanguage: 'pt-BR',
+        articleSection: noticia.categoria.nome,
         author: {
           "@type": "Person",
           name: noticia.colunista?.nome || "Portal TV Russas",
@@ -442,14 +497,7 @@ export default async function NoticiaPage({
 
       {/* Banner de Publicidade no Topo */}
       {bannerTopo && (
-        <div
-          className="editorial-ad-banner-topo"
-          style={{
-            margin: "24px auto",
-            maxWidth: "860px",
-            width: "100%",
-          }}
-        >
+        <div className="editorial-ad-banner-topo">
           <a
             href={bannerTopo.linkUrl || "#"}
             target={bannerTopo.linkUrl ? "_blank" : "_self"}
@@ -465,18 +513,9 @@ export default async function NoticiaPage({
               src={
                 bannerTopo.imageUrl.startsWith("http")
                   ? bannerTopo.imageUrl
-                  : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}${bannerTopo.imageUrl}`
+                  : getImagePath(bannerTopo.imageUrl)
               }
               alt={bannerTopo.titulo}
-              style={{
-                width: "100%",
-                height: "auto",
-                maxHeight: "135px",
-                objectFit: "cover",
-                borderRadius: "6px",
-                border: "1px solid rgba(255,255,255,0.06)",
-                display: "block",
-              }}
             />
           </a>
         </div>
@@ -487,7 +526,7 @@ export default async function NoticiaPage({
         <nav className="editorial-breadcrumb" aria-label="breadcrumb">
           <Link href="/">INÍCIO</Link>
           <span>/</span>
-          <Link href={`/categoria/${noticia.categoria.slug}`}>
+          <Link href={`/categoria/${noticia.categoria.slug}`} prefetch={false}>
             {noticia.categoria.nome.toUpperCase()}
           </Link>
         </nav>
@@ -496,6 +535,7 @@ export default async function NoticiaPage({
         <header className="editorial-header">
           <Link
             href={`/categoria/${noticia.categoria.slug}`}
+            prefetch={false}
             className="editorial-category"
           >
             {noticia.categoria.nome}
@@ -514,7 +554,7 @@ export default async function NoticiaPage({
                   src={
                     noticia.colunista
                       ? getImagePath(noticia.colunista.fotoUrl)
-                      : "/uploads/Logo%20Tv%20Russas_Sem%20fundo.png"
+                      : "/logo-tv-russas.png"
                   }
                   alt={noticia.colunista?.nome || "Portal TV Russas"}
                   width={48}
@@ -539,6 +579,14 @@ export default async function NoticiaPage({
                   <span className="read-time">
                     <i className="far fa-clock" /> {readTime} min de leitura
                   </span>
+                  {noticia.fonte && (
+                    <>
+                      <span className="meta-separator">·</span>
+                      <span style={{ fontSize: '11px', color: 'var(--c-muted)', fontWeight: 500, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                        <span>Fonte: <span style={{ color: 'var(--c-text)' }}>{noticia.fonte}</span></span>
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -560,10 +608,25 @@ export default async function NoticiaPage({
             />
           )}
         </div>
-        <figcaption className="editorial-image-caption">
-          <span>{noticia.titulo}</span>
-          <span>{TEXTS.brand.acervo}</span>
-        </figcaption>
+        {(() => {
+          const isVideo = !!noticia.videoUrl;
+          const leftText = isVideo
+            ? noticia.descricaoVideo || ""
+            : noticia.descricaoFoto || noticia.titulo;
+            
+          const rightText = isVideo
+            ? (noticia.creditosVideo ? `Vídeo: ${noticia.creditosVideo}` : "")
+            : (noticia.creditosFoto ? `Foto: ${noticia.creditosFoto}` : TEXTS.brand.acervo);
+
+          if (!leftText && !rightText) return null;
+
+          return (
+            <figcaption className="editorial-image-caption">
+              <span>{leftText}</span>
+              <span>{rightText}</span>
+            </figcaption>
+          );
+        })()}
 
         {/* ===== GRID DE CONTEÚDO EDITORIAL ===== */}
         <div className="editorial-content-grid">
@@ -579,16 +642,25 @@ export default async function NoticiaPage({
                 <div className="tags-list">
                   <Link
                     href={`/categoria/${noticia.categoria.slug}`}
+                    prefetch={false}
                     className="tag-link"
                   >
                     {noticia.categoria.nome}
                   </Link>
-                  <Link href="/search?q=Ceará" className="tag-link">
-                    {TEXTS.common.ceara}
-                  </Link>
-                  <Link href="/search?q=Russas" className="tag-link">
-                    {TEXTS.common.russas}
-                  </Link>
+                  {noticia.tags &&
+                    noticia.tags
+                      .split(",")
+                      .map((tag) => tag.trim())
+                      .filter(Boolean)
+                      .map((tag, index) => (
+                        <Link
+                          key={index}
+                          href={`/search?q=${encodeURIComponent(tag)}`}
+                          className="tag-link"
+                        >
+                          {tag.charAt(0).toUpperCase() + tag.slice(1)}
+                        </Link>
+                      ))}
                 </div>
               </div>
             </div>
@@ -610,6 +682,7 @@ export default async function NoticiaPage({
                     <Link
                       key={item.slug}
                       href={`/noticia/${item.slug}`}
+                      prefetch={false}
                       className="related-mini-card"
                     >
                       <div className="mini-card-img">
@@ -644,6 +717,7 @@ export default async function NoticiaPage({
                     <Link
                       key={item.slug}
                       href={`/noticia/${item.slug}`}
+                      prefetch={false}
                       className="mais-lidas-item"
                     >
                       <div

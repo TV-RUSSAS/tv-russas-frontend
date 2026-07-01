@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { Inter, Lora } from "next/font/google";
 import "./globals.css";
 import "./home-premium.css";
+import "@fortawesome/fontawesome-free/css/all.min.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import { DOMAIN } from "@/utils/domain";
-
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
@@ -26,7 +25,8 @@ export const metadata: Metadata = {
     default: "TV Russas - O portal de notícias de Russas e região",
     template: "%s | TV Russas",
   },
-  description: "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
+  description:
+    "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
   metadataBase: new URL(DOMAIN),
   alternates: {
     canonical: DOMAIN,
@@ -42,23 +42,26 @@ export const metadata: Metadata = {
     "UFC Russas",
   ],
   icons: {
-    icon: "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
-    shortcut: "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
-    apple: "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
+    // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
   verification: {
     google: "googlea234f6b2160d5bba", // O código do Search Console
   },
   openGraph: {
     title: "TV Russas - O portal de notícias de Russas e região",
-    description: "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
+    description:
+      "Fique por dentro das últimas notícias de Russas, Ceará e região. Cobertura completa de política, esporte, entretenimento, colunas e reportagens especiais.",
     url: DOMAIN,
     siteName: "TV Russas",
     locale: "pt_BR",
     type: "website",
     images: [
       {
-        url: "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
+        // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+        url: "/og-tv-russas.jpg",
         width: 1200,
         height: 630,
         alt: "TV Russas Logo",
@@ -68,8 +71,10 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "TV Russas - O portal de notícias de Russas e região",
-    description: "Fique por dentro das últimas notícias de Russas, Ceará e região.",
-    images: ["https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg"],
+    description:
+      "Fique por dentro das últimas notícias de Russas, Ceará e região.",
+    // FASE 1 — Migrado de onrender.com para /public do Next.js (Vercel)
+    images: ["/og-tv-russas.jpg"],
   },
   robots: {
     index: true,
@@ -96,74 +101,47 @@ export default function RootLayout({
       {
         "@type": "WebSite",
         "@id": `${DOMAIN}/#website`,
-        "url": `${DOMAIN}/`,
-        "name": "TV Russas",
-        "description": "O portal de notícias de Russas e região",
-        "publisher": {
-          "@id": `${DOMAIN}/#organization`
+        url: `${DOMAIN}/`,
+        name: "TV Russas",
+        description: "O portal de notícias de Russas e região",
+        publisher: {
+          "@id": `${DOMAIN}/#organization`,
         },
-        "potentialAction": {
+        // Documentação: SearchAction descreve a busca funcional interna do portal TV Russas.
+        // A presença deste schema não garante a exibição da "Sitelinks Search Box" especial no Google,
+        // mas ajuda o bot a entender a arquitetura interna.
+        potentialAction: {
           "@type": "SearchAction",
-          "target": {
+          target: {
             "@type": "EntryPoint",
-            "urlTemplate": `${DOMAIN}/search?q={search_term_string}`
+            urlTemplate: `${DOMAIN}/search?q={search_term_string}`,
           },
-          "query-input": "required name=search_term_string"
+          "query-input": "required name=search_term_string",
         },
-        "inLanguage": "pt-BR"
+        inLanguage: "pt-BR",
       },
       {
-        "@type": "Organization",
+        "@type": "NewsMediaOrganization",
         "@id": `${DOMAIN}/#organization`,
-        "name": "TV Russas",
-        "url": `${DOMAIN}/`,
-        "logo": {
+        name: "TV Russas",
+        url: `${DOMAIN}/`,
+        logo: {
           "@type": "ImageObject",
-          "url": "https://tv-russas-backend.onrender.com/uploads/sistema/1.png",
-          "caption": "TV Russas"
+          url: "/logo-tv-russas.png",
+          caption: "TV Russas",
         },
-        "sameAs": [
+        sameAs: [
           "https://www.instagram.com/",
-          "https://www.facebook.com/share/1BN4Yrd75d/"
-        ]
-      },
-      {
-        "@type": "LocalBusiness",
-        "@id": `${DOMAIN}/#localbusiness`,
-        "name": "TV Russas",
-        "image": "https://tv-russas-backend.onrender.com/uploads/sistema/tv.jpg",
-        "url": `${DOMAIN}/`,
-        "telephone": "",
-        "address": {
-          "@type": "PostalAddress",
-          "addressLocality": "Russas",
-          "addressRegion": "CE",
-          "addressCountry": "BR"
-        },
-        "geo": {
-          "@type": "GeoCoordinates",
-          "latitude": -4.9378,
-          "longitude": -37.9756
-        },
-        "areaServed": {
-          "@type": "AdministrativeArea",
-          "name": "Russas e Região do Vale do Jaguaribe"
-        }
+          "https://www.facebook.com/share/1BN4Yrd75d/",
+        ],
       }
-    ]
+    ],
   };
-
-  // Carrega chaves de ambiente ou usa códigos padrão configurados
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID || "GTM-PW5B7N3Q";
-  const gaId = "G-PTJPVDHEWK";
 
   return (
     <html lang="pt-BR" data-scroll-behavior="smooth">
+      {/* Layout Principal da TV Russas */}
       <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-        />
         {/* Schema estruturado global de SEO Local e Negócio */}
         <script
           type="application/ld+json"
@@ -179,8 +157,6 @@ export default function RootLayout({
         <Footer />
         <Analytics />
         <SpeedInsights />
-        <GoogleTagManager gtmId={gtmId} />
-        <GoogleAnalytics gaId={gaId} />
       </body>
     </html>
   );
