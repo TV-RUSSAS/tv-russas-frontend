@@ -87,7 +87,6 @@ export default async function Home() {
           className="premium-ad-container-v2"
           style={{ cursor: bannerTopoHome?.linkUrl ? "pointer" : "default" }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={bannerTopoHome ? getImagePath(bannerTopoHome.imageUrl) : getImagePath("anuncio/banner2.png")}
             alt={bannerTopoHome?.titulo || "Patrocínio Premium"}
@@ -122,6 +121,7 @@ export default async function Home() {
             </div>
           </section>
 
+          {/* BANNER DINHEIRO NA MÃO - DESATIVADO
           <div
             className="premium-ad-wrapper"
             style={{ margin: "20px 0" }}
@@ -133,7 +133,6 @@ export default async function Home() {
               className="premium-ad-container-v2"
               style={{ cursor: (bannerMeioHome?.linkUrl || "https://dinheironamao.trabalho.ce.gov.br") ? "pointer" : "default" }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={bannerMeioHome ? getImagePath(bannerMeioHome.imageUrl) : getImagePath("anuncio/Anuncio1.png")}
                 alt={bannerMeioHome?.titulo || "Publicidade Governo do Ceará"}
@@ -141,6 +140,7 @@ export default async function Home() {
               />
             </a>
           </div>
+          */}
 
           {(() => {
             const elementosLayout: React.ReactNode[] = [];

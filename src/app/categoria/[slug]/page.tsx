@@ -27,7 +27,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  
+
   let nome = "Categoria";
   try {
     const categoria = await apiService.getCategoriaBySlug(slug);
@@ -122,7 +122,7 @@ export default async function CategoriaPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  
+
   // Buscar dados em paralelo para melhor performance
   const [categoria, noticiasRaw, maisLidas] = await Promise.all([
     apiService.getCategoriaBySlug(slug),
@@ -196,8 +196,9 @@ export default async function CategoriaPage({
           __html: JSON.stringify(categorySchema).replace(/</g, "\\u003c"),
         }}
       />
-      
+
       {/* BANNER TOPO: RODÍZIO POR CATEGORIA */}
+      {/*
       <div className="banner-anuncio">
         {isClickable ? (
           <a href={adLink} target="_blank" rel="noopener noreferrer">
@@ -221,6 +222,7 @@ export default async function CategoriaPage({
           />
         )}
       </div>
+      */}
 
       {/* CABEÇALHO DA CATEGORIA */}
       <header className="categoria-header">
