@@ -10,13 +10,13 @@
   background: var(--branco, #fff);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
   border: 1px solid #eaeaea;
 }
 
 .hover-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
 }
 
 .image-zoom {
@@ -32,8 +32,15 @@
 }
 
 @keyframes fadeInItem {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card-lift {
@@ -42,7 +49,7 @@
 
 .card-lift:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
 }
 
 /* ================= CLASSES LIMPAS (SEM TAILWIND) ================= */
@@ -105,7 +112,7 @@
   line-height: 1.35;
   color: #fff;
   margin-bottom: 10px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 /* Colunista Page Clean */
@@ -178,4 +185,103 @@
 
 .hover-card:hover .noticia-colunista-titulo {
   color: var(--laranja, #ff5722);
+}
+
+/* ================= SEÇÃO DE VÍDEOS (YOUTUBE) ================= */
+.videos-section {
+  background: #ffffff;
+  border: 1px solid #ececec;
+  padding: 40px 24px;
+  margin-top: 40px;
+  border-radius: 12px;
+}
+
+.videos-section-title {
+  color: #2b2318;
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 24px;
+}
+
+.videos-subsection-divider {
+  height: 1px;
+  background: #eee;
+  margin: 32px 0 24px;
+}
+
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .videos-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .videos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.video-card {
+  display: block;
+  text-decoration: none;
+  color: #2b2318;
+}
+
+.video-thumb-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.video-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b3400e;
+}
+
+.video-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  color: #2b2318;
+}
+
+.video-date {
+  font-size: 12px;
+  opacity: 0.75;
+  display: block;
+  margin-bottom: 8px;
+  color: #2b2318;
+}
+
+.video-description {
+  font-size: 13px;
+  opacity: 0.85;
+  line-height: 1.4;
+  color: #2b2318;
 }

@@ -7,6 +7,7 @@ import PremiumCard from "@/components/PremiumCard";
 import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
 import { getImagePath } from "@/utils/imagePath";
+import { VideosSection } from '@/components/VideosSection';
 
 // --- COMPONENTES UI ---
 
@@ -353,6 +354,8 @@ export default async function Home() {
           </div>
         </aside>
       </div>
+
+      <VideosSection />
     </main>
   );
 }
