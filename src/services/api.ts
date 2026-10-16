@@ -65,7 +65,7 @@ export const apiService = {
     categorias: Categoria[];
     noticiasPorCategoria: { categoria: Categoria; noticias: Noticia[] }[];
     bannerTopo: Banner | null;
-    bannerMeio: Banner | null;
+    bannerMeio: Banner[]
   }> {
     try {
       const res = await fetch(`${API_URL}/home`, FETCH_OPTIONS);
@@ -81,7 +81,7 @@ export const apiService = {
         categorias: [],
         noticiasPorCategoria: [],
         bannerTopo: null,
-        bannerMeio: null
+        bannerMeio: []
       };
     }
   },
