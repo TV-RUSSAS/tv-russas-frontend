@@ -8,6 +8,7 @@ import TrendingWidget from "@/components/TrendingWidget";
 import { apiService } from "@/services/api";
 import { getImagePath } from "@/utils/imagePath";
 import { VideosSection } from '@/components/VideosSection';
+import BannerCarousel from "@/components/BannerCarousel";
 
 // --- COMPONENTES UI ---
 
@@ -56,6 +57,12 @@ export default async function Home() {
     maisLidasRaw.length > 0 ? maisLidasRaw : fallbackNews.slice(0, 5);
   const trending =
     trendingRaw.length > 0 ? trendingRaw : fallbackNews.slice(5, 10);
+
+  const bannersMeio = Array.isArray(bannerMeioHome)
+    ? bannerMeioHome
+    : bannerMeioHome
+      ? [bannerMeioHome]
+      : [];
 
   return (
     <main className="premium-home">
@@ -121,28 +128,15 @@ export default async function Home() {
             </div>
           </section>
 
-          {bannerMeioHome && (
+          {bannersMeio.length > 0 && (
             <div className="premium-ad-wrapper" style={{ margin: "20px 0" }}>
-              <a
-                href={bannerMeioHome.linkUrl || "#"}
-                target={bannerMeioHome.linkUrl ? "_blank" : "_self"}
-                rel="noopener noreferrer"
-                className="premium-ad-container-v2"
-                style={{ cursor: bannerMeioHome.linkUrl ? "pointer" : "default" }}
-              >
-                <img
-                  src={getImagePath(bannerMeioHome.imageUrl)}
-                  alt={bannerMeioHome.titulo || "Publicidade"}
-                  style={{
-                    width: "100%",
-                    height: "auto",
-                    maxHeight: "140px",
-                    objectFit: "cover",
-                    borderRadius: "8px",
-                    display: "block",
-                  }}
-                />
-              </a>
+              <BannerCarousel
+                banners={bannersMeio.map((b) => ({
+                  src: getImagePath(b.imageUrl),
+                  href: b.linkUrl ?? undefined,
+                  alt: b.titulo,
+                }))}
+              />
             </div>
           )}
 
