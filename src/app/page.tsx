@@ -121,46 +121,30 @@ export default async function Home() {
             </div>
           </section>
 
-          {/* BANNER DINHEIRO NA MÃO - DESATIVADO
-          <div
-            className="premium-ad-wrapper"
-            style={{ margin: "20px 0" }}
-          >
-            <a
-              href={
-                bannerMeioHome?.linkUrl ||
-                "https://dinheironamao.trabalho.ce.gov.br"
-              }
-              target="_blank"
-              rel="noopener noreferrer"
-              className="premium-ad-container-v2"
-              style={{
-                cursor:
-                  bannerMeioHome?.linkUrl ||
-                  "https://dinheironamao.trabalho.ce.gov.br"
-                    ? "pointer"
-                    : "default",
-              }}
-            >
-              <img
-                src={
-                  bannerMeioHome
-                    ? getImagePath(bannerMeioHome.imageUrl)
-                    : getImagePath("anuncio/Anuncio1.png")
-                }
-                alt={bannerMeioHome?.titulo || "Publicidade Governo do Ceará"}
-                style={{
-                  width: "100%",
-                  height: "auto",
-                  maxHeight: "140px",
-                  objectFit: "cover",
-                  borderRadius: "8px",
-                  display: "block",
-                }}
-              />
-            </a>
-          </div>
-          */}
+          {bannerMeioHome && (
+            <div className="premium-ad-wrapper" style={{ margin: "20px 0" }}>
+              <a
+                href={bannerMeioHome.linkUrl || "#"}
+                target={bannerMeioHome.linkUrl ? "_blank" : "_self"}
+                rel="noopener noreferrer"
+                className="premium-ad-container-v2"
+                style={{ cursor: bannerMeioHome.linkUrl ? "pointer" : "default" }}
+              >
+                <img
+                  src={getImagePath(bannerMeioHome.imageUrl)}
+                  alt={bannerMeioHome.titulo || "Publicidade"}
+                  style={{
+                    width: "100%",
+                    height: "auto",
+                    maxHeight: "140px",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    display: "block",
+                  }}
+                />
+              </a>
+            </div>
+          )}
 
           {(() => {
             const elementosLayout: React.ReactNode[] = [];
